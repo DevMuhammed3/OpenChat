@@ -4,15 +4,17 @@ import {
   InputGroupTextarea,
   InputGroupAddon,
 } from "@/components/ui/input-group"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { socket } from "@/lib/socket"
 import { Send } from "lucide-react"
 
 export function ChatBox() {
-  const [message, setMessage] = useState('')
+  const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState<string[]>([]);
 
   const handleSend = () => {
     if (!message.trim()) return
-    console.log("Message:", message)
+    socket.emit("send-message", message)
     setMessage('')
   }
 
@@ -22,6 +24,17 @@ export function ChatBox() {
       handleSend()
     }
   }
+
+  useEffect(() => {
+    socket.on("receive-message", (msg:string) => {
+      setMessages((prev) => [...prev, msg])
+    });
+
+    return () => {
+      socket.off("receive-message");
+    };
+  }, []);
+
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-50">
