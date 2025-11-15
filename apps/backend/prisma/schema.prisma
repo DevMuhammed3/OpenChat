@@ -5,8 +5,7 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -17,30 +16,30 @@ datasource db {
 model User {
   id            Int       @id @default(autoincrement())
   name          String?
-  username      String     @unique
-  email         String     @unique
+  username      String   @unique
+  email         String    @unique
   emailVerified DateTime?
   avatar        String?
   password      String
-  role          String     @default("USER")
-  bio           String?    @db.Text
-  phone         String?     @unique
-  status        Boolean     @default(false)
-  isActive      Boolean     @default(true)
+  role          String    @default("USER")
+  bio           String?   @db.Text
+  phone         String?   @unique
+  status        Boolean   @default(false)
+  isActive      Boolean   @default(true)
 
   // Security
-  lastLogin     DateTime?
-  loginAttempts Int         @default(0)
-  lockedUntil   DateTime?
-  twoFactorEnabled Boolean  @default(false)
+  lastLogin        DateTime?
+  loginAttempts    Int       @default(0)
+  lockedUntil      DateTime?
+  twoFactorEnabled Boolean   @default(false)
   twoFactorSecret  String?
 
   // Social
-  googleId      String?     @unique
-  githubId      String?     @unique
-  discordId     String?     @unique
-  facebookId    String?     @unique
+  googleId   String? @unique
+  githubId   String? @unique
+  discordId  String? @unique
+  facebookId String?
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
