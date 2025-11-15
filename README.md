@@ -2,7 +2,7 @@
 
 This repository contains a small monorepo with a frontend (Vite + React), a backend (Express + Socket.io), and shared packages (`@openchat/lib`, `@openchat/components`).
 
-This README explains how to get the project running locally, developer recommendations, and CI setup.
+This README explains how to get the project running locally and developer recommendations.
 
 Requirements
 
@@ -148,7 +148,7 @@ nvm use 20
 
 ## CI
 
-- The repository includes a GitHub Actions workflow that installs Node 22 and runs a workspace build. Consider extending it with linting and tests.
+This repository does not include any CI/workflow configuration by default. If you want CI, I can add a GitHub Actions workflow that uses Node 20 and runs builds, linting, and tests.
 
 ## Need help?
 
