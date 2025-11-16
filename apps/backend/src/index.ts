@@ -18,25 +18,19 @@ const io = new Server(server, {
 app.use(cors())
 app.use(express.json())
 
-// -----------------------------
-//        AUTH ROUTES
-// -----------------------------
+
 app.use('/api/auth', authRoutes)
 
 app.get('/api/protected', authMiddleware, (req, res) => {
   res.json({ message: 'You are authorized!', userId: (req as any).userId })
 })
 
-// -----------------------------
-//        MAIN ROOT
-// -----------------------------
+
 app.get('/', (req, res) => {
   res.json({ message: 'OpenChat Backend Working!' })
 })
 
-// -----------------------------
-//       SOCKET.IO CHAT
-// -----------------------------
+
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id)
 
@@ -50,9 +44,7 @@ io.on('connection', (socket) => {
   })
 })
 
-// -----------------------------
-//       SERVER LISTEN
-// -----------------------------
+
 const PORT = process.env.PORT || 3001
 
 server.listen(PORT, () => {

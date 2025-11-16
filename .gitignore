@@ -48,3 +48,6 @@ apps/*/dist/
 packages/*/node_modules/
 packages/*/dist/
 
+apps/backend/tsconfig.tsbuildinfo
+packages/lib/tsconfig.tsbuildinfo
+packages/components/tsconfig.tsbuildinfo

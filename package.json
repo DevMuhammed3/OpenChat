@@ -49,6 +49,7 @@
     "node": ">=20.19"
   },
   "dependencies": {
+    "@prisma/client": "^6.19.0",
     "@radix-ui/react-avatar": "^1.1.11"
   }
 }

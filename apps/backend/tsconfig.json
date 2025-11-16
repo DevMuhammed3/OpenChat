@@ -2,14 +2,15 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
     "outDir": "dist",
     "rootDir": "src",
     "declaration": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "strict": true
+    "strict": true,
+    "skipLibCheck": true
   },
   "include": ["src"]
 }
