@@ -1,6 +1,9 @@
 # Node / PNPM / General Build Artifacts
 node_modules/
 .pnpm-store/
+apps/*/node_modules/
+packages/*/node_modules/
+**/.prisma/
 
 # Build output
 dist/
@@ -8,6 +11,9 @@ dist-ssr/
 build/
 out/
 *.local
+
+# Prisma generated client
+apps/backend/prisma/generated/
 
 # TypeScript
 *.tsbuildinfo
@@ -42,9 +48,7 @@ Thumbs.db
 .env.*
 !.env.example
 
-# Monorepo / Workspace (for safety)
-apps/*/node_modules/
+# Monorepo workspace
 apps/*/dist/
-packages/*/node_modules/
 packages/*/dist/
 
