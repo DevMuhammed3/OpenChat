@@ -45,7 +45,6 @@ Thumbs.db
 
 # ENV files (Important!)
 .env
-.env.*
 !.env.example
 
 # Monorepo workspace

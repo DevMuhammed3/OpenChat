@@ -9,6 +9,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
   plugins: [react(), tsconfigPaths()],
+  css: {
+    postcss: path.resolve(__dirname, './postcss.config.cjs'), 
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -16,10 +19,8 @@ export default defineConfig({
       '@openchat/components': path.resolve(__dirname, '../../packages/components/src'),
     }
   },
-  root: ".",
   server: {
     fs: {
-      // allow serving files from the monorepo root
       allow: [path.resolve(__dirname, '../../')]
     }
   },

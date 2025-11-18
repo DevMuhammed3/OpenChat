@@ -1,4 +1,3 @@
-// src/features/chat/components/ChatBox.tsx
 import {
   InputGroup,
   InputGroupTextarea,
@@ -24,22 +23,18 @@ export function ChatBox() {
     }
   }
 
-  // Autofocus the textarea on mount and add global shortcut to focus it
   useEffect(() => {
     const focusTextarea = () => {
       const el = containerRef.current?.querySelector('textarea[data-slot="input-group-control"]') as HTMLTextAreaElement | null
       el?.focus()
     }
 
-    // focus on mount
     focusTextarea()
 
     const onKey = (e: KeyboardEvent) => {
-      // ignore when typing in inputs
       const active = document.activeElement
       if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || (active as HTMLElement).isContentEditable)) return
 
-      // '/' or Ctrl/Cmd+K to focus
       if (e.key === '/' || (e.key.toLowerCase() === 'k' && (e.ctrlKey || e.metaKey))) {
         e.preventDefault()
         focusTextarea()

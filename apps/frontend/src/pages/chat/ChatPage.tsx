@@ -1,4 +1,4 @@
-import { ChatBox } from "web/pages/components/ChatBox";
+import { ChatBox } from "web/pages/components/chat/ChatBox";
 import { useEffect, useState } from "react";
 import { socket } from "@openchat/lib";
 
@@ -14,7 +14,8 @@ function ChatPage (){
   }, [])
 
   return (
-   <div className="flex-1 w-full">
+    // Hidden The Components : TODO
+   <div className="hidden flex-1 w-full">
   <div className="max-w-3xl mx-auto px-4 py-8 w-full">
     <p className="text-muted-foreground text-center">Welcome to OpenChat</p>
 
