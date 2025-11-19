@@ -17,8 +17,8 @@
     "paths": {
       "packages/lib": ["../lib/src"],
       "packages/lib/*": ["../lib/src/*"],
-      "packages/ui": ["src/ui"],
-      "packages/ui/*": ["src/ui/*"]
+      "packages/ui": ["src/"],
+      "packages/ui/*": ["src/*"]
     }
   },
   "include": ["src"],
