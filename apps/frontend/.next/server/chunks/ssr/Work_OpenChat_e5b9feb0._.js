@@ -1,3 +1,0 @@
-module.exports=[47406,a=>{a.n(a.i(38507))},95493,a=>{a.n(a.i(24525))},9760,a=>{a.n(a.i(66811))},66519,a=>{a.n(a.i(57479))},96999,a=>{a.n(a.i(44172))},57479,(a,b,c)=>{"use strict";Object.defineProperty(c,"__esModule",{value:!0}),Object.defineProperty(c,"default",{enumerable:!0,get:function(){return f}});let d=a.r(14904),e=a.r(78299);function f(){return(0,d.jsx)(e.HTTPAccessErrorFallback,{status:401,message:"You're not authorized to access this page."})}("function"==typeof c.default||"object"==typeof c.default&&null!==c.default)&&void 0===c.default.__esModule&&(Object.defineProperty(c.default,"__esModule",{value:!0}),Object.assign(c.default,c),b.exports=c.default)}];
-
-//# sourceMappingURL=Work_OpenChat_e5b9feb0._.js.map

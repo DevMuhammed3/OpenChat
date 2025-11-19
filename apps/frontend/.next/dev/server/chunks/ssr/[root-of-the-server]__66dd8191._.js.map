@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 10, "column": 0}, "map": {"version":3,"sources":["file:///home/mo/Work/OpenChat/apps/frontend/src/pages/index.tsx"],"sourcesContent":["\"use client\";\n\nimport Link from 'next/link';\n\nexport default function Home() {\n  return (\n    <main className=\"flex min-h-screen flex-col items-center justify-center gap-10 bg-background\">\n      <h1 className=\"text-6xl font-bold text-primary\">OpenChat</h1>\n      <Link href=\"/auth\" className=\"text-2xl text-blue-600 hover:underline\">\n        ابدأ الدردشة →\n      </Link>\n    </main>\n  );\n}\n"],"names":[],"mappings":";;;;;AAEA;AAFA;;;AAIe,SAAS;IACtB,qBACE,qKAAC;QAAK,WAAU;;0BACd,qKAAC;gBAAG,WAAU;0BAAkC;;;;;;0BAChD,qKAAC,qTAAI;gBAAC,MAAK;gBAAQ,WAAU;0BAAyC;;;;;;;;;;;;AAK5E"}}]
-}

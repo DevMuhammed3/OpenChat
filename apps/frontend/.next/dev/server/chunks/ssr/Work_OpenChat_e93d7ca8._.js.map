@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///home/mo/Work/OpenChat/apps/frontend/src/app/layout.tsx"],"sourcesContent":["import \"../globals.css\"\nimport type { Metadata } from \"next\"\n\nexport const metadata: Metadata = {\n  title: \"OpenChat\",\n  description: \"Chat App\",\n}\n\nexport default function RootLayout({\n  children,\n}: {\n  children: React.ReactNode\n}) {\n  return (\n    <html lang=\"ar\" dir=\"rtl\" className=\"dark\">\n      <body>{children}</body>\n    </html>\n  )\n}\n"],"names":[],"mappings":";;;;;;;;;AAGO,MAAM,WAAqB;IAChC,OAAO;IACP,aAAa;AACf;AAEe,SAAS,WAAW,EACjC,QAAQ,EAGT;IACC,qBACE,maAAC;QAAK,MAAK;QAAK,KAAI;QAAM,WAAU;kBAClC,cAAA,maAAC;sBAAM;;;;;;;;;;;AAGb"}},
-    {"offset": {"line": 39, "column": 0}, "map": {"version":3,"sources":["file:///home/mo/Work/OpenChat/node_modules/.pnpm/next%4016.0.3_%40babel%2Bcore%407.28.5_react-dom%4019.2.0_react%4019.2.0__react%4019.2.0/node_modules/next/src/server/route-modules/app-page/vendored/rsc/react-jsx-dev-runtime.ts"],"sourcesContent":["module.exports = (\n  require('../../module.compiled') as typeof import('../../module.compiled')\n).vendored['react-rsc']!.ReactJsxDevRuntime\n"],"names":["module","exports","require","vendored","ReactJsxDevRuntime"],"mappings":"AAAAA,OAAOC,OAAO,GACZC,QAAQ,wOACRC,QAAQ,CAAC,YAAY,CAAEC,kBAAkB","ignoreList":[0]}}]
-}

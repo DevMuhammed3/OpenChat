@@ -1,3 +1,0 @@
-module.exports=[91030,(a,b,c)=>{let{createClientModuleProxy:d}=a.r(80351);a.n(d("[project]/Work/OpenChat/node_modules/.pnpm/next@16.0.3_@babel+core@7.28.5_react-dom@19.2.0_react@19.2.0__react@19.2.0/node_modules/next/dist/client/components/builtin/global-error.js <module evaluation>"))},18387,(a,b,c)=>{let{createClientModuleProxy:d}=a.r(80351);a.n(d("[project]/Work/OpenChat/node_modules/.pnpm/next@16.0.3_@babel+core@7.28.5_react-dom@19.2.0_react@19.2.0__react@19.2.0/node_modules/next/dist/client/components/builtin/global-error.js"))},44172,a=>{"use strict";a.i(91030);var b=a.i(18387);a.n(b)}];
-
-//# sourceMappingURL=9b1f8_next_dist_client_components_builtin_global-error_6770c652.js.map

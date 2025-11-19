@@ -1,5 +1,8 @@
-# pnpm-workspace.yaml
 packages:
-  - "apps/*"
-  - "packages/*"
-  - "desktop"
+  - apps/*
+  - packages/*
+  - desktop
+
+ignoredBuiltDependencies:
+  - sharp
+  - unrs-resolver
