@@ -61,7 +61,7 @@ export default function AuthPage() {
 
             setMessage({ type: 'success', text: 'Login successful!' })
             setTimeout(() => {
-                window.location.href = '/'
+                window.location.href = '/chat'
             }, 1000)
         } catch (err) {
             setMessage({ type: 'error', text: 'Something went wrong' })
