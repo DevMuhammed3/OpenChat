@@ -159,4 +159,3 @@ If you'd like, I can:
 - Integrate Tailwind + shadcn into `apps/frontend` (or add it to other apps) and wire workspace imports for UI components.
 
 Tell me which of the above you'd like next and I will implement it.
-
