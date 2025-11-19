@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc -b",
     "dev": "tsc -b --watch",
@@ -16,7 +18,8 @@
     "react": "^19.0.0"
   },
   "devDependencies": {
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.4.0",
     "typescript": "^5.0.0"
   }
 }
-

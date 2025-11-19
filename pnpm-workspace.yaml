@@ -1,5 +1,15 @@
-# pnpm-workspace.yaml
 packages:
-  - "apps/*"
-  - "packages/*"
-  - "desktop"
+  - apps/*
+  - packages/*
+  - desktop
+
+ignoredBuiltDependencies:
+  - sharp
+  - unrs-resolver
+
+onlyBuiltDependencies:
+  - '@prisma/client'
+  - '@prisma/engines'
+  - bcrypt
+  - esbuild
+  - prisma

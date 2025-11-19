@@ -1,7 +1,7 @@
 {
   "files": [],
   "references": [
-    { "path": "./apps/frontend/tsconfig.app.json" },
+    { "path": "./apps/frontend/tsconfig.json" },
     { "path": "./apps/backend/tsconfig.json" },
     { "path": "./packages/components" },
     { "path": "./packages/lib" }
@@ -16,8 +16,8 @@
       "@openchat/components": ["./packages/components/src"],
       "@openchat/lib": ["./packages/lib/src"],
       "@openchat/types": ["./packages/types/src"],
-      "web/*": ["./apps/frontend/src/*"],
-      "packages/ui": ["./packages/components/src/ui"],
+      // "web/*": ["./apps/frontend/src/*"],
+      "packages/ui": ["./packages/components/src"],
       "packages/ui/*": ["./packages/components/src/ui/*"],
   "packages/lib": ["./packages/lib/src"],
   "packages/lib/*": ["./packages/lib/src/*"],

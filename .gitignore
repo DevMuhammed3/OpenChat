@@ -6,6 +6,7 @@ packages/*/node_modules/
 **/.prisma/
 
 # Build output
+.next/
 dist/
 dist-ssr/
 build/
@@ -13,7 +14,7 @@ out/
 *.local
 
 # Prisma generated client
-apps/backend/prisma/generated/
+apps/backend/generated/*
 
 # TypeScript
 *.tsbuildinfo
@@ -45,7 +46,6 @@ Thumbs.db
 
 # ENV files (Important!)
 .env
-.env.*
 !.env.example
 
 # Monorepo workspace
@@ -55,4 +55,7 @@ packages/*/dist/
 apps/backend/tsconfig.tsbuildinfo
 **/*.tsbuildinfo
 **/*.tsbuildinfo.*
+apps/*/.next
+apps/*/dist
+apps/*/.turbo
 

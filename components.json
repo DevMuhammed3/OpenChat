@@ -11,7 +11,8 @@
   },
   "iconLibrary": "lucide",
   "aliases": {
-    "components": "packages/components/src",
-    "utils": "packages/lib/src/utils"
+    "components": "@openchat/components",
+    "types": "@openchat/types",
+    "utils": "@openchat/lib"
   }
 }
