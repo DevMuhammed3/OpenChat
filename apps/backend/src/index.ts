@@ -1,64 +1,41 @@
-import express from 'express';
-import http from 'http';
-import { Server } from 'socket.io';
-import cors from 'cors';
-import dotenv from 'dotenv';
+// // apps/backend/src/index.ts
+// import express from 'express'
+// import http from 'http'
+// import { Server } from 'socket.io'
+// import cors from 'cors'
+// import dotenv from 'dotenv'
 
-import authRoutes from './modules/AuthRoutes.js';
-import { authMiddleware } from './middleware/auth.js';
-import { app } from './app.js';
+// dotenv.config()
 
-dotenv.config();
+// const app = express()
+// const server = http.createServer(app)
+// const io = new Server(server, {
+//   cors: { origin: '*' }
+// })
 
-// ========================
-//     EXPRESS APP SETUP
-// ========================
-app.use(cors());
-app.use(express.json());
+// app.use(cors())
+// app.use(express.json())
 
-// ========================
-//         ROUTES
-// ========================
-app.use('/api/auth', authRoutes);
+// app.get('/', (req, res) => {
+//   res.json({ message: 'OpenChat Backend Working!' })
+// })
 
-app.get('/api/protected', authMiddleware, (req, res) => {
-  res.json({ message: 'You are authorized!', userId: (req as any).userId });
-});
+// io.on('connection', (socket) => {
+//   console.log('User connected:', socket.id)
+//   // handle chat messages
+//   socket.on('send-message', (message: string) => {
+//     console.log('Received message from', socket.id, message)
+//     // broadcast to all connected clients
+//     io.emit('receive-message', message)
+//   })
+// })
 
-app.get('/', (req, res) => {
-  res.json({ message: 'OpenChat Backend Working!' });
-});
+// server.listen(3001, () => {
+//   console.log('Server running on http://localhost:3001')
+// })
 
-// ========================
-//     HTTP + SOCKET.IO
-// ========================
-const server = http.createServer(app);
+import { app } from "./app.js";
 
-const io = new Server(server, {
-  cors: {
-    origin: '*',
-    methods: ['GET', 'POST'],
-  },
-});
-
-io.on('connection', (socket) => {
-  console.log('User connected:', socket.id);
-
-  socket.on('send-message', (message: string) => {
-    console.log('Received message from', socket.id, ':', message);
-    io.emit('receive-message', { id: socket.id, message });
-  });
-
-  socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
-  });
-});
-
-// ========================
-//        START SERVER
-// ========================
-const PORT = process.env.PORT || 4000;
-
-server.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+app.listen(4000, () => {
+  console.log("Server running on http://localhost:4000");
 });
