@@ -5,6 +5,7 @@ export * from './ui/label';
 export * from './ui/tabs';
 export * from './ui/alert';
 export * from './ui/tooltip';
+export * from './ui/input-group';
 export * from './ui/separator';
 export * from './ui/dropdown-menu';
 export * from './ui/avatar';

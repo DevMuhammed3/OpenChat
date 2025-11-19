@@ -54,4 +54,7 @@ packages/*/dist/
 apps/backend/tsconfig.tsbuildinfo
 **/*.tsbuildinfo
 **/*.tsbuildinfo.*
+apps/*/.next
+apps/*/dist
+apps/*/.turbo
 

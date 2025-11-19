@@ -16,7 +16,7 @@
       "@openchat/components": ["./packages/components/src"],
       "@openchat/lib": ["./packages/lib/src"],
       "@openchat/types": ["./packages/types/src"],
-      "web/*": ["./apps/frontend/src/*"],
+      // "web/*": ["./apps/frontend/src/*"],
       "packages/ui": ["./packages/components/src/ui"],
       "packages/ui/*": ["./packages/components/src/ui/*"],
   "packages/lib": ["./packages/lib/src"],
