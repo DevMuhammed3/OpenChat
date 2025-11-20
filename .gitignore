@@ -21,8 +21,8 @@ apps/backend/generated/*
 *.tsbuildinfo.*
 
 # Vite
-.vite/
-vite.config.ts.timestamp-*
+# .vite/
+# vite.config.ts.timestamp-*
 
 # Logs
 logs/

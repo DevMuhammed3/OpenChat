@@ -1,6 +1,6 @@
 # OpenChat (monorepo)
 
-This repository contains a small monorepo with a frontend (Vite + React), a backend (Express + Socket.io), and shared packages (`@openchat/lib`, `@openchat/components`).
+This repository contains a small monorepo with a frontend (Next + React), a backend (Express + Socket.io,Prisma), and shared packages (`@openchat/lib`, `@openchat/components`).
 
 This README explains how to get the project running locally and developer recommendations.
 
@@ -11,7 +11,7 @@ Requirements
 
 This repository contains a monorepo for OpenChat:
 
-- `apps/frontend` — Vite + React client
+- `apps/frontend` — Next + React client
 - `apps/backend` — Express + Socket.io server (with Prisma schema)
 - `packages/lib` — shared utilities (helpers, socket client)
 - `packages/components` — shared UI components
@@ -20,7 +20,7 @@ This README covers how to set up the project locally, common workflows for devel
 
 ## Requirements
 
-- Node.js: >= 20.19 (20.x recommended). Use `nvm` to manage Node versions — a `.nvmrc` is included.
+- Node.js: >= 20.x (20.x recommended). Use `nvm` to manage Node versions — a `.nvmrc` is included.
 - pnpm: v7+ (workspace-aware). Install with `npm i -g pnpm` if needed.
 
 ## Quick setup
@@ -28,9 +28,9 @@ This README covers how to set up the project locally, common workflows for devel
 1. Use the recommended Node version:
 
 ```bash
-nvm install
-nvm use
-node -v # should be >= 20.19 (20.x recommended)
+nvm install 20
+nvm use 20
+node -v # should be >= 20.x (20.x recommended)
 ```
 
 2. Install dependencies (from repo root):
@@ -42,17 +42,17 @@ pnpm install
 3. Run development servers:
 
 ```bash
-pnpm run dev:all    # runs frontend + backend concurrently (defined in root package.json)
+pnpm run dev    # runs frontend + backend concurrently (defined in root package.json)
 # or run individually
-pnpm --filter frontend dev
-pnpm --filter backend dev
+pnpm dev:frontend 
+pnpm dev:backend
 ```
 
-Open the frontend URL printed by Vite (typically http://localhost:5173). The backend listens on port 3001 by default.
+Open the frontend URL printed by Vite (typically http://localhost:3000). The backend listens on port 3001 by default.
 
 ## Environment variables
 
-- `VITE_SOCKET_URL` — frontend socket URL (default: `http://localhost:3001`). Use this in `.env` at the frontend root if needed.
+- `NEXT_SOCKET_URL` — frontend socket URL (default: `http://localhost:3001`). Use this in `.env` at the frontend root if needed.
 - `PORT` or `SOCKET_PORT` — backend port (default: `3001`).
 
 Create an `.env` file in `apps/frontend` or `apps/backend` for local overrides when needed.
@@ -62,7 +62,7 @@ Create an `.env` file in `apps/frontend` or `apps/backend` for local overrides w
 To build all packages and apps in the workspace:
 
 ```bash
-pnpm -w -r build
+pnpm build
 ```
 
 To build a single package/app (example frontend):
@@ -101,7 +101,7 @@ import { Button } from '@openchat/components'
 
 ```bash
 pnpm --filter @openchat/lib build
-pnpm -w -r build
+pnpm build
 ```
 
 ## Clean generated sources
@@ -110,7 +110,7 @@ pnpm -w -r build
 - The repo includes clean scripts in packages to remove stray `.js` in `src` before building. To run all clean scripts:
 
 ```bash
-pnpm -w -r run clean
+pnpm run clean
 ```
 
 ## Common tasks & useful commands
@@ -118,22 +118,22 @@ pnpm -w -r run clean
 - Install dependencies: `pnpm install`
 - Start frontend dev: `pnpm --filter frontend dev`
 - Start backend dev: `pnpm --filter backend dev`
-- Start both: `pnpm run dev:all`
-- Build everything: `pnpm -w -r build`
-- Run workspace tests (if any): `pnpm -w -r test`
+- Start both: `pnpm run dev`
+- Build everything: `pnpm build`
+- Run workspace tests (if any): `pnpm test`
 
 ## Troubleshooting
 
--- If Vite fails with Node crypto errors, you're likely on an unsupported Node version. Switch to Node 20.x (>=20.19):
+-- If Vite fails with Node crypto errors, you're likely on an unsupported Node version. Switch to Node 20.x:
 
 ```bash
 nvm install 20
 nvm use 20
 ```
 
-- If shared imports resolve incorrectly, verify `tsconfig.json` `paths` and `apps/frontend/vite.config.*` aliases are present. They map `@openchat/*` to the packages' `src` folders.
+- If shared imports resolve incorrectly, verify `tsconfig.json` `paths` and `apps/frontend/next.config.js` aliases are present. They map `@openchat/*` to the packages' `src` folders.
 
-- If Tailwind styles don't appear in a consuming app, check PostCSS configuration and ensure `@tailwind` and `@import` ordering is correct in the app's `index.css`.
+- If Tailwind styles don't appear in a consuming app, check PostCSS configuration and ensure `@tailwind` and `@import` ordering is correct in the app's `globals.css`.
 
 ## Publishing packages
 
@@ -143,7 +143,7 @@ nvm use 20
 
 1. Create a new folder under `apps/` or `packages/`.
 2. Add a `package.json` with the workspace name (e.g. `@openchat/yourpkg`).
-3. Add TypeScript sources under `src/` and update root `pnpm -w -r build` if needed.
+3. Add TypeScript sources under `src/` and update root `pnpm build` if needed.
 4. Add path mappings in the root `tsconfig.json` if you want to import it by package name during dev.
 
 ## CI

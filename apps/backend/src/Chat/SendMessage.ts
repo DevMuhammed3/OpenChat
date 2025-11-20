@@ -4,7 +4,7 @@ import { Server } from "socket.io";
 
 const app = express();
 // Respect environment variable or VITE_SOCKET_PORT, default to 3001 to match main backend
-const port = process.env.SOCKET_PORT || process.env.PORT || process.env.VITE_SOCKET_PORT || 3001;
+const port = process.env.SOCKET_PORT || process.env.PORT || process.env.NEXT_SOCKET_PORT || 3001;
 
 const server = http.createServer(app);
 const io = new Server(server, {
