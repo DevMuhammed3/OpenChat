@@ -6,6 +6,7 @@
     "moduleResolution": "NodeNext",
     "outDir": "dist",
     "rootDir": "src",
+    "typeRoots": ["./src/types", "./node_modules/@types"],
     "declaration": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
