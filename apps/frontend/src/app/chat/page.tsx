@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Loader2 } from 'lucide-react';
+import { Input } from 'packages/ui'
+import AddFriend from './AddFriend';
 
 export default function ChatPage() {
   const [messages, setMessages] = useState([
@@ -12,9 +14,8 @@ export default function ChatPage() {
       timestamp: new Date()
     }
   ]);
-
   const [input, setInput] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
+  // const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -26,7 +27,7 @@ export default function ChatPage() {
   }, [messages]);
 
   const handleSend = () => {
-    if (!input.trim() || isTyping) return;
+    if (!input.trim()) return;
 
     const userMessage = {
       id: messages.length + 1,
@@ -37,8 +38,9 @@ export default function ChatPage() {
 
     setMessages(prev => [...prev, userMessage]);
     setInput('');
-    setIsTyping(true);
+    // setIsTyping(true);
 
+    // Simulated assistant response
     setTimeout(() => {
       const assistantMessage = {
         id: messages.length + 2,
@@ -47,7 +49,7 @@ export default function ChatPage() {
         timestamp: new Date()
       };
       setMessages(prev => [...prev, assistantMessage]);
-      setIsTyping(false);
+      // setIsTyping(false);
     }, 1500);
   };
 
@@ -58,7 +60,7 @@ export default function ChatPage() {
     }
   };
 
-  const formatTime = (date: any) => {
+  const formatTime = (date: Date) => {
     return new Date(date).toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit'
@@ -66,7 +68,8 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex h-screen bg-background" dir="rtl">
+    <div className="flex h-screen bg-background" dir="ltr">
+            <AddFriend />
       <div className="flex-1 flex flex-col max-w-5xl mx-auto w-full">
 
         {/* Header */}
@@ -82,16 +85,12 @@ export default function ChatPage() {
           </div>
         </div>
 
+        {/* Messages Area */}
         <div className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-hide"
              style={{
-               scrollbarWidth: 'none', 
-               msOverflowStyle: 'none', 
+               scrollbarWidth: 'none',
+               msOverflowStyle: 'none',
              } as React.CSSProperties}>
-          <style jsx global>{`
-            .scrollbar-hide::-webkit-scrollbar {
-              display: none;
-            }
-          `}</style>
 
           {messages.map((message) => (
             <div
@@ -100,6 +99,7 @@ export default function ChatPage() {
                 message.role === 'user' ? 'justify-end' : 'justify-start'
               }`}
             >
+
               {/* Assistant Avatar */}
               {message.role === 'assistant' && (
                 <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-1">
@@ -136,7 +136,7 @@ export default function ChatPage() {
           ))}
 
           {/* Typing Indicator */}
-          {isTyping && (
+          {/*{isTyping && (
             <div className="flex gap-3 justify-start">
               <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
                 <Bot className="w-4 h-4 text-primary-foreground" />
@@ -149,20 +149,21 @@ export default function ChatPage() {
                 </div>
               </div>
             </div>
-          )}
+          )}*/}
 
           <div ref={messagesEndRef} />
         </div>
 
+        {/* Input Area */}
         <div className="border-t bg-card p-4">
           <div className="flex items-end gap-3">
-            <textarea
+            <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Type your message here..."
-              rows={1}
-              className="flex-1 resize-none rounded-lg border border-input bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 placeholder:text-muted-foreground max-h-32 min-h-11"
+              // rows={1}
+              className="flex-1 scrollbar-hide resize-none rounded-lg border border-input bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 placeholder:text-muted-foreground max-h-32 min-h-11"
               style={{ height: 'auto' }}
               onInput={(e: any) => {
                 e.target.style.height = 'auto';
@@ -172,17 +173,18 @@ export default function ChatPage() {
 
             <button
               onClick={handleSend}
-              disabled={!input.trim() || isTyping}
+              disabled={!input.trim()}
               className="h-11 w-11 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-colors flex-shrink-0"
             >
-              {isTyping ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Send className="w-5 h-5" />
+                {/*{isTyping ? (
+                // <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
                 <Send className="w-5 h-5" />
-              )}
+              )}*/}
+
             </button>
           </div>
-
           <p className="text-xs text-muted-foreground mt-2 text-center">
             Press Enter to send, Shift + Enter for new line
           </p>
