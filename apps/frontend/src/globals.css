@@ -99,21 +99,17 @@ input:focus-visible {
 }
 @layer base { input, textarea { @apply transition-none; } }
 
-/* ====================== إزالة كل أنواع الـ Focus نهائيًا من كل الكومبوننتس ====================== */
 @layer base {
-  /* إزالة الـ outline القديم من المتصفح */
   *:focus {
     outline: none !important;
   }
 
-  /* إزالة الـ focus ring بتاع shadcn/ui (اللي اسمه ring) */
   *:focus-visible {
     outline: none !important;
     ring: 0 !important;
     box-shadow: none !important;
   }
 
-  /* لو لسة في كومبوننتس بتستخدم focus-visible:ring-* */
   [class*="focus-visible:ring"] {
     --ring-offset-width: 0px !important;
     --ring-offset-color: transparent !important;
@@ -121,7 +117,6 @@ input:focus-visible {
     --ring-width: 0px !important;
   }
 
-  /* خاص بالـ input و textarea و button عشان تتأكد 100% */
   input:focus-visible,
   textarea:focus-visible,
   button:focus-visible,
