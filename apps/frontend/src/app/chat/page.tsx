@@ -69,8 +69,10 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-screen bg-background" dir="ltr">
-            <AddFriend />
-      <div className="flex-1 flex flex-col max-w-5xl mx-auto w-full">
+
+        {/*AddFriend*/}
+         <AddFriend />
+      <div className="flex-1 flex flex-col mx-auto w-full">
 
         {/* Header */}
         <div className="border-b bg-card">
