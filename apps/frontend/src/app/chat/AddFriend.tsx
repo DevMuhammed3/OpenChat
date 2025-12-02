@@ -17,13 +17,13 @@ export default function AddFriend() {
   };
 
   return (
-    <div className="border-t bg-card p-4">
+    <div className="hidden md:block border-t bg-card p-4">
       <div className="flex items-end gap-3">
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleSend}
-          placeholder="Type your message here..."
+          placeholder="Type your friend’s username..."
           className="flex-1 scrollbar-hide resize-none rounded-lg border border-input bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 placeholder:text-muted-foreground max-h-32 min-h-11"
         />
       </div>
