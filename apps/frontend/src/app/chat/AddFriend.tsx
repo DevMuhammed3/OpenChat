@@ -17,7 +17,7 @@ export default function AddFriend() {
   };
 
   return (
-    <div className="border-t bg-card p-4">
+    <div className="hidden md:block border-t bg-card p-4">
       <div className="flex items-end gap-3">
         <Input
           value={input}

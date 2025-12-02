@@ -48,12 +48,12 @@ pnpm dev:frontend
 pnpm dev:backend
 ```
 
-Open the frontend URL printed by Vite (typically http://localhost:3000). The backend listens on port 3001 by default.
+Open the frontend URL printed by Vite (typically http://localhost:3000). The backend listens on port 4000 by default.
 
 ## Environment variables
 
-- `NEXT_SOCKET_URL` — frontend socket URL (default: `http://localhost:3001`). Use this in `.env` at the frontend root if needed.
-- `PORT` or `SOCKET_PORT` — backend port (default: `3001`).
+- `NEXT_SOCKET_URL` — frontend socket URL (default: `http://localhost:4000`). Use this in `.env` at the frontend root if needed.
+- `PORT` or `SOCKET_PORT` — backend port (default: `4000`).
 
 Create an `.env` file in `apps/frontend` or `apps/backend` for local overrides when needed.
 

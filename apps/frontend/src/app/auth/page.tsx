@@ -1,4 +1,5 @@
 'use client'
+
 const API_URL = 'http://localhost:4000/auth'
 import React, { useState } from 'react'
 import {
@@ -15,8 +16,10 @@ import { Label } from 'packages/ui'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from 'packages/ui'
 import { Alert, AlertDescription } from 'packages/ui'
 import { Eye, EyeOff, Mail, Lock, User, CheckCircle2 } from 'lucide-react'
+import { useRouter } from "next/navigation"
 
 export default function AuthPage() {
+    const router = useRouter()
     const [showPassword, setShowPassword] = useState(false)
     const [showConfirmPassword, setShowConfirmPassword] = useState(false)
     const [activeTab, setActiveTab] = useState('login')
@@ -61,8 +64,8 @@ export default function AuthPage() {
 
             setMessage({ type: 'success', text: 'Login successful!' })
             setTimeout(() => {
-                window.location.href = '/chat'
-            }, 1000)
+                router.push("/chat");
+            }, 500)
         } catch (err) {
             setMessage({ type: 'error', text: 'Something went wrong' })
         }
@@ -294,7 +297,7 @@ export default function AuthPage() {
                                         <Input
                                             id="signup-username"
                                             type="text"
-                                            placeholder="z3i8"
+                                            placeholder="username"
                                             className="pl-10"
                                             value={signupData.username}
                                             onChange={(e) =>
