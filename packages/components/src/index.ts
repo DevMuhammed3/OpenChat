@@ -10,3 +10,4 @@ export * from './ui/separator';
 export * from './ui/dropdown-menu';
 export * from './ui/avatar';
 export * from './ui/textarea';
+export * from './ui/skeleton';

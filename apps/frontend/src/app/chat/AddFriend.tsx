@@ -1,4 +1,4 @@
-import { Input } from 'packages/ui'
+import { Input, Skeleton } from 'packages/ui'
 import { useState } from 'react';
 
 export default function AddFriend() {
@@ -16,6 +16,7 @@ export default function AddFriend() {
 
   };
 
+
   return (
     <div className="hidden md:block border-t bg-card p-4">
       <div className="flex items-end gap-3">
@@ -27,7 +28,14 @@ export default function AddFriend() {
           className="flex-1 scrollbar-hide resize-none rounded-lg border border-input bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 placeholder:text-muted-foreground max-h-32 min-h-11"
         />
       </div>
+
+    <div className="flex items-center space-x-4 m-4">
+      <Skeleton className="h-12 w-12 rounded-full" />
+      <div className="space-y-2">
+        <Skeleton className="h-4 w-[200px]" />
+        <Skeleton className="h-4 w-[150px]" />
+      </div>
+    </div>
     </div>
   );
 }
-

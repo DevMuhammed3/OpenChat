@@ -10,7 +10,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState([
     {
       id: 1,
-      content: "Hello! How can I help you today?",
+      content: "Hello! How are you today?",
       role: "assistant",
       timestamp: new Date(),
     },
@@ -118,7 +118,7 @@ export default function ChatPage() {
               <User className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="font-semibold text-foreground">Chat @user</h1>
+              <h1 className="font-semibold text-foreground">@user</h1>
               <p className="text-sm text-muted-foreground">Online now</p>
             </div>
           </div>
