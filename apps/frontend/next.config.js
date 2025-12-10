@@ -1,12 +1,5 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-  turbopack: {
-    root: "./../..",
-  },
-  experimental: {
-    nextDevPanel: false,
-  },
-};
+const nextConfig = {};
 
 export default nextConfig;
 
