@@ -4,9 +4,9 @@ const nextConfig = {
     root: "./../..",
   },
   experimental: {
-    // This disables the floating DevTools button
     nextDevPanel: false,
   },
 };
 
 export default nextConfig;
+

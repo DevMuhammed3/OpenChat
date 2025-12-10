@@ -5,203 +5,169 @@ import { Send, User } from "lucide-react";
 import { Input } from "packages/ui";
 import AddFriend from "./AddFriend";
 import { socket } from "@openchat/lib";
+import { useRouter } from "next/navigation";
+import FriendRequests from "./FriendRequests";
+import FriendList from "./FriendList";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function ChatPage() {
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      content: "Hello! How are you today?",
-      role: "assistant",
-      timestamp: new Date(),
-    },
-  ]);
-
+  const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
+  const [user, setUser] = useState<any>(null);
+  const [selectedFriend, setSelectedFriend] = useState<any>(null);
+  // const [loading, setLoading] = useState(true);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   // Auto scroll
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // Connect socket once
+  // Get logged user
   useEffect(() => {
-    console.log("Connecting socket...");
+    fetch(`${API_URL}/auth/me`, { credentials: "include" })
+      .then(async (res) => {
+        if (!res.ok) router.push("/auth");
+        const data = await res.json();
+        setUser(data.user);
+      })
+      // .finally(() => setLoading(false));
+  }, []);
+
+  // Connect socket
+  useEffect(() => {
+    if (!user) return;
+    
     socket.connect();
-
-    return () => {
-      socket.disconnect();
-    };
+    return () => {socket.disconnect();}
   }, []);
 
-  // Receive message from others
-  useEffect(() => {
-    socket.on("receive-message", (data) => {
-      console.log("SERVER SAYS:", data);
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: prev.length + 1,
-          content: data.text,
-          role: data.from === socket.id ? "user" : "assistant",
-          timestamp: new Date(),
-        },
-      ]);
-    });
-
-    return () => {
-      socket.off("receive-message");
-    };
-  }, []);
-
-  // Scroll on new message
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
   // Send message
   const handleSend = () => {
-    if (!input.trim()) return;
+    if (!input.trim() || !selectedFriend) return;
 
     const text = input;
 
-    // Add user's own message locally
     setMessages((prev) => [
       ...prev,
       {
         id: prev.length + 1,
         content: text,
-        role: "user",
+        senderId: user.id,
         timestamp: new Date(),
       },
     ]);
 
-    // Send to backend
-    socket.emit("send-message", {
+    socket.emit("send-private", {
       text,
-      from: socket.id,
+      from: user.id,
+      to: selectedFriend.id,
     });
 
     setInput("");
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: any) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   };
 
-  const formatTime = (date: Date) => {
-    return new Date(date).toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
+  // if (loading) return <p>Loading chat...</p>;
 
   return (
     <div className="flex h-screen bg-background" dir="ltr">
 
-      {/* Add AddFriend Sidebar */}
+      {/* Sidebar to choose friend */}
       <AddFriend />
-
-      {/* Main Chat Area */}
+    
+      {/* Main chat */}
       <div className="flex-1 flex flex-col mx-auto w-full">
-        
+
         {/* Header */}
-        <div className="border-b bg-card">
-          <div className="flex items-center gap-3 p-4">
-            <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
+        {/* Type header here : TODO */} 
 
-            {/*<Bot className="w-5 h-5 text-primary-foreground" />*/}
-              <User className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="font-semibold text-foreground">@user</h1>
-              <p className="text-sm text-muted-foreground">Online now</p>
-            </div>
-          </div>
-        </div>
-
+      <FriendRequests />
+      <FriendList />
         {/* Messages */}
-        <div
-          className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-hide"
-          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-        >
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex gap-3 ${
-                message.role === "user" ? "justify-end" : "justify-start"
-              }`}
-            >
-              {/* Assistant Avatar */}
-              {message.role === "assistant" && (
-                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-1">
-                {/* <Bot className="w-4 h-4 text-primary-foreground" /> */}
-                    <User className="w-4 h-4 text-primary-foreground" />
-                </div>
-              )}
+        <div className="flex-1 overflow-y-auto p-4 space-y-6">
+          {messages.map((m) => {
+            const mine = m.senderId === user.id;
 
+            return (
               <div
-                className={`flex flex-col gap-1 max-w-[70%] ${
-                  message.role === "user" ? "items-end" : "items-start"
+                key={m.id}
+                className={`flex gap-3 ${
+                  mine ? "justify-end" : "justify-start"
                 }`}
               >
                 <div
-                  className={`rounded-lg px-4 py-2.5 ${
-                    message.role === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-foreground"
+                  className={`flex flex-col gap-1 max-w-[70%] ${
+                    mine ? "items-end" : "items-start"
                   }`}
                 >
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                    {message.content}
-                  </p>
+                  <div
+                    className={`rounded-lg px-4 py-2.5 ${
+                      mine
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-foreground"
+                    }`}
+                  >
+                    {m.content}
+                  </div>
                 </div>
-                <span className="text-xs text-muted-foreground px-1">
-                  {formatTime(message.timestamp)}
-                </span>
               </div>
-
-              {/* User Avatar */}
-              {message.role === "user" && (
-                <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0 mt-1">
-                  <User className="w-4 h-4 text-secondary-foreground" />
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
 
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Area */}
-        <div className="border-t bg-card p-4">
-          <div className="flex items-end gap-3">
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Type your message here..."
-              className="flex-1 scrollbar-hide resize-none rounded-lg border border-input bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 placeholder:text-muted-foreground max-h-32 min-h-11"
-            />
+        {/* Input */}
+        {selectedFriend && (
+          <div className="border-t bg-card p-4">
+            <div className="flex items-end gap-3">
+              <Input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={`Message @${selectedFriend.username}...`}
+              />
+              <button
+                onClick={handleSend}
+                disabled={!input.trim()}
+                className="h-11 w-11 rounded-lg bg-primary text-primary-foreground"
+              >
+                <Send className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        )}
+        {/*UserName*/}
+        {user && (
+          <div className="p-5 border-b flex items-center justify-between">
+            <div className="text-sm font-semibold">
+            My UserName: {user.username}
+            </div>
 
             <button
-              onClick={handleSend}
-              disabled={!input.trim()}
-              className="h-11 w-11 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-colors flex-shrink-0"
+              onClick={() => navigator.clipboard.writeText(user.username)}
+              className="text-xs bg-muted px-3 py-1 rounded"
             >
-              <Send className="w-5 h-5" />
+              Copy
             </button>
           </div>
-
-          <p className="hidden md:block text-xs text-muted-foreground mt-2 text-center">
-            Press Enter to send, Shift + Enter for new line
-          </p>
-        </div>
+    )}
       </div>
     </div>
   );
 }
+

@@ -4,11 +4,16 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "node --loader ts-node/esm ./src/index.ts",
+    "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
     "prisma:generate": "prisma generate",
+    "prisma:format": "prisma format --schema=prisma/schema.prisma",
     "prisma:migrate": "prisma migrate dev",
+    "p:f": "prisma format --schema=prisma/schema.prisma",
+    "p:g": "prisma generate --schema=prisma/schema.prisma",
+    "p:m": "prisma migrate dev --schema=prisma/schema.prisma",
+
     "postinstall": "prisma generate"
   },
   "keywords": [],

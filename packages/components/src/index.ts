@@ -11,3 +11,4 @@ export * from './ui/dropdown-menu';
 export * from './ui/avatar';
 export * from './ui/textarea';
 export * from './ui/skeleton';
+export * from './ui/scroll-area';

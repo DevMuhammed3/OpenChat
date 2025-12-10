@@ -1,36 +1,30 @@
-// import express from "express";
-import http from 'http'
-import { Server } from 'socket.io'
-import { app } from './app.js'
+import http from "http";
+import { Server } from "socket.io";
+import { app } from "./app.js";
+// import { prisma } from "./config/prisma.js";
+import { privateChatHandler } from "./socket/privateChat.js";
 
-// const app = express();
-const port = process.env.PORT || 4000
-
-const server = http.createServer(app)
+const port = process.env.PORT || 4000;
+const server = http.createServer(app);
 
 const io = new Server(server, {
-    cors: {
-        origin: '*',
-    },
-})
+  cors: {
+    origin: process.env.ORIGIN,
+    credentials: true,
+  },
+});
 
-app.get('/', (req, res) => {
-    res.send('Backend OK + Socket running')
-})
+io.on("connection", (socket) => {
+  console.log("Socket connected:", socket.id);
 
-io.on('connection', (socket) => {
-    console.log('Socket connected:', socket.id)
+  privateChatHandler(io, socket);
 
-    socket.on('send-message', (msg) => {
-        console.log('Received:', msg)
-        socket.broadcast.emit("receive-message", msg);
-    })
-
-    socket.on('disconnect', () => {
-        console.log('Socket disconnected:', socket.id)
-    })
-})
+  socket.on("disconnect", () => {
+    console.log("Socket disconnected:", socket.id);
+  });
+});
 
 server.listen(port, () => {
-    console.log(`Socket + API running on http://localhost:${port}`)
-})
+  console.log("Socket + API running on http://localhost:" + port);
+});
+
