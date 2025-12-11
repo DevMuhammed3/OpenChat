@@ -7,7 +7,7 @@ import { Input } from "packages/ui";
 import { Send, User } from "lucide-react";
 
 export default function ChatPage() {
-  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
 
   const { friendId } = useParams();
   const fid = Number(friendId);

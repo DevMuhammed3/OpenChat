@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import FriendRequests from "./FriendRequests";
 import FriendList from "./FriendList";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<any[]>([]);

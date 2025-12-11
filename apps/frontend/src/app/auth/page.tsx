@@ -18,7 +18,7 @@ import { Eye, EyeOff, Mail, Lock, User, CheckCircle2 } from 'lucide-react';
 import { useRouter } from "next/navigation";
 
 export default function AuthPage() {
-  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
 
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);

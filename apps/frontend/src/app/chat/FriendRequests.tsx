@@ -8,7 +8,7 @@ import { ScrollArea } from "packages/ui";
 import { Separator } from "packages/ui";
 
 export default function FriendRequests() {
-  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
 
   type User = {
     id: number;

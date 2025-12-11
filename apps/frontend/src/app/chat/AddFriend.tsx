@@ -4,7 +4,7 @@ import { Input, Skeleton } from "packages/ui";
 import { useState } from "react";
 
 export default function AddFriend() {
-  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
 
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
