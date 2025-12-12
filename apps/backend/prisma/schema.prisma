@@ -9,6 +9,7 @@ datasource db {
 
 model User {
   id            Int       @id @default(autoincrement())
+  publicNumericId String? @unique 
   name          String?
   username      String    @unique
   email         String    @unique

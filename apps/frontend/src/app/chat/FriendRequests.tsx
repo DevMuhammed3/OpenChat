@@ -6,9 +6,11 @@ import { Button } from "packages/ui";
 import { Avatar, AvatarFallback, AvatarImage } from "packages/ui";
 import { ScrollArea } from "packages/ui";
 import { Separator } from "packages/ui";
+import { useRouter } from "next/navigation";
 
 export default function FriendRequests() {
-const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+  const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+  const router = useRouter();
 
   type User = {
     id: number;
@@ -23,38 +25,47 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
   };
 
   const [requests, setRequests] = useState<FriendRequest[]>([]);
+  const [friends, setFriends] = useState<User[]>([]);
 
-const [friends, setFriends] = useState([]);
+  // Load friends list
+  const fetchFriends = () => {
+    fetch(`${API_URL}/friends/list`, { credentials: "include" })
+      .then((res) => res.json())
+      .then((data) => setFriends(data.friends));
+  };
 
-useEffect(() => {
-  fetch(`${API_URL}/friends/list`, {
-    credentials: "include"
-  })
-    .then((res) => res.json())
-    .then((data) => setFriends(data.friends));
-}, []);
-
+  // Load requests
   const fetchRequests = async () => {
-    const res = await fetch(`${API_URL}/friends/requests`, { credentials: "include" });
+    const res = await fetch(`${API_URL}/friends/requests`, {
+      credentials: "include",
+    });
     const data = await res.json();
     if (res.ok) setRequests(data.requests);
   };
 
-  useEffect(() => { fetchRequests(); }, []);
+  useEffect(() => {
+    fetchFriends();
+    fetchRequests();
+  }, []);
 
+  // Accept friend request
   const accept = async (id: number) => {
     await fetch(`${API_URL}/friends/accept/${id}`, {
       method: "POST",
       credentials: "include",
     });
+
     fetchRequests();
+    fetchFriends();
   };
 
+  // Reject friend request
   const reject = async (id: number) => {
     await fetch(`${API_URL}/friends/reject/${id}`, {
       method: "DELETE",
       credentials: "include",
     });
+
     fetchRequests();
   };
 
@@ -66,7 +77,9 @@ useEffect(() => {
 
       <CardContent>
         {requests.length === 0 && (
-          <p className="text-muted-foreground text-sm">No pending friend requests.</p>
+          <p className="text-muted-foreground text-sm">
+            No pending friend requests.
+          </p>
         )}
 
         {requests.length > 0 && (
@@ -74,7 +87,11 @@ useEffect(() => {
             {requests.map((req, index) => (
               <div key={req.id}>
                 <div className="flex items-center justify-between py-3">
-                  <div className="flex items-center gap-3">
+                  {/* Sender Info */}
+                  <div
+                    className="flex items-center gap-3 cursor-pointer"
+                    onClick={() => router.push(`/friend/${req.sender.username}`)}
+                  >
                     <Avatar>
                       <AvatarImage src={req.sender?.avatar || ""} />
                       <AvatarFallback>
@@ -87,11 +104,20 @@ useEffect(() => {
                     </div>
                   </div>
 
+                  {/* Action Buttons */}
                   <div className="flex items-center gap-2">
-                    <Button size="sm" onClick={() => accept(req.id)} className="bg-green-600 hover:bg-green-700">
+                    <Button
+                      size="sm"
+                      onClick={() => accept(req.id)}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
                       Accept
                     </Button>
-                    <Button size="sm" variant="destructive" onClick={() => reject(req.id)}>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => reject(req.id)}
+                    >
                       Reject
                     </Button>
                   </div>

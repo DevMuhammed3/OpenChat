@@ -39,13 +39,15 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
         setLoading(false);
 
         // 2) Send friend request
-        const sendRes = await fetch(
-          `${API_URL}/friends/request/${data.user.id}`,
-          {
-            method: "POST",
-            credentials: "include",
-          }
-        );
+      const sendRes = await fetch(`${API_URL}/friends/request`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+        username: data.user.username
+        }),
+      });
+
 
         const sendData = await sendRes.json();
 

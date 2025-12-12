@@ -3,12 +3,18 @@ import { prisma } from "../config/prisma.js";
 
 const router = Router();
 
-router.get("/:id", async (req, res) => {
-  const id = Number(req.params.id);
+router.get("/:username", async (req, res) => {
+  const username = req.params.username;
 
   const user = await prisma.user.findUnique({
-    where: { id },
-    select: { id: true, username: true, name: true, avatar: true }
+    where: { username },
+    select: {
+      id: true,
+      username: true,
+      name: true,
+      avatar: true,
+      publicNumericId: true
+    }
   });
 
   if (!user) return res.status(404).json({ message: "User not found" });

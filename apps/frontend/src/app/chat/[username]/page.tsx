@@ -10,8 +10,7 @@ import { useRouter } from 'next/navigation'
 export default function ChatPage() {
     const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '')
 
-    const { friendId } = useParams()
-    const fid = Number(friendId)
+    const { username } = useParams() 
     const router = useRouter()
 
     const [user, setUser] = useState<any>(null)
@@ -19,37 +18,64 @@ export default function ChatPage() {
     const [input, setInput] = useState('')
     const [friend, setFriend] = useState<any>(null)
 
+    const [friendId, setFriendId] = useState<number | null>(null)
+
     const endRef = useRef<HTMLDivElement>(null)
 
-    // Get logged user
+    // Get logged-in user
     useEffect(() => {
         fetch(`${API_URL}/auth/me`, { credentials: 'include' })
             .then((res) => res.json())
             .then((data) => setUser(data.user))
     }, [])
+    //
+    // Get friend data via username
+    useEffect(() => {
+      if (!username) return;
+
+      fetch(`${API_URL}/users/${username}`)
+          .then(res => {
+              if (!res.ok) {
+                  router.push("/chat");
+                  return null;
+              }
+              return res.json();
+          })
+            .then(data => {
+              if (data?.user) {
+                  setFriend(data.user);
+                 setFriendId(data.user.id);
+              }
+          });
+    }, [username]);
+
+    // useEffect(() => {
+    //     if (!username) return
+    //
+    //     fetch(`${API_URL}/users/${username}`)
+    //         .then((res) => res.json())
+    //         .then((data) => {
+    //             setFriend(data.user)
+    //             setFriendId(data.user.id)
+    //         })
+    // }, [username])
 
     // Load old messages
     useEffect(() => {
-        if (!user) return
+        if (!user || !friendId) return
 
-        fetch(`${API_URL}/messages/${user.id}/${fid}`, {
+        fetch(`${API_URL}/messages/${friendId}`, {
             credentials: 'include',
         })
             .then((res) => res.json())
             .then((data) => setMessages(data.messages))
-    }, [user, fid])
-
-    useEffect(() => {
-        if (!fid) return
-
-        fetch(`${API_URL}/users/${fid}`)
-            .then((res) => res.json())
-            .then((data) => setFriend(data.user))
-    }, [fid])
+    }, [user, friendId])
 
     // Join socket room + listen
     useEffect(() => {
-        if (!user) return
+        if (!user || !friendId) return
+
+        const fid = friendId
 
         socket.connect()
 
@@ -63,7 +89,7 @@ export default function ChatPage() {
             socket.off('private-message')
             socket.disconnect()
         }
-    }, [user, fid])
+    }, [user, friendId])
 
     // Auto scroll
     useEffect(() => {
@@ -71,12 +97,12 @@ export default function ChatPage() {
     }, [messages])
 
     const send = () => {
-        if (!input.trim()) return
+        if (!input.trim() || !friendId) return
 
         socket.emit('private-message', {
             text: input,
             from: user.id,
-            to: fid,
+            to: friendId,
         })
 
         setInput('')
@@ -96,11 +122,10 @@ export default function ChatPage() {
                     <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
                         <User className="w-5 h-5 text-primary-foreground" />
                     </div>
-                    <div className="">
+                    <div>
                         <h2 className="text-lg font-semibold">
-                            {friend ? `${friend.username}` : 'User'}
+                            {friend ? `@${friend.username}` : 'User'}
                         </h2>
-                        {/* <p className="text-sm text-muted-foreground">Online now</p> */}
                     </div>
                 </div>
             </div>
@@ -146,3 +171,4 @@ export default function ChatPage() {
         </div>
     )
 }
+

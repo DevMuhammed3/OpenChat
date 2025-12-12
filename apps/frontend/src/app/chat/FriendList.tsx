@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { User } from "lucide-react";
 
 export default function FriendList() {
 const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
@@ -38,9 +39,10 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
         <div
           key={friend.id}
           className="flex items-center gap-3 p-2 rounded hover:bg-muted cursor-pointer"
-          onClick={() => router.push(`/chat/${friend.id}`)}
+          onClick={() => router.push(`/chat/${friend.username}`)}
         >
-          @{friend.username}
+        <User className="w-6 h-6"/>
+          {friend.username}
         </div>
       ))}
     </div>

@@ -14,13 +14,47 @@ interface JoinRoomPayload {
 
 export function privateChatHandler(io: Server, socket: Socket) {
 
-  socket.on("join-room", ({ userId, friendId }: JoinRoomPayload) => {
-    const room = [userId, friendId].sort().join("-");
+  // JOIN ROOM
+  socket.on("join-room", async ({ userId, friendId }: JoinRoomPayload) => {
+
+    const isFriend = await prisma.friend.findFirst({
+      where: {
+        OR: [
+          { user1Id: userId, user2Id: friendId },
+          { user1Id: friendId, user2Id: userId }
+        ]
+      }
+    });
+
+    if (!isFriend) {
+      console.log(`User ${userId} tried to join room with ${friendId} but NOT friends.`);
+      return;
+    }
+
+    const room = `chat-${[userId, friendId].sort().join("-")}`;
     socket.join(room);
+
+    console.log(`User ${userId} joined room ${room}`);
   });
 
+  // SEND MESSAGE
   socket.on("private-message", async ({ text, from, to }: PrivateMessagePayload) => {
-    const room = [from, to].sort().join("-");
+
+    const isFriend = await prisma.friend.findFirst({
+      where: {
+        OR: [
+          { user1Id: from, user2Id: to },
+          { user1Id: to, user2Id: from }
+        ]
+      }
+    });
+
+    if (!isFriend) {
+      console.log(`User ${from} tried to send message to ${to} but NOT friends.`);
+      return;
+    }
+
+    const room = `chat-${[from, to].sort().join("-")}`;
 
     const saved = await prisma.message.create({
       data: {
@@ -30,7 +64,11 @@ export function privateChatHandler(io: Server, socket: Socket) {
       }
     });
 
-    io.to(room).emit("private-message", saved);
+    // Send to sender
+    socket.emit("private-message", saved);
+
+    // Send to receiver
+    socket.to(room).emit("private-message", saved);
   });
 
 }

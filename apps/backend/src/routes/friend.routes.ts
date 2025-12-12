@@ -8,7 +8,7 @@ const router = Router();
 router.get("/search", authMiddleware, friendController.searchUser);
 router.get("/requests", authMiddleware, friendController.getRequests);
 router.get("/list", authMiddleware, friendController.getFriends);
-router.post("/request/:id", authMiddleware, friendController.sendRequest);
+router.post("/request/", authMiddleware, friendController.sendRequest);
 router.post("/accept/:id", authMiddleware, friendController.acceptRequest);
 router.delete("/reject/:id", authMiddleware, friendController.rejectRequest);
 
