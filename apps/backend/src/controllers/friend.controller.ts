@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { prisma } from "../config/prisma.js";
+import { io } from "../index.js";
 
 export const friendController = {
 
@@ -102,6 +103,8 @@ export const friendController = {
       data: { senderId, receiverId }
     });
 
+    io.to(receiverId.toString()).emit("friend-request-received", { from: senderId })
+
     res.json({ message: "Friend request sent" });
   },
 
@@ -167,6 +170,14 @@ export const friendController = {
     await prisma.friendRequest.delete({
       where: { id: requestId },
     });
+
+    io.to(senderId.toString()).emit("friend-added", {
+      friendId: receiverId,
+    });
+
+    io.to(receiverId.toString()).emit("friend-added", {
+      friendId: senderId,
+    })
 
     res.json({ message: "Friend added" });
   },

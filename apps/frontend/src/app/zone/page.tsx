@@ -3,18 +3,19 @@
 import { useState, useRef, useEffect } from 'react'
 import { Send, User } from 'lucide-react'
 import { Input } from 'packages/ui'
-import AddFriend from './AddFriend'
+import AddFriend from './friends/AddFriend'
 import { socket } from '@openchat/lib'
 import { useRouter } from 'next/navigation'
-import FriendRequests from './FriendRequests'
-import FriendList from './FriendList'
+import FriendRequests from './friends/FriendRequests'
+import FriendList from './friends/FriendList'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '')
 
-export default function ChatPage() {
+export default function Zone() {
     const [messages, setMessages] = useState<any[]>([])
     const [input, setInput] = useState('')
     const [user, setUser] = useState<any>(null)
+    const [copied, setCopied] = useState(false);
     const [selectedFriend, setSelectedFriend] = useState<any>(null)
     // const [loading, setLoading] = useState(true);
 
@@ -25,6 +26,15 @@ export default function ChatPage() {
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }
+
+    // Handle copy
+    const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+
+    setTimeout(() => setCopied(false), 1500);
+};
+
 
     // Get logged user
     useEffect(() => {
@@ -75,13 +85,21 @@ export default function ChatPage() {
 
     // Connect socket
     useEffect(() => {
-        if (!user) return
+        if (!user) return;
 
-        socket.connect()
+        socket.connect();
+
+        socket.emit("register", user.id);
+
+        socket.on("registered", () => {
+          console.log("User registered in socket room:", user.id)
+        });
+
         return () => {
+            socket.off("registered")
             socket.disconnect()
-        }
-    }, [])
+        };
+    }, [user])
 
     useEffect(() => {
         scrollToBottom()
@@ -124,48 +142,53 @@ export default function ChatPage() {
     return (
         <div className="flex h-screen bg-background" dir="ltr">
             {/* Sidebar to choose friend */}
+            <div className='m-2'>
             <AddFriend />
+            <FriendRequests />
+            <FriendList />
+
+                {/*UserName*/}
+                {user && (
+                    <div className="fixed bottom-2 p-5 border-t flex items-center justify-between">
+
+                      {copied && (
+                        <div className="fixed bottom-20 left-2 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg animate-in fade-in slide-in-from-bottom-2 ">
+                          Copied to clipboard!
+                        </div>
+                      )}
+
+                        <div className="text-sm sm:text-md cursor-pointer mr-3 font-semibold"
+                              onClick={() => handleCopy(user.username)}
+                        >
+                            My UserName: {user.username}
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() =>
+                                    handleCopy(user.username)
+                                }
+                                className="text-xs bg-muted px-3 py-1 rounded"
+                            >
+                                Copy
+                            </button>
+
+                            {/* Logout button */}
+                            <button
+                                onClick={handleLogout}
+                                className="text-xs bg-red-700 text-destructive-foreground px-3 py-1 rounded"
+                            >
+                                Logout
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
 
             {/* Main chat */}
             <div className="flex-1 flex flex-col mx-auto w-full">
                 {/* Header */}
                 {/* Type header here : TODO */}
-
-                <FriendRequests />
-                <FriendList />
-                {/* Messages */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-6">
-                    {messages.map((m) => {
-                        const mine = m.senderId === user.id
-
-                        return (
-                            <div
-                                key={m.id}
-                                className={`flex gap-3 ${
-                                    mine ? 'justify-end' : 'justify-start'
-                                }`}
-                            >
-                                <div
-                                    className={`flex flex-col gap-1 max-w-[70%] ${
-                                        mine ? 'items-end' : 'items-start'
-                                    }`}
-                                >
-                                    <div
-                                        className={`rounded-lg px-4 py-2.5 ${
-                                            mine
-                                                ? 'bg-primary text-primary-foreground'
-                                                : 'bg-muted text-foreground'
-                                        }`}
-                                    >
-                                        {m.content}
-                                    </div>
-                                </div>
-                            </div>
-                        )
-                    })}
-
-                    <div ref={messagesEndRef} />
-                </div>
 
                 {/* Input */}
                 {selectedFriend && (
@@ -183,33 +206,6 @@ export default function ChatPage() {
                                 className="h-11 w-11 rounded-lg bg-primary text-primary-foreground"
                             >
                                 <Send className="w-5 h-5" />
-                            </button>
-                        </div>
-                    </div>
-                )}
-                {/*UserName*/}
-                {user && (
-                    <div className="p-5 border-b flex items-center justify-between">
-                        <div className="text-sm font-semibold">
-                            My UserName: {user.username}
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                            <button
-                                onClick={() =>
-                                    navigator.clipboard.writeText(user.username)
-                                }
-                                className="text-xs bg-muted px-3 py-1 rounded"
-                            >
-                                Copy
-                            </button>
-
-                            {/* Logout button */}
-                            <button
-                                onClick={handleLogout}
-                                className="text-xs bg-red-700 text-destructive-foreground px-3 py-1 rounded"
-                            >
-                                Logout
                             </button>
                         </div>
                     </div>

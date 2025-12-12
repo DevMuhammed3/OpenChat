@@ -12,7 +12,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="ar" dir="rtl" className="dark">
+    <html lang="en" dir="ltr" className="dark">
       <body>{children}</body>
     </html>
   )

@@ -7,31 +7,30 @@ import { Avatar, AvatarFallback, AvatarImage } from "packages/ui";
 import { ScrollArea } from "packages/ui";
 import { Separator } from "packages/ui";
 import { useRouter } from "next/navigation";
+import { socket } from "@openchat/lib";
 
 export default function FriendRequests() {
   const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
   const router = useRouter();
 
-  type User = {
-    id: number;
-    username: string;
-    name?: string | null;
-    avatar?: string | null;
-  };
+  const [userId, setUserId] = useState<number | null>(null);
+  const [requests, setRequests] = useState([]);
+  const [friends, setFriends] = useState([]);
 
-  type FriendRequest = {
-    id: number;
-    sender: User;
-  };
+  // Load logged-in user ID
+  useEffect(() => {
+    fetch(`${API_URL}/auth/me`, { credentials: "include" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.user?.id) setUserId(data.user.id);
+      });
+  }, []);
 
-  const [requests, setRequests] = useState<FriendRequest[]>([]);
-  const [friends, setFriends] = useState<User[]>([]);
-
-  // Load friends list
+  // Load friends
   const fetchFriends = () => {
     fetch(`${API_URL}/friends/list`, { credentials: "include" })
       .then((res) => res.json())
-      .then((data) => setFriends(data.friends));
+      .then((data) => setFriends(data.friends || []));
   };
 
   // Load requests
@@ -40,16 +39,44 @@ export default function FriendRequests() {
       credentials: "include",
     });
     const data = await res.json();
-    if (res.ok) setRequests(data.requests);
+    if (res.ok) setRequests(data.requests || []);
   };
 
+  // First load
   useEffect(() => {
     fetchFriends();
     fetchRequests();
   }, []);
 
-  // Accept friend request
-  const accept = async (id: number) => {
+  // Register THIS component to the socket room
+  useEffect(() => {
+    if (!userId) return;
+
+    if (!socket.connected) socket.connect();
+    socket.emit("register", userId);
+
+    console.log("Registered to socket room:", userId);
+  }, [userId]);
+
+  // Real-time listeners
+  useEffect(() => {
+    socket.on("friend-request-received", () => {
+      fetchRequests();
+    });
+
+    socket.on("friend-added", () => {
+      fetchRequests();
+      fetchFriends();
+    });
+
+    return () => {
+      socket.off("friend-request-received");
+      socket.off("friend-added");
+    };
+  }, []);
+
+  // Accept request
+  const accept = async (id: number, senderId: number) => {
     await fetch(`${API_URL}/friends/accept/${id}`, {
       method: "POST",
       credentials: "include",
@@ -59,7 +86,7 @@ export default function FriendRequests() {
     fetchFriends();
   };
 
-  // Reject friend request
+  // Reject request
   const reject = async (id: number) => {
     await fetch(`${API_URL}/friends/reject/${id}`, {
       method: "DELETE",
@@ -84,10 +111,9 @@ export default function FriendRequests() {
 
         {requests.length > 0 && (
           <ScrollArea className="max-h-64 pr-2">
-            {requests.map((req, index) => (
+            {requests.map((req: any, index) => (
               <div key={req.id}>
                 <div className="flex items-center justify-between py-3">
-                  {/* Sender Info */}
                   <div
                     className="flex items-center gap-3 cursor-pointer"
                     onClick={() => router.push(`/friend/${req.sender.username}`)}
@@ -104,11 +130,10 @@ export default function FriendRequests() {
                     </div>
                   </div>
 
-                  {/* Action Buttons */}
                   <div className="flex items-center gap-2">
                     <Button
                       size="sm"
-                      onClick={() => accept(req.id)}
+                      onClick={() => accept(req.id, req.sender.id)}
                       className="bg-green-600 hover:bg-green-700"
                     >
                       Accept

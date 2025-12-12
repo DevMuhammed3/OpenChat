@@ -41,7 +41,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
     })
       .then((res) => {
         if (res.ok) {
-          router.push("/chat");
+          router.push("/zone");
         }
       })
       .catch(() => {});
@@ -77,7 +77,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
       setMessage({ type: "success", text: "Login successful!" });
 
       setTimeout(() => {
-        router.push("/chat");
+        router.push("/zone");
       }, 300);
     } catch (err) {
       console.error(err);
@@ -134,7 +134,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
       });
 
       setTimeout(() => {
-        router.push("/chat");
+        router.push("/zone");
       }, 300);
     } catch (err) {
       console.error(err);

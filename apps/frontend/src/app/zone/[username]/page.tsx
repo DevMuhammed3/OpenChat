@@ -17,58 +17,80 @@ export default function ChatPage() {
     const [messages, setMessages] = useState<any[]>([])
     const [input, setInput] = useState('')
     const [friend, setFriend] = useState<any>(null)
-
     const [friendId, setFriendId] = useState<number | null>(null)
+    const [loading, setLoading] = useState(true)
 
     const endRef = useRef<HTMLDivElement>(null)
 
     // Get logged-in user
     useEffect(() => {
-        fetch(`${API_URL}/auth/me`, { credentials: 'include' })
-            .then((res) => res.json())
-            .then((data) => setUser(data.user))
-    }, [])
-    //
-    // Get friend data via username
-    useEffect(() => {
-      if (!username) return;
+    fetch(`${API_URL}/auth/me`, { credentials: 'include' })
+        .then(async (res) => {
+            if (res.status === 401) {
+                router.push("/auth");
+                return null;
+            }
+            return res.json();
+        })
+        .then(data => {
+            if (!data?.user) {
+                router.push("/auth");
+                return;
+            }
+            setUser(data.user);
+        });
+    }, []);
 
-      fetch(`${API_URL}/users/${username}`)
-          .then(res => {
-              if (!res.ok) {
-                  router.push("/chat");
-                  return null;
-              }
-              return res.json();
-          })
-            .then(data => {
-              if (data?.user) {
-                  setFriend(data.user);
-                 setFriendId(data.user.id);
-              }
-          });
-    }, [username]);
+// Get friend data via username
+   useEffect(() => {
+  if (!username) return;
 
-    // useEffect(() => {
-    //     if (!username) return
-    //
-    //     fetch(`${API_URL}/users/${username}`)
-    //         .then((res) => res.json())
-    //         .then((data) => {
-    //             setFriend(data.user)
-    //             setFriendId(data.user.id)
-    //         })
-    // }, [username])
+  fetch(`${API_URL}/users/${username}`)
+    .then(res => {
+      if (!res.ok) {
+        router.push("/zone");
+        return null;
+      }
+      return res.json();
+    })
+    .then(data => {
+      if (data?.user) {
+        setFriend(data.user);
+        setFriendId(data.user.id);
+      } else {
+        router.push("/zone");
+      }
+      setLoading(false);
+    });
+}, [username]);
 
     // Load old messages
     useEffect(() => {
-        if (!user || !friendId) return
+        if (!user || !friendId) return;
 
         fetch(`${API_URL}/messages/${friendId}`, {
             credentials: 'include',
         })
-            .then((res) => res.json())
-            .then((data) => setMessages(data.messages))
+            .then(async (res) => {
+              if (res.status === 403) {
+                router.push("/zone");
+                return null;
+              }
+              if (res.status === 404) {
+                router.push("/zone");
+                return null;
+              }
+              if (res.status === 401) {
+                router.push("/login");
+                return null;
+              }
+              return res.json();
+            })
+            // .then((res) => res.json())
+            .then((data) => {
+              if(!data?.messages) return; 
+              setMessages(data.messages)
+            })
     }, [user, friendId])
 
     // Join socket room + listen
@@ -108,6 +130,8 @@ export default function ChatPage() {
         setInput('')
     }
 
+    if (loading || !user) return <div className="p-4">Loading…</div>;
+
     return (
         <div className="h-screen flex flex-col p-4" dir="ltr">
             {/* Header */}
@@ -124,7 +148,7 @@ export default function ChatPage() {
                     </div>
                     <div>
                         <h2 className="text-lg font-semibold">
-                            {friend ? `@${friend.username}` : 'User'}
+                            {friend ? `${friend.username}` : 'User'}
                         </h2>
                     </div>
                 </div>

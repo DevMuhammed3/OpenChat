@@ -35,7 +35,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
           return;
         }
 
-        setResult(data.user); // store the found user
+        setResult(data.user);
         setLoading(false);
 
         // 2) Send friend request
@@ -69,7 +69,8 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
   };
 
   return (
-    <div className="hidden md:block border-t bg-card p-4">
+    <div className="md:block bg-card p-4">
+
       {/* Friend Input */}
       <div className="flex items-end gap-3">
         <Input
@@ -82,16 +83,15 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
       </div>
 
       {/* Loading skeleton */}
-      {/*loading && (
-      )*/}
-
-        <div className="flex items-center space-x-4 m-4">
-          <Skeleton className="h-12 w-12 rounded-full" />
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-[200px]" />
-            <Skeleton className="h-4 w-[150px]" />
-          </div>
-        </div>
+      {loading && (
+  <div className="flex items-center space-x-4 m-4">
+    <Skeleton className="h-12 w-12 rounded-full" />
+    <div className="space-y-2">
+      <Skeleton className="h-4 w-[200px]" />
+      <Skeleton className="h-4 w-[150px]" />
+    </div>
+  </div>
+)}
 
       {/* Error */}
       {error && (
