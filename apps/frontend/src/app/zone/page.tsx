@@ -46,8 +46,7 @@ export default function Zone() {
                 })
 
                 if (!res.ok) {
-                    console.log('Unauthorized')
-                    router.push('/auth')
+                    router.replace('/auth')
                     return
                 }
 
@@ -55,7 +54,7 @@ export default function Zone() {
                 setUser(data.user)
             } catch (err) {
                 console.log('Fetch error:', err)
-                router.push('/auth')
+                router.replace('/auth')
             }
         }
 
@@ -153,7 +152,7 @@ export default function Zone() {
 
                       {copied && (
                         <div className="fixed bottom-20 left-2 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg animate-in fade-in slide-in-from-bottom-2 ">
-                          Copied to clipboard!
+                          Copied!
                         </div>
                       )}
 

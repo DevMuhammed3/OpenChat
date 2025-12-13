@@ -48,19 +48,18 @@ export default function ChatPage() {
   fetch(`${API_URL}/users/${username}`)
     .then(res => {
       if (!res.ok) {
-        router.push("/zone");
+        router.replace("/zone");
         return null;
       }
       return res.json();
     })
     .then(data => {
-      if (data?.user) {
-        setFriend(data.user);
-        setFriendId(data.user.id);
-      } else {
-        router.push("/zone");
-      }
-      setLoading(false);
+      if (!data?.user) {
+        router.replace("/zone");
+      } 
+       setFriend(data.user);
+       setFriendId(data.user.id);
+       setLoading(false);
     });
 }, [username]);
 
@@ -72,21 +71,16 @@ export default function ChatPage() {
             credentials: 'include',
         })
             .then(async (res) => {
-              if (res.status === 403) {
-                router.push("/zone");
-                return null;
-              }
-              if (res.status === 404) {
-                router.push("/zone");
+              if (res.status === 403 || res.status === 404) {
+                router.replace("/zone");
                 return null;
               }
               if (res.status === 401) {
-                router.push("/login");
+                router.replace("/auth");
                 return null;
               }
               return res.json();
             })
-            // .then((res) => res.json())
             .then((data) => {
               if(!data?.messages) return; 
               setMessages(data.messages)
