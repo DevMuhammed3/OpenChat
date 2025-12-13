@@ -146,7 +146,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-background to-muted p-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <h1 className="mb-2 text-4xl font-bold tracking-tight">Welcome</h1>
+          <h1 className="mb-2 text-4xl font-bold tracking-tight">Welcome To OpenChat</h1>
           <p className="text-muted-foreground">Sign in to your account or create a new one</p>
         </div>
 

@@ -1,149 +1,113 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "packages/ui";
-import { Button } from "packages/ui";
-import { Avatar, AvatarFallback, AvatarImage } from "packages/ui";
-import { ScrollArea } from "packages/ui";
-import { Separator } from "packages/ui";
-import { useRouter } from "next/navigation";
+import { Button, Avatar, AvatarFallback, ScrollArea, Separator } from "packages/ui";
+import { UserPlus, Check, X } from "lucide-react";
 import { socket } from "@openchat/lib";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+
 export default function FriendRequests() {
-  const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
-  const router = useRouter();
+  const [requests, setRequests] = useState<any[]>([]);
 
-  const [userId, setUserId] = useState<number | null>(null);
-  const [requests, setRequests] = useState([]);
-  const [friends, setFriends] = useState([]);
-
-  // Load logged-in user ID
-  useEffect(() => {
-    fetch(`${API_URL}/auth/me`, { credentials: "include" })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data?.user?.id) setUserId(data.user.id);
-      });
-  }, []);
-
-  // Load friends
-  const fetchFriends = () => {
-    fetch(`${API_URL}/friends/list`, { credentials: "include" })
-      .then((res) => res.json())
-      .then((data) => setFriends(data.friends || []));
-  };
-
-  // Load requests
   const fetchRequests = async () => {
-    const res = await fetch(`${API_URL}/friends/requests`, {
-      credentials: "include",
-    });
-    const data = await res.json();
-    if (res.ok) setRequests(data.requests || []);
+    try {
+      const res = await fetch(`${API_URL}/friends/requests`, {
+        credentials: "include",
+      });
+      if (!res.ok) return;
+
+      const data = await res.json();
+      setRequests(data.requests || []);
+    } catch (err) {
+      console.error("Failed to load requests", err);
+    }
   };
 
-  // First load
+  // initial load
   useEffect(() => {
-    fetchFriends();
     fetchRequests();
   }, []);
 
-  // Register THIS component to the socket room
+  // realtime listeners
   useEffect(() => {
-    if (!userId) return;
+    const onRequest = () => fetchRequests();
+    const onFriendAdded = () => fetchRequests();
 
-    if (!socket.connected) socket.connect();
-    socket.emit("register", userId);
-
-    console.log("Registered to socket room:", userId);
-  }, [userId]);
-
-  // Real-time listeners
-  useEffect(() => {
-    socket.on("friend-request-received", () => {
-      fetchRequests();
-    });
-
-    socket.on("friend-added", () => {
-      fetchRequests();
-      fetchFriends();
-    });
+    socket.on("friend-request-received", onRequest);
+    socket.on("friend-added", onFriendAdded);
 
     return () => {
-      socket.off("friend-request-received");
-      socket.off("friend-added");
+      socket.off("friend-request-received", onRequest);
+      socket.off("friend-added", onFriendAdded);
     };
   }, []);
 
-  // Accept request
-  const accept = async (id: number, senderId: number) => {
+  const accept = async (id: number) => {
     await fetch(`${API_URL}/friends/accept/${id}`, {
       method: "POST",
       credentials: "include",
     });
-
     fetchRequests();
-    fetchFriends();
   };
 
-  // Reject request
   const reject = async (id: number) => {
     await fetch(`${API_URL}/friends/reject/${id}`, {
       method: "DELETE",
       credentials: "include",
     });
-
     fetchRequests();
   };
 
+  if (requests.length === 0) return null;
+
   return (
-    <Card className="border-0 shadow-none rounded-none">
-      <CardHeader>
-        <CardTitle className="text-lg font-semibold">Friend Requests</CardTitle>
-      </CardHeader>
+    <div className="border-b border-border">
+      <div className="p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <UserPlus className="h-5 w-5 text-muted-foreground" />
+          <h2 className="font-semibold text-sm">Friend Requests</h2>
+          <span className="ml-auto text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">
+            {requests.length}
+          </span>
+        </div>
 
-      <CardContent>
-        {requests.length === 0 && (
-          <p className="text-muted-foreground text-sm">
-            No pending friend requests.
-          </p>
-        )}
-
-        {requests.length > 0 && (
-          <ScrollArea className="max-h-64 pr-2">
-            {requests.map((req: any, index) => (
+        <ScrollArea className="max-h-64">
+          <div className="space-y-2">
+            {requests.map((req, index) => (
               <div key={req.id}>
-                <div className="flex items-center justify-between py-3">
-                  <div
-                    className="flex items-center gap-3 cursor-pointer"
-                    onClick={() => router.push(`/friend/${req.sender.username}`)}
-                  >
-                    <Avatar>
-                      <AvatarImage src={req.sender?.avatar || ""} />
-                      <AvatarFallback>
-                        {req.sender?.username?.[0]?.toUpperCase() || "U"}
-                      </AvatarFallback>
-                    </Avatar>
+                <div className="flex items-center gap-3 py-2">
+                  <Avatar className="h-10 w-10">
+                    <AvatarFallback>
+                      {req.sender.username[0].toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
 
-                    <div>
-                      <p className="font-medium">@{req.sender.username}</p>
-                    </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">
+                      @{req.sender.username}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      wants to connect
+                    </p>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex gap-1">
                     <Button
-                      size="sm"
-                      onClick={() => accept(req.id, req.sender.id)}
-                      className="bg-green-600 hover:bg-green-700"
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => accept(req.id)}
+                      className="h-8 w-8 hover:bg-green-500/10 hover:text-green-500"
                     >
-                      Accept
+                      <Check className="h-4 w-4" />
                     </Button>
                     <Button
-                      size="sm"
-                      variant="destructive"
+                      size="icon"
+                      variant="ghost"
                       onClick={() => reject(req.id)}
+                      className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
                     >
-                      Reject
+                      <X className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
@@ -151,10 +115,10 @@ export default function FriendRequests() {
                 {index < requests.length - 1 && <Separator />}
               </div>
             ))}
-          </ScrollArea>
-        )}
-      </CardContent>
-    </Card>
+          </div>
+        </ScrollArea>
+      </div>
+    </div>
   );
 }
 

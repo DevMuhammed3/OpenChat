@@ -4,7 +4,6 @@ import { io } from "../index.js";
 
 export const friendController = {
 
-  // Get friend list
   async getFriends(req: Request, res: Response) {
     if (!req.user?.id) {
       return res.status(401).json({ message : "Not authenticated" });
@@ -34,7 +33,6 @@ export const friendController = {
 
 
 
-  // Search user by username
   async searchUser(req: Request, res: Response) {
     const username = req.query.username as string;
 
@@ -56,7 +54,6 @@ export const friendController = {
 
 
 
-  //  Send friend request (NEW version — uses username only)
   async sendRequest(req: Request, res: Response) {
     if (!req.user?.id) {
       return res.status(401).json({ message: "Not authenticated" });
@@ -69,7 +66,6 @@ export const friendController = {
       return res.status(400).json({ message: "Username is required" });
     }
 
-    //  Prevent using numeric IDs (publicNumericId)
     if (/^\d+$/.test(username)) {
       return res.status(400).json({
         message: "Friend requests must use username, not numeric ID"
@@ -90,7 +86,34 @@ export const friendController = {
       return res.status(400).json({ message: "You cannot add yourself" });
     }
 
-    // Prevent duplicate requests
+    const alreadyFriends = await prisma.friend.findFirst({
+  where: {
+    OR: [
+      { user1Id: senderId, user2Id: receiverId },
+      { user1Id: receiverId, user2Id: senderId },
+    ],
+  },
+});
+
+if (alreadyFriends) {
+  return res.status(400).json({ message: "You are already friends" });
+}
+
+const reverseRequest = await prisma.friendRequest.findFirst({
+  where: {
+    senderId: receiverId,
+    receiverId: senderId,
+  },
+});
+
+if (reverseRequest) {
+  return res.status(400).json({
+    message: "This user already sent you a friend request",
+  });
+}
+
+
+
     const exists = await prisma.friendRequest.findFirst({
       where: { senderId, receiverId }
     });
@@ -110,7 +133,6 @@ export const friendController = {
 
 
 
-  // Get incoming requests
   async getRequests(req: Request, res: Response) {
     if (!req.user?.id) {
       return res.status(401).json({ message: "Not authenticated" });
@@ -130,7 +152,6 @@ export const friendController = {
 
 
 
-  // Accept friend request
   async acceptRequest(req: Request, res: Response) {
     const requestId = Number(req.params.id);
 
@@ -143,7 +164,6 @@ export const friendController = {
     const senderId = reqData.senderId;
     const receiverId = reqData.receiverId;
 
-    // Check if already friends
     const alreadyFriends = await prisma.friend.findFirst({
       where: {
         OR: [
@@ -184,7 +204,6 @@ export const friendController = {
 
 
 
-  // Reject friend request
   async rejectRequest(req: Request, res: Response) {
     const requestId = Number(req.params.id);
 

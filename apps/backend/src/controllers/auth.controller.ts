@@ -1,7 +1,9 @@
 import { Request, Response } from 'express'
 import { AuthService } from '../services/auth.service.js'
-import { serialize } from 'cookie'
+// import { serialize } from 'cookie'
 import { prisma } from '../config/prisma.js'
+import { serialize } from 'cookie'
+import { getCookieOptions } from '../utils/cookie.js'
 
 export class AuthController {
     static async register(req: Request, res: Response) {
@@ -13,20 +15,10 @@ export class AuthController {
                 email,
                 password
             )
-            const isProd = process.env.NODE_ENV === 'production'
 
             // Set cookie (HTTPOnly)
-            const cookie = serialize('token', token, {
-                httpOnly: true,
-                secure: isProd,
-                sameSite: isProd ? 'none' : 'lax',
-                path: '/',
-                maxAge: 60 * 60 * 24 * 7,
-            })
-
+            const cookie = serialize('token', token, getCookieOptions(req))
             res.setHeader('Set-Cookie', cookie)
-
-            // Return only user data
             res.json({ user })
         } catch (err: any) {
             res.status(400).json({ message: err.message })
@@ -38,17 +30,8 @@ export class AuthController {
             const { email, password } = req.body
             const { user, token } = await AuthService.login(email, password)
 
-            // Set cookie
-            const cookie = serialize('token', token, {
-                httpOnly: true,
-                secure: false,
-                sameSite: 'lax',
-                path: '/',
-                maxAge: 60 * 60 * 24 * 7,
-            })
-
+            const cookie = serialize('token', token, getCookieOptions(req))
             res.setHeader('Set-Cookie', cookie)
-
             res.json({ user })
         } catch (err: any) {
             res.status(400).json({ message: err.message })
@@ -82,8 +65,12 @@ export class AuthController {
 
     static async logout(req: Request, res: Response) {
         try {
-            res.setHeader('Set-Cookie', 'token=; HttpOnly; Path=/; Max-Age=0;')
+            const cookie = serialize('token', '', {
+                ...getCookieOptions(req),
+                maxAge: 0,
+            })
 
+            res.setHeader('Set-Cookie', cookie)
             res.json({ message: 'logged out successfully!' })
         } catch (err: any) {
             res.status(500).json({ message: 'Server err' })

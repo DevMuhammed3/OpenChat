@@ -1,14 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { User } from "lucide-react";
-import { Skeleton } from "packages/ui";
+import { Avatar, AvatarFallback, ScrollArea } from "packages/ui";
+import { Users, Loader2 } from "lucide-react";
 import { socket } from "@openchat/lib";
+import { cn } from "@openchat/lib";
 
-export default function FriendList() {
+interface FriendListProps {
+  selectedFriend?: any;
+  onSelectFriend?: (friend: any) => void;
+}
+
+export default function FriendList({
+  selectedFriend,
+  onSelectFriend,
+}: FriendListProps) {
   const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
-  const router = useRouter();
 
   type Friend = {
     id: number;
@@ -20,71 +27,110 @@ export default function FriendList() {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Load friends (used also by socket events)
   const loadFriends = async () => {
     try {
       const res = await fetch(`${API_URL}/friends/list`, {
         credentials: "include",
       });
+      if (!res.ok) return;
+
       const data = await res.json();
       setFriends(data.friends || []);
-    } catch (error) {
-      console.error("Error loading friends", error);
+    } catch (err) {
+      console.error("Error loading friends", err);
     } finally {
       setLoading(false);
     }
   };
 
-  // First load
+  // initial load
   useEffect(() => {
     loadFriends();
   }, []);
 
-  // Real-time updates
+  // realtime updates
   useEffect(() => {
-    socket.on("friend-added", () => {
-      console.log("Friend added — refreshing list...");
+    const onFriendAdded = () => {
       loadFriends();
-    });
+    };
+
+    socket.on("friend-added", onFriendAdded);
 
     return () => {
-      socket.off("friend-added");
+      socket.off("friend-added", onFriendAdded);
     };
   }, []);
 
   return (
-    <div className="p-4">
-      <h2 className="font-semibold mb-3 text-lg">Friends</h2>
-
-      {/* Skeleton Loading */}
-      {loading && (
-        <div className="space-y-3">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="flex items-center gap-3">
-              <Skeleton className="w-8 h-8 rounded-full" />
-              <Skeleton className="h-4 w-[120px]" />
-            </div>
-          ))}
+    <div className="flex-1">
+      <div className="p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Users className="h-5 w-5 text-muted-foreground" />
+          <h2 className="font-semibold text-sm">Friends</h2>
+          {friends.length > 0 && (
+            <span className="ml-auto text-xs text-muted-foreground">
+              {friends.length}
+            </span>
+          )}
         </div>
-      )}
 
-      {/* No friends */}
-      {!loading && friends.length === 0 && (
-        <p className="text-muted-foreground text-sm">No friends yet.</p>
-      )}
-
-      {/* Friends List */}
-      {!loading &&
-        friends.map((friend) => (
-          <div
-            key={friend.id}
-            className="flex items-center gap-3 p-2 rounded hover:bg-muted cursor-pointer"
-            onClick={() => router.push(`/zone/${friend.username}`)}
-          >
-            <User className="w-6 h-6" />
-            {friend.username}
+        {loading && (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
-        ))}
+        )}
+
+        {!loading && friends.length === 0 && (
+          <div className="text-center py-8">
+            <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-muted flex items-center justify-center">
+              <Users className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <p className="text-sm text-muted-foreground">No friends yet</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Add friends to start chatting
+            </p>
+          </div>
+        )}
+
+        {!loading && friends.length > 0 && (
+          <ScrollArea className="h-[400px]">
+            <div className="space-y-1">
+              {friends.map((friend) => (
+                <button
+                  key={friend.id}
+                  onClick={() => onSelectFriend?.(friend)}
+                  className={cn(
+                    "w-full flex items-center gap-3 p-3 rounded-lg transition-colors",
+                    "hover:bg-muted",
+                    selectedFriend?.id === friend.id
+                      ? "bg-muted"
+                      : "bg-transparent"
+                  )}
+                >
+                  <Avatar className="h-10 w-10">
+                    <AvatarFallback className="bg-primary text-primary-foreground">
+                      {friend.username?.[0]?.toUpperCase() || "F"}
+                    </AvatarFallback>
+                  </Avatar>
+
+                  <div className="flex-1 text-left min-w-0">
+                    <p className="font-medium text-md truncate">
+                      {friend.name || `@${friend.username}`}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      @{friend.username}
+                    </p>
+                  </div>
+
+                  {selectedFriend?.id === friend.id && (
+                    <div className="h-2 w-2 rounded-full bg-primary" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </ScrollArea>
+        )}
+      </div>
     </div>
   );
 }
