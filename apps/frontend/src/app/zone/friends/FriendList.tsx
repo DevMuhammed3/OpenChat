@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, ScrollArea } from "packages/ui";
 import { Users, Loader2 } from "lucide-react";
 import { socket } from "@openchat/lib";
 import { cn } from "@openchat/lib";
+import { api } from "@openchat/lib";
 
 type Friend = {
   id: number;
@@ -19,7 +20,6 @@ interface FriendListProps {
 }
 
 export default function FriendList({ onSelectFriend }: FriendListProps) {
-  const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
   const { username } = useParams<{ username?: string }>();
 
   const [friends, setFriends] = useState<Friend[]>([]);
@@ -27,7 +27,7 @@ export default function FriendList({ onSelectFriend }: FriendListProps) {
 
   const loadFriends = async () => {
     try {
-      const res = await fetch(`${API_URL}/friends/list`, {
+      const res = await api(`/friends/list`, {
         credentials: "include",
       });
       if (!res.ok) return;

@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { Input, Skeleton } from "packages/ui";
+import { api } from "@openchat/lib";
 
 export default function AddFriend() {
-  const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
 
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
@@ -19,7 +19,7 @@ export default function AddFriend() {
     setSuccess(null);
 
     try {
-      const res = await fetch(`${API_URL}/friends/request`, {
+      const res = await api(`/friends/request`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

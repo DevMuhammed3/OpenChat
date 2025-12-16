@@ -11,8 +11,7 @@ import {
 } from 'packages/ui'
 import { Menu } from 'lucide-react'
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL!
+import { api } from "@openchat/lib"
 
 export default function ZoneLayout({
   children,
@@ -24,7 +23,7 @@ export default function ZoneLayout({
 
   // get user
   useEffect(() => {
-    fetch(`${API_URL}/auth/me`, { credentials: 'include' })
+    api(`/auth/me`, { credentials: 'include' })
       .then(res => (res.ok ? res.json() : null))
       .then(data => {
         if (!data?.user) {

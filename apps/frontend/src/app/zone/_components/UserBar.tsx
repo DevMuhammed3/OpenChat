@@ -4,8 +4,7 @@ import { Avatar, AvatarFallback, Button } from 'packages/ui'
 import { LogOut } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL!
+import { api } from '@openchat/lib'
 
 export default function UserBar({ user }: { user: any }) {
   const router = useRouter()
@@ -39,7 +38,7 @@ export default function UserBar({ user }: { user: any }) {
         size="icon"
         variant="destructive"
         onClick={async () => {
-          await fetch(`${API_URL}/auth/logout`, {
+          await api(`/auth/logout`, {
             method: 'POST',
             credentials: 'include',
           })

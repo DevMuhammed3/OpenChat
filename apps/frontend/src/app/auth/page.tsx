@@ -16,9 +16,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from 'packages/ui';
 import { Alert, AlertDescription } from 'packages/ui';
 import { Eye, EyeOff, Mail, Lock, User, CheckCircle2 } from 'lucide-react';
 import { useRouter } from "next/navigation";
+import { api } from '@openchat/lib';
 
 export default function AuthPage() {
-const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
 
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
@@ -36,7 +36,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
 
   // Redirect if logged in
   useEffect(() => {
-    fetch(`${API_URL}/auth/me`, {
+    api(`/auth/me`, {
       credentials: "include",
     })
       .then((res) => {
@@ -57,7 +57,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
     }
 
     try {
-      const res = await fetch(`${API_URL}/auth/login`, {
+      const res = await api(`/auth/login`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -105,7 +105,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
     }
 
     try {
-      const res = await fetch(`${API_URL}/auth/register`, {
+      const res = await api(`/auth/register`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

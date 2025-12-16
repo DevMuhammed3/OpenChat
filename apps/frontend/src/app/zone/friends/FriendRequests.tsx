@@ -3,16 +3,15 @@
 import { useEffect, useState } from "react";
 import { Button, Avatar, AvatarFallback, ScrollArea, Separator } from "packages/ui";
 import { UserPlus, Check, X } from "lucide-react";
-import { socket } from "@openchat/lib";
+import { api, socket } from "@openchat/lib";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
 
 export default function FriendRequests() {
   const [requests, setRequests] = useState<any[]>([]);
 
-  const fetchRequests = async () => {
+  const apiRequests = async () => {
     try {
-      const res = await fetch(`${API_URL}/friends/requests`, {
+      const res = await api(`/friends/requests`, {
         credentials: "include",
       });
       if (!res.ok) return;
@@ -26,13 +25,13 @@ export default function FriendRequests() {
 
   // initial load
   useEffect(() => {
-    fetchRequests();
+    apiRequests();
   }, []);
 
   // realtime listeners
   useEffect(() => {
-    const onRequest = () => fetchRequests();
-    const onFriendAdded = () => fetchRequests();
+    const onRequest = () => apiRequests();
+    const onFriendAdded = () => apiRequests();
 
     socket.on("friend-request-received", onRequest);
     socket.on("friend-added", onFriendAdded);
@@ -44,19 +43,19 @@ export default function FriendRequests() {
   }, []);
 
   const accept = async (id: number) => {
-    await fetch(`${API_URL}/friends/accept/${id}`, {
+    await api(`/friends/accept/${id}`, {
       method: "POST",
       credentials: "include",
     });
-    fetchRequests();
+    apiRequests();
   };
 
   const reject = async (id: number) => {
-    await fetch(`${API_URL}/friends/reject/${id}`, {
+    await api(`/friends/reject/${id}`, {
       method: "DELETE",
       credentials: "include",
     });
-    fetchRequests();
+    apiRequests();
   };
 
   if (requests.length === 0) return null;

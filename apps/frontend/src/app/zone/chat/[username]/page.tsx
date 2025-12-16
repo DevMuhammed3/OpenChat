@@ -5,8 +5,7 @@ import { useParams } from 'next/navigation'
 import { socket } from '@openchat/lib'
 import { Input, Button } from 'packages/ui'
 import { Loader2, Send, User } from 'lucide-react'
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL!
+import { api } from '@openchat/lib'
 
 type Friend = {
   id: number
@@ -35,7 +34,7 @@ export default function ChatPage() {
     setLoading(true)
     setMessages([])
 
-    fetch(`${API_URL}/users/${username}`, { credentials: 'include' })
+    api(`/users/${username}`, { credentials: 'include' })
       .then(res => res.ok ? res.json() : Promise.reject())
       .then(data => setFriend(data.user))
       .catch(() => setFriend(null))
@@ -46,7 +45,7 @@ export default function ChatPage() {
   useEffect(() => {
     if (!friend?.id) return
 
-    fetch(`${API_URL}/messages/${friend.id}`, { credentials: 'include' })
+    api(`/messages/${friend.id}`, { credentials: 'include' })
       .then(res => res.json())
       .then(data => setMessages(data.messages ?? []))
   }, [friend?.id])
