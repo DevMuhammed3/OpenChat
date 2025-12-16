@@ -21,7 +21,7 @@ export class AuthController {
             res.setHeader('Set-Cookie', cookie)
             res.json({ user })
         } catch (err: any) {
-            res.status(400).json({ message: err.message })
+            res.status(400).json({ message: "Something wrong!" })
         }
     }
 
@@ -34,7 +34,7 @@ export class AuthController {
             res.setHeader('Set-Cookie', cookie)
             res.json({ user })
         } catch (err: any) {
-            res.status(400).json({ message: err.message })
+            res.status(400).json({ message: "Something wrong!" })
         }
     }
 

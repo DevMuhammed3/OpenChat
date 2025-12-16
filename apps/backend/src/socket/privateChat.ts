@@ -1,75 +1,64 @@
 import { Server, Socket } from "socket.io";
 import { prisma } from "../config/prisma.js";
 
-interface PrivateMessagePayload {
-  text: string;
-  from: number;
-  to: number;
-}
-
-interface JoinRoomPayload {
-  userId: number;
-  friendId: number;
-}
-
 export function privateChatHandler(io: Server, socket: Socket) {
 
-  // JOIN ROOM
-  socket.on("join-room", async ({ userId, friendId }: JoinRoomPayload) => {
+  socket.on("join-room", async ({ friendId }: { friendId: number }) => {
+    const userId = socket.data.userId;
+
+    if (!userId || !friendId) return;
+    if (userId === friendId) return;
 
     const isFriend = await prisma.friend.findFirst({
       where: {
         OR: [
           { user1Id: userId, user2Id: friendId },
-          { user1Id: friendId, user2Id: userId }
-        ]
-      }
+          { user1Id: friendId, user2Id: userId },
+        ],
+      },
     });
 
-    if (!isFriend) {
-      console.log(`User ${userId} tried to join room with ${friendId} but NOT friends.`);
-      return;
-    }
+    if (!isFriend) return;
 
     const room = `chat-${[userId, friendId].sort().join("-")}`;
     socket.join(room);
-
-    console.log(`User ${userId} joined room ${room}`);
   });
 
-  // SEND MESSAGE
-  socket.on("private-message", async ({ text, from, to }: PrivateMessagePayload) => {
+  socket.on(
+    "private-message",
+    async ({ text, to }: { text: string; to: number }) => {
+      const from = socket.data.userId;
+      if (!from || !to || !text.trim()) return;
 
-    const isFriend = await prisma.friend.findFirst({
-      where: {
-        OR: [
-          { user1Id: from, user2Id: to },
-          { user1Id: to, user2Id: from }
-        ]
-      }
-    });
+      const isFriend = await prisma.friend.findFirst({
+        where: {
+          OR: [
+            { user1Id: from, user2Id: to },
+            { user1Id: to, user2Id: from },
+          ],
+        },
+      });
 
-    if (!isFriend) {
-      console.log(`User ${from} tried to send message to ${to} but NOT friends.`);
-      return;
-    }
+      if (!isFriend) return;
 
-    const room = `chat-${[from, to].sort().join("-")}`;
+      const room = `chat-${[from, to].sort().join("-")}`;
 
-    const saved = await prisma.message.create({
-      data: {
-        text,
+      const saved = await prisma.message.create({
+        data: {
+          text,
+          senderId: from,
+          receiverId: to,
+        },
+      });
+
+      io.to(room).emit("private-message", {
+        id: saved.id,
+        text: saved.text,
         senderId: from,
         receiverId: to,
-      }
-    });
-
-    // Send to sender
-    socket.emit("private-message", saved);
-
-    // Send to receiver
-    socket.to(room).emit("private-message", saved);
-  });
-
+        createdAt: saved.createdAt,
+      });
+    }
+  );
 }
 
