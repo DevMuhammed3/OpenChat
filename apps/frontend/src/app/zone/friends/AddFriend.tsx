@@ -1,67 +1,67 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-import { Input, Skeleton } from "packages/ui";
-import { api } from "@openchat/lib";
+import { useEffect, useState } from 'react'
+import { Input, Skeleton } from 'packages/ui'
+import { api } from '@openchat/lib'
 
 export default function AddFriend() {
-
-  const [username, setUsername] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [username, setUsername] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const sendRequest = async () => {
-    if (!username.trim() || loading) return;
+    const value = username.trim()
+    if (!value || loading) return
 
-    setLoading(true);
-    setError(null);
-    setSuccess(null);
+    setLoading(true)
+    setError(null)
+    setSuccess(null)
 
     try {
-      const res = await api(`/friends/request`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username }),
-      });
+      const res = await api('/friends/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: value }),
+      })
 
-      const data = await res.json();
+      const data = await res.json()
 
       if (!res.ok) {
-        setError(data.message || "Failed to send friend request");
-        return;
+        setError(data.message || 'Failed to send friend request')
+        return
       }
 
-      setSuccess(`Friend request sent to @${username}`);
-      setUsername("");
+      setSuccess(`Friend request sent to @${value}`)
+      setUsername('')
     } catch {
-      setError("Something went wrong, try again.");
+      setError('Something went wrong, try again.')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
-  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      sendRequest();
-    }
-  };
+  useEffect(() => {
+    if (!success) return
+
+    const timer = setTimeout(() => {
+      setSuccess(null)
+    }, 3000)
+
+    return () => clearTimeout(timer)
+  }, [success])
 
   return (
     <div className="bg-card p-4 border-b border-border">
-      {/* Input */}
       <Input
         value={username}
         onChange={(e) => setUsername(e.target.value)}
-        onKeyDown={onKeyDown}
+        onKeyDown={(e) => e.key === 'Enter' && sendRequest()}
         placeholder="Add friend by username..."
         disabled={loading}
         className="rounded-lg"
       />
 
-      {/* Loading */}
       {loading && (
         <div className="flex items-center space-x-4 mt-4">
           <Skeleton className="h-10 w-10 rounded-full" />
@@ -72,20 +72,18 @@ export default function AddFriend() {
         </div>
       )}
 
-      {/* Error */}
       {error && (
         <p className="text-sm text-destructive mt-3">
           {error}
         </p>
       )}
 
-      {/* Success */}
       {success && (
         <p className="text-sm text-green-500 mt-3">
           {success}
         </p>
       )}
     </div>
-  );
+  )
 }
 

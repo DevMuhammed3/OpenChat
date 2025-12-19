@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { socket } from '@openchat/lib'
 import { Input, Button } from 'packages/ui'
@@ -79,7 +79,7 @@ export default function ChatPage() {
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const send = () => {
+  const send = useCallback(() => {
     if (!input.trim() || !friend?.id) return
 
     // setMessages(prev => [
@@ -98,9 +98,9 @@ export default function ChatPage() {
     })
 
     setInput('')
-  }
+  }, [input, friend?.id])
 
-  // ✅ centered loader
+  // centered loader
   if (loading) {
     return (
       <div className="flex h-[100svh] items-center justify-center">

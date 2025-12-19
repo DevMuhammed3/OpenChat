@@ -122,11 +122,30 @@ if (reverseRequest) {
       return res.status(400).json({ message: "Request already sent" });
     }
 
-    await prisma.friendRequest.create({
-      data: { senderId, receiverId }
-    });
+   const request = await prisma.friendRequest.create({
+  data: { senderId, receiverId },
+  include: {
+    sender: {
+      select: {
+        id: true,
+        username: true,
+        name: true,
+        avatar: true,
+      },
+    },
+  },
+});
 
-    io.to(receiverId.toString()).emit("friend-request-received", { from: senderId })
+io.to(receiverId.toString()).emit(
+  "friend-request-received",
+  {
+    request: {
+      id: request.id,
+      from: request.sender,
+      createdAt: request.createdAt,
+    },
+  }
+);
 
     res.json({ message: "Friend request sent" });
   },
@@ -191,14 +210,23 @@ if (reverseRequest) {
       where: { id: requestId },
     });
 
-    io.to(senderId.toString()).emit("friend-added", {
-      friendId: receiverId,
-    });
+   const senderUser = await prisma.user.findUnique({
+  where: { id: senderId },
+  select: { id: true, username: true, name: true, avatar: true },
+})
 
-    io.to(receiverId.toString()).emit("friend-added", {
-      friendId: senderId,
-    })
+const receiverUser = await prisma.user.findUnique({
+  where: { id: receiverId },
+  select: { id: true, username: true, name: true, avatar: true },
+})
 
+io.to(senderId.toString()).emit("friend-added", {
+  friend: receiverUser,
+})
+
+io.to(receiverId.toString()).emit("friend-added", {
+  friend: senderUser,
+})
     res.json({ message: "Friend added" });
   },
 

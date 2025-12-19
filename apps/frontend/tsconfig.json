@@ -25,6 +25,9 @@
       "packages/ui/*": ["../../packages/components/src/*"],
       "@openchat/components": ["../../packages/components/src"],
       "@openchat/components/*": ["../../packages/components/src/*"],
+      "@openchat/ui": ["../../packages/components/src"],
+      "@openchat/ui/*": ["../../packages/components/src/*"],
+      "@openchat/components": ["../../packages/components/src"],
       "@openchat/lib": ["../../packages/lib/src"],
       "@openchat/lib/*": ["../../packages/lib/src/*"]
     }

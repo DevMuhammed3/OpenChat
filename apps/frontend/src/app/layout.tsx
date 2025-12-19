@@ -1,7 +1,8 @@
 import { Toaster } from "packages/ui"
 import "../globals.css"
 import type { Metadata } from "next"
-import { AppThemeProvider } from "./theme-provider"
+import { AppThemeProvider } from "./providers/theme-provider"
+import { RealtimeProvider } from "./providers/realtime-provider"
 
 export const metadata: Metadata = {
   title: "OpenChat",
@@ -17,7 +18,10 @@ export default function RootLayout({
    <html lang="en" suppressHydrationWarning>
       <body>
       <AppThemeProvider>
-        {children}
+          <RealtimeProvider>
+            {children}
+            </RealtimeProvider>
+
         <Toaster richColors position="top-center" />
       </ AppThemeProvider>
       </body>

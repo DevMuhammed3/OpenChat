@@ -1,123 +1,83 @@
-"use client";
+'use client'
 
-import { useEffect, useState } from "react";
-import { Button, Avatar, AvatarFallback, ScrollArea, Separator } from "packages/ui";
-import { UserPlus, Check, X } from "lucide-react";
-import { api, socket } from "@openchat/lib";
-
+import { useEffect } from 'react'
+import {
+  Avatar,
+  AvatarFallback,
+  Button,
+  ScrollArea,
+} from 'packages/ui'
+import { Check, X, UserPlus } from 'lucide-react'
+import { api } from '@openchat/lib'
+import { useFriendsStore } from '@/app/stores/friends-store'
 
 export default function FriendRequests() {
-  const [requests, setRequests] = useState<any[]>([]);
+  const requests = useFriendsStore(s => s.requests)
+  const setRequests = useFriendsStore(s => s.setRequests)
+  const removeRequest = useFriendsStore(s => s.removeRequest)
 
-  const apiRequests = async () => {
-    try {
-      const res = await api(`/friends/requests`, {
-        credentials: "include",
-      });
-      if (!res.ok) return;
-
-      const data = await res.json();
-      setRequests(data.requests || []);
-    } catch (err) {
-      console.error("Failed to load requests", err);
-    }
-  };
-
-  // initial load
   useEffect(() => {
-    apiRequests();
-  }, []);
+    api('/friends/requests')
+      .then(res => res.json())
+      .then(data => {
+        const normalized = (data.requests || []).map((r: any) => ({
+          id: r.id,
+          from: r.sender,
+          createdAt: r.createdAt,
+        }))
 
-  // realtime listeners
-  useEffect(() => {
-    const onRequest = () => apiRequests();
-    const onFriendAdded = () => apiRequests();
-
-    socket.on("friend-request-received", onRequest);
-    socket.on("friend-added", onFriendAdded);
-
-    return () => {
-      socket.off("friend-request-received", onRequest);
-      socket.off("friend-added", onFriendAdded);
-    };
-  }, []);
+        setRequests(normalized)
+      })
+  }, [setRequests])
 
   const accept = async (id: number) => {
-    await api(`/friends/accept/${id}`, {
-      method: "POST",
-      credentials: "include",
-    });
-    apiRequests();
-  };
+    await api(`/friends/accept/${id}`, { method: 'POST' })
+    removeRequest(id)
+  }
 
   const reject = async (id: number) => {
-    await api(`/friends/reject/${id}`, {
-      method: "DELETE",
-      credentials: "include",
-    });
-    apiRequests();
-  };
+    await api(`/friends/reject/${id}`, { method: 'DELETE' })
+    removeRequest(id)
+  }
 
-  if (requests.length === 0) return null;
+  if (requests.length === 0) return null
 
   return (
-    <div className="border-b border-border">
-      <div className="p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <UserPlus className="h-5 w-5 text-muted-foreground" />
-          <h2 className="font-semibold text-sm">Friend Requests</h2>
-          <span className="ml-auto text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">
-            {requests.length}
-          </span>
-        </div>
+    <div className="border-b p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <UserPlus className="h-5 w-5 text-muted-foreground" />
+        <h2 className="font-semibold text-sm">Friend Requests</h2>
+      </div>
 
-        <ScrollArea className="max-h-64">
-          <div className="space-y-2">
-            {requests.map((req, index) => (
-              <div key={req.id}>
-                <div className="flex items-center gap-3 py-2">
-                  <Avatar className="h-10 w-10">
-                    <AvatarFallback>
-                      {req.sender.username[0].toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+      <ScrollArea className="max-h-64">
+        <div className="space-y-2">
+          {requests.map((req) => {
+            if (!req.from) return null
 
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">
-                      @{req.sender.username}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      wants to connect
-                    </p>
-                  </div>
+            return (
+              <div key={req.id} className="flex items-center gap-3">
+                <Avatar>
+                  <AvatarFallback>
+                    {req.from.username[0].toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
 
-                  <div className="flex gap-1">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => accept(req.id)}
-                      className="h-8 w-8 hover:bg-green-500/10 hover:text-green-500"
-                    >
-                      <Check className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => reject(req.id)}
-                      className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
+                <div className="flex-1">
+                  @{req.from.username}
                 </div>
 
-                {index < requests.length - 1 && <Separator />}
+                <Button size="icon" onClick={() => accept(req.id)}>
+                  <Check />
+                </Button>
+                <Button size="icon" onClick={() => reject(req.id)}>
+                  <X />
+                </Button>
               </div>
-            ))}
-          </div>
-        </ScrollArea>
-      </div>
+            )
+          })}
+        </div>
+      </ScrollArea>
     </div>
-  );
+  )
 }
 

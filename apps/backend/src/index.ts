@@ -26,6 +26,7 @@ io.use(socketAuth)
 io.on('connection', (socket) => {
   const userId = socket.data.userId
 
+  if(!userId) return;
   console.log(`Socket connected: ${socket.id} (user ${userId})`)
 
   socket.join(userId.toString())
