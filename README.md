@@ -77,13 +77,13 @@ If you change the Prisma schema (`apps/backend/prisma/schema.prisma`) apply migr
 
 ```bash
 cd apps/backend
-pnpm prisma migrate dev
+npx prisma migrate dev
 ```
 
 Or generate clients only:
 
 ```bash
-pnpm prisma generate
+npx prisma generate
 ```
 
 ## Working with shared packages (developer workflow)
