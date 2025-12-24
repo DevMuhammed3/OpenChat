@@ -13,6 +13,8 @@ import { Menu } from 'lucide-react'
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { api } from '@openchat/lib'
 import { RealtimeProvider } from '../providers/realtime-provider'
+import { useFriendsStore } from '@/app/stores/friends-store'
+
 
 export default function ZoneLayout({
   children,
@@ -21,6 +23,8 @@ export default function ZoneLayout({
 }) {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
+  const setFriends = useFriendsStore(s => s.setFriends)
+
 
   useEffect(() => {
     api('/auth/me', { credentials: 'include' })
@@ -34,54 +38,51 @@ export default function ZoneLayout({
       })
   }, [router])
 
+
+  useEffect(() => {
+  api('/friends/list')
+    .then(res => res.json())
+    .then(data => setFriends(data.friends))
+}, [])
+
   return (
     <RealtimeProvider>
-      <div className="h-[100svh] flex">
-        {/* Desktop */}
-        <div className="hidden md:flex">
-          <ZoneSidebar
-            user={user}
-            onSelectFriend={(f) =>
-              router.push(`/zone/chat/${f.username}`)
-            }
-          />
-        </div>
+<div className="h-[100svh] flex">
+  {/* Sidebar */}
+  <div className="hidden md:flex">
+    <ZoneSidebar user={user} />
+  </div>
 
-        {/* Mobile */}
-        <div className="md:hidden flex flex-col flex-1">
-          <div className="border-b p-3 flex items-center gap-2">
-            <Sheet>
-              <SheetTrigger asChild>
-                <button className="p-2 rounded-md hover:bg-muted">
-                  <Menu className="h-5 w-5" />
-                </button>
-              </SheetTrigger>
+  {/* Content (Chat panel) */}
+  <div className="flex-1 flex flex-col">
+    {/* Mobile Header */}
+    <div className="md:hidden border-b p-3 flex items-center gap-2">
+      <Sheet>
+        <SheetTrigger asChild>
+          <button className="p-2 rounded-md hover:bg-muted">
+            <Menu className="h-5 w-5" />
+          </button>
+        </SheetTrigger>
 
-              <SheetContent side="left" className="p-0 w-80">
-                <VisuallyHidden>
-                  <SheetTitle>Sidebar</SheetTitle>
-                </VisuallyHidden>
+        <SheetContent side="left" className="p-0 w-80">
+          <VisuallyHidden>
+            <SheetTitle>Sidebar</SheetTitle>
+          </VisuallyHidden>
 
-                <ZoneSidebar
-                  user={user}
-                  onSelectFriend={(f) =>
-                    router.replace(`/zone/chat/${f.username}`)
-                  }
-                />
-              </SheetContent>
-            </Sheet>
+          <ZoneSidebar user={user} />
+        </SheetContent>
+      </Sheet>
 
-            <span className="font-semibold text-sm">OpenChat</span>
-          </div>
+      <span className="font-semibold text-sm">OpenChat</span>
+    </div>
 
-          <main className="flex-1">{children}</main>
-        </div>
+    {/* Chat / Page */}
+    <main className="flex-1 overflow-hidden">
+      {children}
+    </main>
+  </div>
+</div>
 
-        {/* Desktop Content */}
-        <main className="hidden md:block flex-1">
-          {children}
-        </main>
-      </div>
     </RealtimeProvider>
   )
 }

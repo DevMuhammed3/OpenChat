@@ -27,7 +27,6 @@ export default function FriendList({ onSelectFriend }: FriendListProps) {
 
   const [loading, setLoading] = useState(true)
 
-  // تحميل أول مرة فقط
   useEffect(() => {
     let mounted = true
 
@@ -100,7 +99,7 @@ export default function FriendList({ onSelectFriend }: FriendListProps) {
 
                     <div className="flex-1 text-left min-w-0">
                       <p className="font-medium text-md truncate">
-                        @{friend.username}
+                        {friend.username}
                       </p>
                       <p className="text-xs text-muted-foreground truncate">
                         @{friend.username}

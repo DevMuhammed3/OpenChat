@@ -25,11 +25,9 @@ io.use(socketAuth)
 
 io.on('connection', (socket) => {
   const userId = socket.data.userId
+  if (!userId) return
 
-  if(!userId) return;
   console.log(`Socket connected: ${socket.id} (user ${userId})`)
-
-  socket.join(userId.toString())
 
   privateChatHandler(io, socket)
 
@@ -37,6 +35,7 @@ io.on('connection', (socket) => {
     console.log(`Socket disconnected: ${socket.id} (user ${userId})`)
   })
 })
+
 
 server.listen(port, () => {
   console.log('Socket + API running on http://localhost:' + port)

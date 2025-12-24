@@ -8,19 +8,19 @@ datasource db {
 }
 
 model User {
-  id            Int       @id @default(autoincrement())
-  publicNumericId String? @unique 
-  name          String?
-  username      String    @unique
-  email         String    @unique
-  emailVerified DateTime?
-  avatar        String?
-  password      String
-  role          String    @default("USER")
-  bio           String?   @db.Text
-  phone         String?   @unique
-  status        Boolean   @default(false)
-  isActive      Boolean   @default(true)
+  id              Int       @id @default(autoincrement())
+  publicNumericId String?   @unique
+  name            String?
+  username        String    @unique
+  email           String    @unique
+  emailVerified   DateTime?
+  avatar          String?
+  password        String
+  role            String    @default("USER")
+  bio             String?   @db.Text
+  phone           String?   @unique
+  status          Boolean   @default(false)
+  isActive        Boolean   @default(true)
 
   // Security
   lastLogin        DateTime?
@@ -47,8 +47,10 @@ model User {
   friends2 Friend[] @relation("friends2")
 
   // Messages
-  sentMessages     Message[] @relation("sentMessages")
-  receivedMessages Message[] @relation("receivedMessages")
+  sentMessages Message[] @relation("UserSentMessages")
+
+  // chat 
+  chatParticipants ChatParticipant[]
 }
 
 model FriendRequest {
@@ -74,12 +76,33 @@ model Friend {
 }
 
 model Message {
-  id         Int      @id @default(autoincrement())
-  text       String
-  senderId   Int
-  receiverId Int
-  createdAt  DateTime @default(now())
+  id        Int      @id @default(autoincrement())
+  chatId    Int
+  senderId  Int
+  text      String
+  createdAt DateTime @default(now())
 
-  sender   User @relation("sentMessages", fields: [senderId], references: [id])
-  receiver User @relation("receivedMessages", fields: [receiverId], references: [id])
+  chat Chat @relation(fields: [chatId], references: [id])
+
+  sender User @relation("UserSentMessages", fields: [senderId], references: [id])
+}
+
+model Chat {
+  id        Int      @id @default(autoincrement())
+  publicId  String   @unique
+  createdAt DateTime @default(now())
+
+  participants ChatParticipant[]
+  messages     Message[]
+}
+
+model ChatParticipant {
+  id     Int @id @default(autoincrement())
+  chatId Int
+  userId Int
+
+  chat Chat @relation(fields: [chatId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([chatId, userId])
 }

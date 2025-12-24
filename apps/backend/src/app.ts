@@ -3,7 +3,7 @@ import cors from "cors";
 import authRoutes from "./routes/auth.routes.js";
 import cookieParser from "cookie-parser";
 import friendRoutes from "./routes/friend.routes.js";
-import messageRoutes from "./routes/message.routes.js";
+import chatRoutes from "./routes/chat.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import { isAllowedOrigin } from "./config/origin.js";
 
@@ -29,4 +29,4 @@ app.use(express.json());
 app.use("/auth", authRoutes);
 app.use("/users", userRoutes);
 app.use("/friends", friendRoutes);
-app.use("/messages", messageRoutes);
+app.use("/chats", chatRoutes);
