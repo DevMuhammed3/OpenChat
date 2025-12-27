@@ -1,40 +1,67 @@
-// stores/chats-store.ts
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 
-type Chat = any
+export type Chat = {
+  chatPublicId: string
+  participants: any[]
+  lastMessage?: {
+    text: string
+    createdAt: string
+  } | null
+}
 
-export const useChatsStore = create<{
+type ChatsState = {
   chats: Chat[]
   hiddenChats: string[]
+  chatsLoaded: boolean
 
-  setChats: (c: Chat[]) => void
-  addChat: (c: Chat) => void
-
+  setChats: (chats: Chat[]) => void
+  addChat: (chat: Chat) => void
   hideChat: (id: string) => void
   showChat: (id: string) => void
-}>(set => ({
-  chats: [],
-  hiddenChats: [],
+}
 
-  setChats: chats => set({ chats }),
+export const useChatsStore = create<ChatsState>()(
+  persist(
+    (set) => ({
+      chats: [],
+      hiddenChats: [],
+      chatsLoaded: false,
 
-  addChat: chat =>
-    set(state => ({
-      chats: [
-        chat,
-        ...state.chats.filter(c => c.chatPublicId !== chat.chatPublicId),
-      ],
-      hiddenChats: state.hiddenChats.filter(id => id !== chat.chatPublicId),
-    })),
+      setChats: (chats) =>
+        set({ chats, chatsLoaded: true }),
 
-  hideChat: id =>
-    set(state => ({
-      hiddenChats: [...state.hiddenChats, id],
-    })),
+      addChat: (chat) =>
+        set((state) => ({
+          chats: [
+            chat,
+            ...state.chats.filter(
+              (c) => c.chatPublicId !== chat.chatPublicId
+            ),
+          ],
+          hiddenChats: state.hiddenChats.filter(
+            (id) => id !== chat.chatPublicId
+          ),
+        })),
 
-  showChat: id =>
-    set(state => ({
-      hiddenChats: state.hiddenChats.filter(c => c !== id),
-    })),
-}))
+      hideChat: (id) =>
+        set((state) =>
+          state.hiddenChats.includes(id)
+            ? state
+            : { hiddenChats: [...state.hiddenChats, id] }
+        ),
+
+      showChat: (id) =>
+        set((state) => ({
+          hiddenChats: state.hiddenChats.filter((c) => c !== id),
+        })),
+    }),
+    {
+      name: 'openchat-chats',
+      partialize: (state) => ({
+        hiddenChats: state.hiddenChats,
+      }),
+    }
+  )
+)
 

@@ -137,7 +137,7 @@ if (reverseRequest) {
 });
 
 io.to(receiverId.toString()).emit(
-  "friend-request-received",
+  "friend:request",
   {
     request: {
       id: request.id,
@@ -220,27 +220,38 @@ const receiverUser = await prisma.user.findUnique({
   select: { id: true, username: true, name: true, avatar: true },
 })
 
-io.to(senderId.toString()).emit("friend-added", {
+io.to(senderId.toString()).emit("friend:accepted", {
   friend: receiverUser,
 })
 
-io.to(receiverId.toString()).emit("friend-added", {
+io.to(receiverId.toString()).emit("friend:accepted", {
   friend: senderUser,
 })
     res.json({ message: "Friend added" });
   },
 
 
+async rejectRequest(req: Request, res: Response) {
+  const requestId = Number(req.params.id);
 
-  async rejectRequest(req: Request, res: Response) {
-    const requestId = Number(req.params.id);
+  const reqData = await prisma.friendRequest.findUnique({
+    where: { id: requestId },
+  });
 
-    await prisma.friendRequest.delete({
-      where: { id: requestId }
-    });
-
-    res.json({ message: "Friend request rejected" });
+  if (!reqData) {
+    return res.status(404).json({ message: "Request not found" });
   }
+
+  await prisma.friendRequest.delete({
+    where: { id: requestId },
+  });
+
+  io.to(reqData.senderId.toString()).emit("friend:rejected", {
+    requestId,
+  });
+
+  res.json({ message: "Friend request rejected" });
+}
 
 };
 

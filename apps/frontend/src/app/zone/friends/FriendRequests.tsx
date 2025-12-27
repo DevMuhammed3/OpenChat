@@ -15,8 +15,11 @@ export default function FriendRequests() {
   const requests = useFriendsStore(s => s.requests)
   const setRequests = useFriendsStore(s => s.setRequests)
   const removeRequest = useFriendsStore(s => s.removeRequest)
+  const requestsLoaded = useFriendsStore(s => s.requestsLoaded)
 
   useEffect(() => {
+    if (requestsLoaded) return
+
     api('/friends/requests')
       .then(res => res.json())
       .then(data => {
@@ -28,16 +31,17 @@ export default function FriendRequests() {
 
         setRequests(normalized)
       })
-  }, [setRequests])
+      .catch(() => {})
+  }, [requestsLoaded, setRequests])
 
-  const accept = async (id: number) => {
-    await api(`/friends/accept/${id}`, { method: 'POST' })
-    removeRequest(id)
+  const accept = async (req: any) => {
+    removeRequest(req.id)
+    await api(`/friends/accept/${req.id}`, { method: 'POST' })
   }
 
   const reject = async (id: number) => {
-    await api(`/friends/reject/${id}`, { method: 'DELETE' })
     removeRequest(id)
+    await api(`/friends/reject/${id}`, { method: 'DELETE' })
   }
 
   if (requests.length === 0) return null
@@ -51,30 +55,27 @@ export default function FriendRequests() {
 
       <ScrollArea className="max-h-64">
         <div className="space-y-2">
-          {requests.map((req) => {
-            if (!req.from) return null
+          {requests.map((req) => (
+            <div key={req.id} className="flex items-center gap-3">
+              <Avatar>
+                <AvatarFallback>
+                  {req.from.username[0].toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
 
-            return (
-              <div key={req.id} className="flex items-center gap-3">
-                <Avatar>
-                  <AvatarFallback>
-                    {req.from.username[0].toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-
-                <div className="flex-1">
-                  @{req.from.username}
-                </div>
-
-                <Button size="icon" onClick={() => accept(req.id)}>
-                  <Check />
-                </Button>
-                <Button size="icon" onClick={() => reject(req.id)}>
-                  <X />
-                </Button>
+              <div className="flex-1">
+                @{req.from.username}
               </div>
-            )
-          })}
+
+              <Button size="icon" onClick={() => accept(req)}>
+                <Check />
+              </Button>
+
+              <Button size="icon" onClick={() => reject(req.id)}>
+                <X />
+              </Button>
+            </div>
+          ))}
         </div>
       </ScrollArea>
     </div>

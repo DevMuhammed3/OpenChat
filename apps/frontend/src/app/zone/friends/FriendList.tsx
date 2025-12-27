@@ -27,23 +27,29 @@ export default function FriendList({ onSelectFriend }: FriendListProps) {
 
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    let mounted = true
+useEffect(() => {
+  if (friends.length > 0) {
+    setLoading(false)
+    return
+  }
 
-    api('/friends/list')
-      .then(res => res.json())
-      .then(data => {
-        if (mounted) {
-          setFriends(data.friends || [])
-          setLoading(false)
-        }
-      })
-      .catch(() => setLoading(false))
+  let mounted = true
 
-    return () => {
-      mounted = false
-    }
-  }, [setFriends])
+  api('/friends/list')
+    .then(res => res.json())
+    .then(data => {
+      if (mounted) {
+        setFriends(data.friends || [])
+        setLoading(false)
+      }
+    })
+    .catch(() => setLoading(false))
+
+  return () => {
+    mounted = false
+  }
+}, [friends.length, setFriends])
+
 
   return (
     <div className="flex-1">

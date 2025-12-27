@@ -22,6 +22,7 @@ export default function ZoneSidebar({
 
   const isHome = pathname === '/zone'
 
+
   return (
     <div className="w-80 h-full border-r bg-card flex flex-col">
       {/* Logo */}

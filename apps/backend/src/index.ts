@@ -29,6 +29,8 @@ io.on('connection', (socket) => {
 
   console.log(`Socket connected: ${socket.id} (user ${userId})`)
 
+  socket.join(userId.toString())
+
   privateChatHandler(io, socket)
 
   socket.on('disconnect', () => {

@@ -1,42 +1,35 @@
 'use client'
 
 import { useEffect } from 'react'
-import { socket, api } from '@openchat/lib'
+import { socket } from '@openchat/lib'
 import { useFriendsStore } from '@/app/stores/friends-store'
 
-export function RealtimeProvider({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   const addRequest = useFriendsStore(s => s.addRequest)
   const addFriend = useFriendsStore(s => s.addFriend)
+  const removeRequest = useFriendsStore(s => s.removeRequest)
 
   useEffect(() => {
-    console.log('RealtimeProvider mounted')
+    if (!socket.connected) socket.connect()
 
-    if (!socket.connected) {
-      socket.connect()
-    }
-
-    socket.on('connect', () => {
-      console.log('socket connected', socket.id)
-    })
-
-    socket.on('friend-request-received', async ({ request }) => {
+    socket.on('friend:request', ({ request }) => {
       addRequest(request)
     })
 
-    socket.on('friend-added', async ({ friend }) => {
+    socket.on('friend:accepted', ({ friend }) => {
       addFriend(friend)
     })
 
+    socket.on('friend:rejected', ({ requestId }) => {
+      removeRequest(requestId)
+    })
+
     return () => {
-      socket.off('connect')
-      socket.off('friend-request-received')
-      socket.off('friend-added')
+      socket.off('friend:request')
+      socket.off('friend:accepted')
+      socket.off('friend:rejected')
     }
-  }, [addRequest, addFriend])
+  }, [addRequest, addFriend, removeRequest])
 
   return <>{children}</>
 }

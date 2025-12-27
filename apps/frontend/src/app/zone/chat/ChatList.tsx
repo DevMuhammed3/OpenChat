@@ -27,97 +27,92 @@ type ChatItem = {
 export default function ChatList() {
   const { chatPublicId } = useParams<{ chatPublicId?: string }>()
   const router = useRouter()
+
   const friends = useFriendsStore(s => s.friends)
 
-  // const [chats, setChats] = useState<ChatItem[]>([])
+  const chats = useChatsStore(s => s.chats)
+  const setChats = useChatsStore(s => s.setChats)
+  const hiddenChats = useChatsStore(s => s.hiddenChats)
+  const chatsLoaded = useChatsStore(s => s.chatsLoaded)
+  const hideChat = useChatsStore(s => s.hideChat)
+
   const [loading, setLoading] = useState(true)
 
-const chats = useChatsStore(s => s.chats)
-const setChats = useChatsStore(s => s.setChats)
-const hiddenChats = useChatsStore(s => s.hiddenChats)
-const hideChat = useChatsStore(s => s.hideChat)
-
-
-useEffect(() => {
-  if (chats.length > 0) {
-    setLoading(false)
-    return
-  }
-
-  api('/chats')
-    .then(res => res.json())
-    .then(data => {
-      setChats(data.chats || [])
+  useEffect(() => {
+    if (chatsLoaded) {
       setLoading(false)
-    })
-}, [chats.length, setChats])
+      return
+    }
+
+    api('/chats')
+      .then(res => res.json())
+      .then(data => {
+        setChats(data.chats || [])
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
+  }, [chatsLoaded, setChats])
 
   if (loading) {
-    return (
-      <div className="p-4 text-sm text-muted-foreground">
-        Loading chats...
-      </div>
-    )
+    return <div className="p-4 text-sm text-muted-foreground">Loading chats...</div>
   }
 
-  if (chats.length === 0) {
-    return (
-      <div className="p-4 text-sm text-muted-foreground">
-        No conversations yet
-      </div>
-    )
+  const visibleChats = chats.filter(
+    chat => !hiddenChats.includes(chat.chatPublicId)
+  )
+
+  if (visibleChats.length === 0) {
+    return <div className="p-4 text-sm text-muted-foreground">No conversations yet</div>
   }
 
   return (
     <ScrollArea className="h-full">
       <div className="space-y-1 p-2">
+        {visibleChats.map(chat => {
+          const other = chat.participants.find(
+            p => friends.find(f => f.id === p.id)
+          )
 
-{chats.filter(chat => !hiddenChats.includes(chat.chatPublicId))
-.map(chat => {
-  const other = chat.participants.find( (p : User) =>
-    friends.some(f => f.id === p.id)
-  )
+          if (!other) return null
 
-  if (!other) return null
+          const isActive = chat.chatPublicId === chatPublicId
 
-  const isActive = chat.chatPublicId === chatPublicId
+          return (
+            <button
+  key={chat.chatPublicId}
+  onClick={() => router.push(`/zone/chat/${chat.chatPublicId}`)}
+  className={cn(
+    'group w-full flex items-center gap-3 p-3 rounded-lg text-left',
+    isActive ? 'bg-muted' : 'hover:bg-muted/50'
+  )}
+>
+              <Avatar>
+                <AvatarFallback>
+                  {other.username[0].toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
 
-  return (
-    <button
-      key={chat.chatPublicId}
-      onClick={() => router.push(`/zone/chat/${chat.chatPublicId}`)}
-      className={cn(
-        'w-full flex items-center gap-3 p-3 rounded-lg text-left transition-colors',
-        isActive ? 'bg-muted' : 'hover:bg-muted/50'
-      )}
-    >
-      <Avatar className="h-10 w-10">
-        <AvatarFallback className="bg-primary text-primary-foreground">
-          {other.username?.[0]?.toUpperCase() || 'C'}
-        </AvatarFallback>
-      </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium truncate">{other.username}</p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {chat.lastMessage?.text || 'No messages yet'}
+                </p>
+              </div>
 
-      <div className="flex-1 min-w-0">
-        <p className="font-medium truncate">
-          @{other.username}
-        </p>
-        <p className="text-xs text-muted-foreground truncate">
-          {chat.lastMessage?.text || 'No messages yet'}
-        </p>
-      </div>
-
-<X
-  className="h-4 w-4 text-primary"
+             <X
+  className="h-4 w-4 opacity-0 group-hover:opacity-100 transition"
   onClick={(e) => {
     e.stopPropagation()
     hideChat(chat.chatPublicId)
-    router.push('/zone')
+
+    if (isActive) {
+      router.replace('/zone')
+    }
   }}
 />
-    </button>
-  )
-})}
-
+            </button>
+          )
+        })}
       </div>
     </ScrollArea>
   )
