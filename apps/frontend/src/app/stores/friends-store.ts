@@ -35,8 +35,19 @@ export const useFriendsStore = create<FriendsState>((set) => ({
   friendsLoaded: false,
   requestsLoaded: false,
 
-  setFriends: (friends) =>
-    set({ friends, friendsLoaded: true }),
+setFriends: (newFriends) =>
+  set(state => {
+    const map = new Map(state.friends.map(f => [f.id, f]))
+
+    newFriends.forEach(f => {
+      map.set(f.id, f)
+    })
+
+    return {
+      friends: Array.from(map.values()),
+      friendsLoaded: true,
+    }
+  }),
 
   setRequests: (requests) =>
     set({ requests, requestsLoaded: true }),
