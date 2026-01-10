@@ -13,14 +13,17 @@ export const app: Express = express();
 app.use(
   cors({
     origin(origin, callback) {
-      if (isAllowedOrigin(origin)) {
-        return callback(null, true);
-      }
+  if (!origin || isAllowedOrigin(origin)) {
+  return callback(null, true);
+}
+
       callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
   })
 );
+
+app.options("*", cors());
 
 app.use(cookieParser());
 app.use(express.json());
