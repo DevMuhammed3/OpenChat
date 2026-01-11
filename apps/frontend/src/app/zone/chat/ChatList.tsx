@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Avatar, AvatarFallback, ScrollArea } from 'packages/ui'
-import { X } from 'lucide-react'
+import { User, X } from 'lucide-react'
 import { cn } from '@openchat/lib'
 import { api } from '@openchat/lib'
 import { useChatsStore } from '@/app/stores/chat-store'
@@ -104,11 +104,11 @@ export default function ChatList() {
                                 isActive ? 'bg-muted' : 'hover:bg-muted/50'
                             )}
                         >
-                            <Avatar>
-                                <AvatarFallback>
-                                    {other.username[0].toUpperCase()}
-                                </AvatarFallback>
-                            </Avatar>
+                    <Avatar className="h-10 w-10">
+                      <AvatarFallback className="text-primary-foreground">
+                        <User className="h-5 w-5" />
+                      </AvatarFallback>
+                    </Avatar>
 
                             <div className="flex-1 min-w-0">
                                 <p className="font-medium truncate">

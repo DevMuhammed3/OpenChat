@@ -14,3 +14,4 @@ export * from './ui/skeleton';
 export * from './ui/scroll-area';
 export * from './ui/sonner';
 export * from './ui/sheet';
+export * from './ui/Navbar';

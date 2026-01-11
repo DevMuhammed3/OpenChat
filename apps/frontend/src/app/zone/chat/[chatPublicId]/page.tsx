@@ -15,7 +15,7 @@ import {
 } from 'packages/ui'
 import { useChatsStore } from '@/app/stores/chat-store'
 import { useFriendsStore } from '@/app/stores/friends-store'
-import { Loader2, Send } from 'lucide-react'
+import { Loader2, Send, User } from 'lucide-react'
 import { Menu } from 'lucide-react'
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { api } from '@openchat/lib'
@@ -128,24 +128,67 @@ export default function ChatPage() {
 
     if (loading || !activeChat) {
         return (
-            <div className="flex h-[100svh] items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin" />
+            <div
+                className="
+                flex items-center justify-center
+                h-[100svh]
+              "
+            >
+                <Loader2
+                    className="
+                    h-8 w-8
+                    animate-spin
+                  "
+                />
             </div>
         )
     }
 
     return (
-        <div className="flex flex-col h-[100svh]">
-            <div className="sticky top-0 z-10 bg-background border-b px-4 py-4 flex items-center gap-3">
-                <div className="md:hidden">
+        <div
+            className="
+            flex flex-col
+            h-[100svh]
+          "
+        >
+            <div
+                className="
+                sticky top-0 z-10 flex items-center
+                px-4 py-4
+                bg-background
+                border-b
+                gap-3
+              "
+            >
+                <div
+                    className="
+                    md:hidden
+                  "
+                >
                     <Sheet>
                         <SheetTrigger asChild>
-                            <button className="py-2 rounded-md hover:bg-muted">
-                                <Menu className="h-5 w-5" />
+                            <button
+                                className="
+                                py-2
+                                hover:bg-muted
+                                rounded-md
+                              "
+                            >
+                                <Menu
+                                    className="
+                                    h-5 w-5
+                                  "
+                                />
                             </button>
                         </SheetTrigger>
 
-                        <SheetContent side="left" className="p-0 w-80">
+                        <SheetContent
+                            side="left"
+                            className="
+                            w-80
+                            p-0
+                          "
+                        >
                             <VisuallyHidden>
                                 <SheetTitle>Sidebar</SheetTitle>
                             </VisuallyHidden>
@@ -155,20 +198,45 @@ export default function ChatPage() {
                     </Sheet>
                 </div>
 
-                <Avatar className="h-9 w-9">
-                    <AvatarFallback className="bg-primary text-primary-foreground">
-                        {otherUser?.username?.[0]?.toUpperCase()}
+                <Avatar
+                    className="
+                    h-10 w-10
+                  "
+                >
+                    <AvatarFallback
+                        className="
+                        text-primary-foreground
+                      "
+                    >
+                        <User
+                            className="
+                            h-5 w-5
+                          "
+                        />
                     </AvatarFallback>
                 </Avatar>
 
-                <div className="flex-1">
-                    <p className="font-medium text-sm">{otherUser?.username}</p>
+                <div
+                    className="
+                    flex-1
+                  "
+                >
+                    <p
+                        className="
+                        font-medium text-sm
+                      "
+                    >
+                        {otherUser?.username}
+                    </p>
                 </div>
             </div>
 
             <div
                 ref={messagesRef}
-                className="flex-1 overflow-y-auto p-2 md:p-4 flex flex-col"
+                className="
+                flex-1 flex flex-col overflow-y-auto justify-end
+                p-2 md:p-4
+              "
             >
                 {messages.map((m) => {
                     const isMe = m.senderId === currentUserId
@@ -185,9 +253,23 @@ export default function ChatPage() {
                                 className={cn(
                                     'max-w-[75%] px-4 py-2 rounded-2xl text-sm leading-relaxed',
                                     'break-words break-all whitespace-pre-wrap',
-                                    isMe
-                                        ? 'bg-primary text-primary-foreground rounded-br-sm'
-                                        : 'bg-muted text-foreground rounded-bl-sm'
+isMe
+  ? `
+      bg-primary/60
+      text-primary-foreground
+      backdrop-blur-md
+      border border-primary/30
+      shadow-sm
+      rounded-br-sm
+    `
+  : `
+      bg-background/50
+      text-foreground
+      backdrop-blur-md
+      border border-border/30
+      shadow-sm
+      rounded-bl-sm
+    `
                                 )}
                             >
                                 {m.text}
@@ -199,8 +281,22 @@ export default function ChatPage() {
                 <div />
             </div>
 
-            <div className="shrink m-1 p-2">
-                <div className="flex items-center gap-2 bg-muted rounded-xl px-3 py-2">
+            <div
+                className="
+                m-1 p-2
+                shrink
+              "
+            >
+                <div
+                    className="
+                    flex items-center
+                    px-3 py-2
+                    bg-background/50
+                    rounded-2xl border border-border/30
+                    backdrop-blur-lg shadow-lg
+                    gap-2
+                  "
+                >
                     <Input
                         type="text"
                         name="chat_message"
@@ -223,7 +319,15 @@ export default function ChatPage() {
                                 ? `Message @${otherUser.username}`
                                 : 'Type a message...'
                         }
-                        className="border-0 focus-visible:ring-0 bg-transparent"
+                        className="
+    border-0
+    bg-transparent
+    focus-visible:ring-0
+    text-sm
+    leading-relaxed
+    px-1
+    placeholder:text-muted-foreground/60
+  "
                     />
                     <Button
                         type="button"
@@ -231,9 +335,12 @@ export default function ChatPage() {
                         disabled={!input.trim()}
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={send}
-                        className="lg:hidden"
                     >
-                        <Send className="h-4 w-4" />
+                        <Send
+                            className="
+                            h-4 w-4
+                          "
+                        />
                     </Button>
                 </div>
             </div>

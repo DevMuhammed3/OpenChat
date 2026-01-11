@@ -1,30 +1,33 @@
-import { Toaster } from "packages/ui"
-import "../globals.css"
-import type { Metadata } from "next"
-import { AppThemeProvider } from "./providers/theme-provider"
-import { RealtimeProvider } from "./providers/realtime-provider"
+import { Toaster } from 'packages/ui'
+import '../globals.css'
+import type { Metadata } from 'next'
+import { AppThemeProvider } from './providers/theme-provider'
+import { RealtimeProvider } from './providers/realtime-provider'
 
 export const metadata: Metadata = {
-  title: "OpenChat",
-  description: "Chat App",
+    title: 'OpenChat',
+    description: 'Chat App',
 }
 
 export default function RootLayout({
-  children,
+    children,
 }: {
-  children: React.ReactNode
+    children: React.ReactNode
 }) {
-  return (
-   <html lang="en" suppressHydrationWarning>
-      <body>
-      <AppThemeProvider>
-          <RealtimeProvider>
-            {children}
-            </RealtimeProvider>
+    return (
+        <html lang="en" suppressHydrationWarning>
+            <body
+                className="
+          min-h-screen
+          bg-gradient-to-br from-background via-background to-muted
+        "
+            >
+                <AppThemeProvider>
+                    <RealtimeProvider>{children}</RealtimeProvider>
 
-        <Toaster richColors position="top-center" />
-      </ AppThemeProvider>
-      </body>
-    </html>
-  )
+                    <Toaster richColors position="top-center" />
+                </AppThemeProvider>
+            </body>
+        </html>
+    )
 }

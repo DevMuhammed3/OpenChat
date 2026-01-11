@@ -3,56 +3,63 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ZoneSidebar from './_components/ZoneSidebar'
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-  SheetTitle,
-} from 'packages/ui'
-import { Menu } from 'lucide-react'
-import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { api } from '@openchat/lib'
 import { RealtimeProvider } from '../providers/realtime-provider'
 
 export default function ZoneLayout({
-  children,
+    children,
 }: {
-  children: React.ReactNode
+    children: React.ReactNode
 }) {
-  const router = useRouter()
-  const [user, setUser] = useState<any>(null)
+    const router = useRouter()
+    const [user, setUser] = useState<any>(null)
 
-  useEffect(() => {
-    api('/auth/me', { credentials: 'include' })
-      .then(res => (res.ok ? res.json() : null))
-      .then(data => {
-        if (!data?.user) {
-          router.replace('/auth')
-        } else {
-          setUser(data.user)
-        }
-      })
-  }, [router])
+    useEffect(() => {
+        api('/auth/me', { credentials: 'include' })
+            .then((res) => (res.ok ? res.json() : null))
+            .then((data) => {
+                if (!data?.user) {
+                    router.replace('/auth')
+                } else {
+                    setUser(data.user)
+                }
+            })
+    }, [router])
 
-  return (
-    <RealtimeProvider>
-<div className="h-[100svh] flex">
-  {/* Sidebar */}
-  <div className="hidden md:flex">
-    <ZoneSidebar user={user} />
-  </div>
+    return (
+        <RealtimeProvider>
+            <div
+                className="
+    flex
+    h-[100svh]
+  "
+            >
+                {/* Sidebar */}
+                <div
+                    className="
+      hidden md:flex
+    "
+                >
+                    <ZoneSidebar user={user} />
+                </div>
 
-  {/* Content (Chat panel) */}
-  <div className="flex-1 flex flex-col">
-    {/* Mobile Header */}
-    {/* Chat / Page */}
-    <main className="flex-1 overflow-hidden">
-      {children}
-    </main>
-  </div>
-</div>
-
-    </RealtimeProvider>
-  )
+                {/* Content (Chat panel) */}
+                <div
+                    className="
+      flex-1 flex flex-col
+    "
+                >
+                    {/* Mobile Header */}
+                    {/* Chat / Page */}
+                    <main
+                        className="
+        flex-1 overflow-hidden
+      "
+                    >
+                        {children}
+                    </main>
+                </div>
+            </div>
+        </RealtimeProvider>
+    )
 }
-
