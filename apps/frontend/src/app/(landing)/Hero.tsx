@@ -70,7 +70,8 @@ export default function Hero() {
                     <h1
                         className="
                         mb-4
-                        text-5xl font-bold leading-tight
+                        text-2xl
+                        lg:text-4xl font-bold leading-tight
                       "
                     >
                         OpenChat for{' '}

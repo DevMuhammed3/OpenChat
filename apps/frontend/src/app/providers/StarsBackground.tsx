@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from "@openchat/lib"
 import { useEffect, useRef } from "react";
 
 type Star = {
@@ -12,7 +13,7 @@ type Star = {
   vy: number;
 };
 
-export default function StarsBackground() {
+export default function StarsBackground({className} : {className?: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -72,7 +73,7 @@ export default function StarsBackground() {
   return (
     <canvas
       ref={canvasRef}
-      className="fixed inset-0 -z-10 pointer-events-none"
+      className={cn('fixed inset-0 -z-10 pointer-events-none', className)}
     />
   );
 }

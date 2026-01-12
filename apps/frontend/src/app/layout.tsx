@@ -25,7 +25,8 @@ export default function RootLayout({
             >
                 <AppThemeProvider>
                     <RealtimeProvider>{children}</RealtimeProvider>
-                    <StarsBackground />
+
+                    <StarsBackground className='hidden md:block' />
 
                     <Toaster richColors position="top-center" />
                 </AppThemeProvider>
