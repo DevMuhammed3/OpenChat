@@ -6,6 +6,30 @@ html {
   scroll-behavior: smooth;
 }
 
+.stars {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(1px 1px at 20% 30%, white, transparent),
+    radial-gradient(1px 1px at 80% 70%, white, transparent),
+    radial-gradient(1px 1px at 50% 50%, white, transparent),
+    radial-gradient(2px 2px at 10% 80%, white, transparent),
+    radial-gradient(2px 2px at 90% 20%, white, transparent);
+  background-size: 200px 200px;
+  animation: moveStars 60s linear infinite;
+  opacity: 0.6;
+}
+
+@keyframes moveStars {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: -1000px 1000px;
+  }
+}
+
 @layer components {
   .border-border {
     @apply border-[color:hsl(var(--border))];

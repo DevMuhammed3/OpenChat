@@ -253,8 +253,8 @@ export default function ChatPage() {
                                 className={cn(
                                     'max-w-[75%] px-4 py-2 rounded-2xl text-sm leading-relaxed',
                                     'break-words break-all whitespace-pre-wrap',
-isMe
-  ? `
+                                    isMe
+                                        ? `
       bg-primary/60
       text-primary-foreground
       backdrop-blur-md
@@ -262,7 +262,7 @@ isMe
       shadow-sm
       rounded-br-sm
     `
-  : `
+                                        : `
       bg-background/50
       text-foreground
       backdrop-blur-md

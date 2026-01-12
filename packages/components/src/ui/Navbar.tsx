@@ -27,7 +27,7 @@ export default function Navbar() {
             </a>
           </nav>
 
-<Button asChild size="sm">
+<Button asChild className="mx-4" size="sm">
   <Link href="/auth">Get Started</Link>
 </Button>
         </div>

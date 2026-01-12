@@ -4,6 +4,7 @@ import Features from "./(landing)/Features"
 import HowItWorks from "./(landing)/HowItWorks"
 import Navbar from "packages/ui/ui/Navbar"
 import CTA from "./(landing)/CTA"
+// import PhoneDemo from "./(landing)/PhoneDemo"
 
 export default function Home() {
   return(
@@ -12,8 +13,9 @@ export default function Home() {
     <Hero />
     <Features />
     <HowItWorks />
-      <CTA />
+     <CTA />
   </>
   )
+  //<PhoneDemo />
   // redirect("/auth")
 }
