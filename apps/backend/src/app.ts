@@ -29,6 +29,11 @@ app.use(cookieParser());
 app.use(express.json());
 
 // API routes
+//
+app.get('/health', (req, res) => {
+  res.status(200).send('ok')
+})
+
 app.use("/auth", authRoutes);
 app.use("/users", userRoutes);
 app.use("/friends", friendRoutes);
