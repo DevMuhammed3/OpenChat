@@ -4,33 +4,39 @@ import type { Metadata } from 'next'
 import { AppThemeProvider } from './providers/theme-provider'
 import { RealtimeProvider } from './providers/realtime-provider'
 import StarsBackground from './providers/StarsBackground'
+import { NotificationsProvider } from './providers/notifications-provider'
 
 export const metadata: Metadata = {
-    title: 'OpenChat',
-    description: 'Chat App',
+  title: 'OpenChat',
+  description: 'Chat App',
 }
 
 export default function RootLayout({
-    children,
+  children,
 }: {
-    children: React.ReactNode
+  children: React.ReactNode
 }) {
-    return (
-        <html lang="en" suppressHydrationWarning>
-            <body
-                className="
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <body
+        className="
           min-h-screen
           bg-gradient-to-br from-background via-background to-muted
         "
-            >
-                <AppThemeProvider>
-                    <RealtimeProvider>{children}</RealtimeProvider>
+      >
+        <AppThemeProvider>
+          <RealtimeProvider>
+            <NotificationsProvider>
+              {children}
+            </NotificationsProvider>
+          </RealtimeProvider>
 
-                    <StarsBackground className='hidden md:block' />
 
-                    <Toaster richColors position="top-center" />
-                </AppThemeProvider>
-            </body>
-        </html>
-    )
+          <StarsBackground className='hidden md:block' />
+
+          <Toaster richColors position="top-center" />
+        </AppThemeProvider>
+      </body>
+    </html>
+  )
 }

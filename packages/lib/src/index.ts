@@ -5,3 +5,4 @@
 export { cn } from './utils'
 export { socket } from './socket'
 export { api } from "./api" 
+export { playMessageSound } from "./sounds" 

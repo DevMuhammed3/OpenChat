@@ -23,24 +23,24 @@ export function privateChatHandler(io: Server, socket: Socket) {
   //   const room = `chat-${[userId, chatPublicId].sort().join("-")}`;
   //   socket.join(room);
   // });
-  
-socket.on("join-room", async ({ chatPublicId }: { chatPublicId: string }) => {
-  const userId = socket.data.userId;
-  if (!userId || !chatPublicId) return;
 
-  const chat = await prisma.chat.findUnique({
-    where: { publicId: chatPublicId },
-    include: {
-      participants: {
-        where: { userId },
+  socket.on("join-room", async ({ chatPublicId }: { chatPublicId: string }) => {
+    const userId = socket.data.userId;
+    if (!userId || !chatPublicId) return;
+
+    const chat = await prisma.chat.findUnique({
+      where: { publicId: chatPublicId },
+      include: {
+        participants: {
+          where: { userId },
+        },
       },
-    },
+    });
+
+    if (!chat || chat.participants.length === 0) return;
+
+    socket.join(`chat:${chat.publicId}`);
   });
-
-  if (!chat || chat.participants.length === 0) return;
-
-  socket.join(`chat:${chat.publicId}`);
-});
 
 
   // socket.on(
@@ -82,38 +82,45 @@ socket.on("join-room", async ({ chatPublicId }: { chatPublicId: string }) => {
 
 
   socket.on(
-  "private-message",
-  async ({ chatPublicId, text }: { chatPublicId: string; text: string }) => {
-    const userId = socket.data.userId;
-    if (!userId || !text.trim()) return;
+    "private-message",
+    async ({ chatPublicId, text }: { chatPublicId: string; text: string }) => {
+      const userId = socket.data.userId;
+      if (!userId || !text.trim()) return;
 
-    const chat = await prisma.chat.findUnique({
-      where: { publicId: chatPublicId },
-      include: {
-        participants: {
-          where: { userId },
+      const chat = await prisma.chat.findUnique({
+        where: { publicId: chatPublicId },
+        include: {
+          participants: {
+            where: { userId },
+          },
         },
-      },
-    });
+      });
 
-    if (!chat || chat.participants.length === 0) return;
+      if (!chat || chat.participants.length === 0) return;
 
-    const saved = await prisma.message.create({
-      data: {
-        chatId: chat.id,
+      const saved = await prisma.message.create({
+        data: {
+          chatId: chat.id,
+          senderId: userId,
+          text,
+        },
+      });
+
+
+      const room = `chat:${chat.publicId}`;
+      const socketsInRoom = await io.in(room).fetchSockets();
+      const deliveredInRoom = socketsInRoom.length > 1;
+
+      io.to(room).emit("private-message", {
+        id: saved.id,
+        text: saved.text,
         senderId: userId,
-        text,
-      },
-    });
-
-    io.to(`chat:${chat.publicId}`).emit("private-message", {
-      id: saved.id,
-      text: saved.text,
-      senderId: userId,
-      createdAt: saved.createdAt,
-    });
-  }
-);
+        chatPublicId: chat.publicId,
+        createdAt: saved.createdAt,
+        deliveredInRoom,
+      });
+    }
+  );
 
 }
 
