@@ -32,6 +32,9 @@
       "@openchat/lib/*": ["../../packages/lib/src/*"]
     }
   },
+  "references": [
+  { "path": "../../packages/lib" }
+],
   "include": [
     "next-env.d.ts",
     "**/*.ts",

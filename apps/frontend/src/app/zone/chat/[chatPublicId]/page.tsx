@@ -19,6 +19,7 @@ import { Menu } from 'lucide-react'
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { api } from '@openchat/lib'
 import ZoneSidebar from '../../_components/ZoneSidebar'
+import { useVoiceCall } from "@/hooks/useVoiceCall"
 
 type Message = {
   id: number
@@ -40,6 +41,7 @@ export default function ChatPage() {
 
   const chats = useChatsStore((s) => s.chats)
   const [user, setUser] = useState<any>(null)
+  const { startCall, endCall, remoteAudioRef } = useVoiceCall()
   // const friends = useFriendsStore((s) => s.friends)
 
   const chat = chats.find((c) => c.chatPublicId === chatPublicId)
@@ -145,6 +147,7 @@ export default function ChatPage() {
                 h-[100svh]
               "
       >
+        <audio ref={remoteAudioRef} autoPlay hidden />
         <Loader2
           className="
                     h-8 w-8
@@ -245,10 +248,20 @@ export default function ChatPage() {
 
         <Button
           variant="destructive"
-          onClick={() => console.log("You want to call me??")}
+          onClick={() => {
+            if (otherUser) startCall(otherUser.id)
+
+          }}
         >
           <PhoneCall className="w-3 h-3 scale-[1.25]" strokeWidth={2} />
         </Button>
+        <Button
+          variant="secondary"
+          onClick={endCall}
+        >
+          End
+        </Button>
+
 
         <Button
           variant="destructive"

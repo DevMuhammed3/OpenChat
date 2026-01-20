@@ -31,7 +31,7 @@ export default function FriendRequests() {
 
         setRequests(normalized)
       })
-      .catch(() => {})
+      .catch(() => { })
   }, [requestsLoaded, setRequests])
 
   const accept = async (req: any) => {
