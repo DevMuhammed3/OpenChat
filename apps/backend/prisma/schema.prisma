@@ -13,7 +13,7 @@ model User {
   name            String?
   username        String    @unique
   email           String    @unique
-  emailVerified   DateTime?
+  emailVerified  Boolean  @default(false)
   avatar          String?
   password        String
   role            String    @default("USER")
@@ -51,6 +51,14 @@ model User {
 
   // chat 
   chatParticipants ChatParticipant[]
+}
+
+model EmailOTP {
+  id        String   @id @default(uuid())
+  email     String
+  code      String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }
 
 model FriendRequest {

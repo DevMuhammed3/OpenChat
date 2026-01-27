@@ -5,6 +5,8 @@ import { LogOut } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { api } from '@openchat/lib'
+import { useChatsStore } from '@/app/stores/chat-store'
+import { useFriendsStore } from '@/app/stores/friends-store'
 
 export default function UserBar({ user }: { user: any }) {
   const router = useRouter()
@@ -42,6 +44,8 @@ export default function UserBar({ user }: { user: any }) {
             method: 'POST',
             credentials: 'include',
           })
+          useChatsStore.getState().reset()
+          useFriendsStore.getState().reset()
           router.replace('/auth')
         }}
       >

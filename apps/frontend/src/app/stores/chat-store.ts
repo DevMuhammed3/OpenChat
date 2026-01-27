@@ -10,15 +10,12 @@ export type Chat = {
   } | null
 }
 
-
 type ChatsState = {
   chats: Chat[]
   hiddenChats: string[]
   chatsLoaded: boolean
 
-  // 🆕
   activeChatPublicId: string | null
-  onIncomingMessage: (chatPublicId: string) => void
   unread: Record<string, number>
 
   setActiveChat: (id: string | null) => void
@@ -29,8 +26,9 @@ type ChatsState = {
   addChat: (chat: Chat) => void
   hideChat: (id: string) => void
   showChat: (id: string) => void
-}
 
+  reset: () => void
+}
 
 export const useChatsStore = create<ChatsState>()(
   persist(
@@ -38,37 +36,28 @@ export const useChatsStore = create<ChatsState>()(
       chats: [],
       hiddenChats: [],
       chatsLoaded: false,
-
-      // 🆕
       activeChatPublicId: null,
       unread: {},
 
-      // 🆕
       setActiveChat: (id) =>
         set((state) => {
           if (!id) return { activeChatPublicId: null }
-
           const unread = { ...state.unread }
           delete unread[id]
-
-          return {
-            activeChatPublicId: id,
-            unread,
-          }
+          return { activeChatPublicId: id, unread }
         }),
 
       incrementUnread: (id) =>
-        set((state) => {
-          if (state.activeChatPublicId === id) {
-            return state
-          }
-
-          return {
-            unread: {
-              ...state.unread,
-            },
-          }
-        }),
+        set((state) =>
+          state.activeChatPublicId === id
+            ? state
+            : {
+              unread: {
+                ...state.unread,
+                [id]: (state.unread[id] || 0) + 1,
+              },
+            }
+        ),
 
       clearUnread: (id) =>
         set((state) => {
@@ -76,18 +65,6 @@ export const useChatsStore = create<ChatsState>()(
           delete unread[id]
           return { unread }
         }),
-
-      onIncomingMessage: (chatPublicId: string) =>
-        set((state) => ({
-          hiddenChats: state.hiddenChats.filter(
-            (id) => id !== chatPublicId
-          ),
-          unread: {
-            ...state.unread,
-            [chatPublicId]: (state.unread[chatPublicId] || 0) + 1,
-          },
-        })),
-
 
       setChats: (chats) =>
         set({ chats, chatsLoaded: true }),
@@ -116,6 +93,15 @@ export const useChatsStore = create<ChatsState>()(
         set((state) => ({
           hiddenChats: state.hiddenChats.filter((c) => c !== id),
         })),
+
+      reset: () =>
+        set({
+          chats: [],
+          hiddenChats: [],
+          chatsLoaded: false,
+          activeChatPublicId: null,
+          unread: {},
+        }),
     }),
     {
       name: 'openchat-chats',
@@ -125,4 +111,3 @@ export const useChatsStore = create<ChatsState>()(
     }
   )
 )
-

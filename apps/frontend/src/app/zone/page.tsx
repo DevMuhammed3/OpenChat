@@ -3,8 +3,6 @@
 import { api } from '@openchat/lib'
 import { useRouter } from 'next/navigation'
 import { useChatsStore } from '../stores/chat-store'
-
-// import AddFriend from './friends/AddFriend'
 import FriendRequests from './friends/FriendRequests'
 import FriendList from './friends/FriendList'
 import { Menu } from 'lucide-react'
@@ -18,55 +16,41 @@ export default function ZoneHome() {
   const [user, setUser] = useState<any>(null)
 
   useEffect(() => {
-    api('/auth/me', { credentials: 'include' })
+    api('/auth/me')
       .then((res) => res.json())
       .then((data) => setUser(data.user))
   }, [])
 
+  if (!user) {
+    return null
+  }
+
   return (
-    <div
-      className="
-        flex flex-col
-        h-full
-      "
-    >
-      <div
-        className="
-    md:hidden
-    p-3 space-y-3
-  "
-      >
-        {/* Menu + AddFriend */}
-        <div
-          className="
-      flex items-center
-      gap-1
-    "
-        >
+    <div className="flex flex-col h-full">
+
+      {/* Email verification banner */}
+      {!user.emailVerified && (
+        <div className="bg-yellow-100 text-yellow-800 px-4 py-2 text-sm flex justify-between">
+          <span>📧 Please verify your email to unlock all features</span>
+          <button
+            onClick={() => router.push('/verify-email')}
+            className="underline"
+          >
+            Verify now
+          </button>
+        </div>
+      )}
+
+      <div className="md:hidden p-3 space-y-3">
+        <div className="flex items-center gap-1">
           <Sheet>
             <SheetTrigger asChild>
-              <button
-                className="
-            hover:bg-muted
-            rounded-md
-            shrink-0
-          "
-              >
-                <Menu
-                  className="
-              h-5 w-5
-            "
-                />
+              <button className="hover:bg-muted rounded-md shrink-0">
+                <Menu className="h-5 w-5" />
               </button>
             </SheetTrigger>
 
-            <SheetContent
-              side="left"
-              className="
-          w-80
-          p-0
-        "
-            >
+            <SheetContent side="left" className="w-80 p-0">
               <VisuallyHidden>
                 <SheetTitle>Sidebar</SheetTitle>
               </VisuallyHidden>
@@ -74,35 +58,20 @@ export default function ZoneHome() {
             </SheetContent>
           </Sheet>
 
-          <div
-            className="
-        flex-1
-      "
-          >
-            {/* <AddFriend /> */}
-            <h3
-              className="font-medium"
-            >
-              OpenChat
-            </h3>
+          <div className="flex-1">
+            <h3 className="font-medium">OpenChat</h3>
           </div>
         </div>
 
         <FriendRequests />
       </div>
 
-      {/* Friends */}
-      <div
-        className="
-          flex-1 overflow-hidden
-        "
-      >
+      <div className="flex-1 overflow-hidden">
         <FriendList
           onSelectFriend={async (friend) => {
             const res = await api('/chats/start', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              credentials: 'include',
               body: JSON.stringify({ friendId: friend.id }),
             })
 
@@ -119,13 +88,7 @@ export default function ZoneHome() {
         />
       </div>
 
-      {/* Empty hint */}
-      <div
-        className="
-          p-4
-          text-center text-muted-foreground text-sm
-        "
-      >
+      <div className="p-4 text-center text-muted-foreground text-sm">
         Select a friend to start chatting
       </div>
     </div>

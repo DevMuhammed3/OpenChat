@@ -26,6 +26,8 @@ type FriendsState = {
   addFriend: (friend: Friend) => void
   addRequest: (request: FriendRequest) => void
   removeRequest: (requestId: number) => void
+
+  reset: () => void
 }
 
 export const useFriendsStore = create<FriendsState>((set) => ({
@@ -35,19 +37,19 @@ export const useFriendsStore = create<FriendsState>((set) => ({
   friendsLoaded: false,
   requestsLoaded: false,
 
-setFriends: (newFriends) =>
-  set(state => {
-    const map = new Map(state.friends.map(f => [f.id, f]))
+  setFriends: (newFriends) =>
+    set((state) => {
+      const map = new Map(state.friends.map((f) => [f.id, f]))
 
-    newFriends.forEach(f => {
-      map.set(f.id, f)
-    })
+      newFriends.forEach((f) => {
+        map.set(f.id, f)
+      })
 
-    return {
-      friends: Array.from(map.values()),
-      friendsLoaded: true,
-    }
-  }),
+      return {
+        friends: Array.from(map.values()),
+        friendsLoaded: true,
+      }
+    }),
 
   setRequests: (requests) =>
     set({ requests, requestsLoaded: true }),
@@ -70,5 +72,12 @@ setFriends: (newFriends) =>
     set((state) => ({
       requests: state.requests.filter((r) => r.id !== requestId),
     })),
-}))
 
+  reset: () =>
+    set({
+      friends: [],
+      requests: [],
+      friendsLoaded: false,
+      requestsLoaded: false,
+    }),
+}))
