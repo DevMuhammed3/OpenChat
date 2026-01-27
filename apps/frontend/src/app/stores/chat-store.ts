@@ -19,8 +19,10 @@ type ChatsState = {
   unread: Record<string, number>
 
   setActiveChat: (id: string | null) => void
+  markChatAsRead: (id: string) => void
   incrementUnread: (id: string) => void
   clearUnread: (id: string) => void
+  onIncomingMessage: (chatPublicId: string) => void
 
   setChats: (chats: Chat[]) => void
   addChat: (chat: Chat) => void
@@ -36,34 +38,57 @@ export const useChatsStore = create<ChatsState>()(
       chats: [],
       hiddenChats: [],
       chatsLoaded: false,
+
       activeChatPublicId: null,
       unread: {},
 
+
       setActiveChat: (id) =>
+        set({
+          activeChatPublicId: id,
+        }),
+
+      markChatAsRead: (id: string) =>
         set((state) => {
-          if (!id) return { activeChatPublicId: null }
           const unread = { ...state.unread }
           delete unread[id]
-          return { activeChatPublicId: id, unread }
+          return { unread }
         }),
 
       incrementUnread: (id) =>
-        set((state) =>
-          state.activeChatPublicId === id
-            ? state
-            : {
-              unread: {
-                ...state.unread,
-                [id]: (state.unread[id] || 0) + 1,
-              },
-            }
-        ),
+        set((state) => {
+          if (state.activeChatPublicId === id) {
+            return state
+          }
+
+          return {
+            unread: {
+              ...state.unread,
+              [id]: (state.unread[id] || 0) + 1,
+            },
+          }
+        }),
 
       clearUnread: (id) =>
         set((state) => {
           const unread = { ...state.unread }
           delete unread[id]
           return { unread }
+        }),
+
+
+      onIncomingMessage: (chatPublicId: string) =>
+        set((state) => {
+          if (state.activeChatPublicId === chatPublicId) {
+            return state
+          }
+
+          return {
+            unread: {
+              ...state.unread,
+              [chatPublicId]: (state.unread[chatPublicId] || 0) + 1,
+            },
+          }
         }),
 
       setChats: (chats) =>
@@ -111,3 +136,4 @@ export const useChatsStore = create<ChatsState>()(
     }
   )
 )
+

@@ -85,13 +85,18 @@ export default function ChatPage() {
       })
   }, [chatPublicId])
 
-  const setActiveChat = useChatsStore(s => s.setActiveChat)
 
   useEffect(() => {
-    setActiveChat(chatPublicId)
+    if (!chatPublicId) return
 
-    return () => setActiveChat(null)
-  }, [chatPublicId, setActiveChat])
+    const store = useChatsStore.getState()
+    store.setActiveChat(chatPublicId)
+    store.markChatAsRead(chatPublicId)
+
+    return () => {
+      store.setActiveChat(null)
+    }
+  }, [chatPublicId])
 
   // join room
   useEffect(() => {
@@ -109,18 +114,21 @@ export default function ChatPage() {
   }, [chatPublicId])
 
   // listen
+
   useEffect(() => {
-    const handler = (msg: Message) => {
+    const handler = (msg: Message & { chatPublicId: string }) => {
+      if (msg.chatPublicId !== chatPublicId) return
+
       setMessages((prev) =>
         prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]
       )
     }
 
-    socket.on('private-message', handler)
+    socket.on("private-message", handler)
     return () => {
-      socket.off('private-message', handler)
+      socket.off("private-message", handler)
     }
-  }, [])
+  }, [chatPublicId])
 
   useEffect(() => {
     if (!messagesRef.current) return
@@ -130,6 +138,18 @@ export default function ChatPage() {
 
   const send = useCallback(() => {
     if (!input.trim() || !chatPublicId) return
+
+
+    const tempId = Date.now()
+
+    setMessages(prev => [
+      ...prev,
+      {
+        id: tempId,
+        text: input,
+        senderId: currentUserId!,
+      }
+    ])
 
     socket.emit('private-message', {
       chatPublicId,

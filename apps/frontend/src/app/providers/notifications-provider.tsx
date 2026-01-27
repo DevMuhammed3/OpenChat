@@ -1,64 +1,34 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { socket, playMessageSound, api } from "@openchat/lib"
+import { useEffect } from "react"
+import { socket, playMessageSound } from "@openchat/lib"
 import { useChatsStore } from "../stores/chat-store"
-
-type SocketMessage = {
-  id: number
-  text: string
-  senderId: number
-  chatPublicId: string
-  createdAt: string
-  deliveredInRoom?: boolean
-}
 
 export function NotificationsProvider({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const [myUserId, setMyUserId] = useState<number | null>(null)
-
   useEffect(() => {
-    api("/auth/me", { credentials: "include" })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data?.user?.id) {
-          setMyUserId(data.user.id)
-        }
-      })
-  }, [])
-
-  useEffect(() => {
-    if (!myUserId) return
-
-    const handler = (msg: SocketMessage) => {
+    const handler = (msg: {
+      chatPublicId: string
+      senderId: number
+    }) => {
       const store = useChatsStore.getState()
 
+      if (store.activeChatPublicId === msg.chatPublicId) return
 
-      if (msg.senderId === myUserId) return
-
-      if (
-        store.activeChatPublicId === msg.chatPublicId &&
-        msg.deliveredInRoom === true
-      ) {
-        return
-      }
+      if (!store.chats.some(c => c.chatPublicId === msg.chatPublicId)) return
 
       store.incrementUnread(msg.chatPublicId)
-      store.onIncomingMessage(msg.chatPublicId)
-      playMessageSound()
-
       playMessageSound()
     }
 
-    socket.on("private-message", handler)
+    socket.on("chat-notification", handler)
     return () => {
-      socket.off("private-message", handler)
+      socket.off("chat-notification", handler)
     }
-  }, [myUserId])
+  }, [])
 
   return <>{children}</>
 }
-

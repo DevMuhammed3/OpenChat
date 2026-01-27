@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useChatsStore } from '../stores/chat-store'
 import FriendRequests from './friends/FriendRequests'
 import FriendList from './friends/FriendList'
-import { Menu } from 'lucide-react'
+import { MailWarning, Menu } from 'lucide-react'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from 'packages/ui'
 import ZoneSidebar from './_components/ZoneSidebar'
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
@@ -16,9 +16,15 @@ export default function ZoneHome() {
   const [user, setUser] = useState<any>(null)
 
   useEffect(() => {
-    api('/auth/me')
-      .then((res) => res.json())
-      .then((data) => setUser(data.user))
+    api("/auth/me")
+      .then(res => res.json())
+      .then(data => {
+        if (!data?.user) throw new Error()
+        setUser(data.user)
+      })
+      .catch(() => {
+        router.replace("/auth")
+      })
   }, [])
 
   if (!user) {
@@ -30,11 +36,28 @@ export default function ZoneHome() {
 
       {/* Email verification banner */}
       {!user.emailVerified && (
-        <div className="bg-yellow-100 text-yellow-800 px-4 py-2 text-sm flex justify-between">
-          <span>📧 Please verify your email to unlock all features</span>
+        <div className="
+    bg-yellow-100 text-yellow-900
+    px-4 py-3
+    text-sm
+    flex items-center justify-between
+    border-b border-yellow-200
+  ">
+          <div className="flex items-center gap-2">
+            <MailWarning className="w-4 h-4" />
+            <span>
+              Please verify your email to unlock all features
+            </span>
+          </div>
+
           <button
             onClick={() => router.push('/verify-email')}
-            className="underline"
+            className="
+        text-yellow-900
+        font-medium
+        underline underline-offset-2
+        hover:text-yellow-700
+      "
           >
             Verify now
           </button>

@@ -44,7 +44,7 @@ export default function AuthPage() {
           router.replace("/zone");
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const handleLogin = async (e?: any) => {
