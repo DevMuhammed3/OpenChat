@@ -10,22 +10,32 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from 'packages/ui'
 import ZoneSidebar from './_components/ZoneSidebar'
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { useEffect, useState } from 'react'
+import { useAudioUnlock } from '@/hooks/useAudioUnlock'
 
 export default function ZoneHome() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
 
+  useAudioUnlock()
+
   useEffect(() => {
-    api("/auth/me")
+    let mounted = true
+
+    api('/auth/me')
       .then(res => res.json())
       .then(data => {
+        if (!mounted) return
         if (!data?.user) throw new Error()
         setUser(data.user)
       })
       .catch(() => {
-        router.replace("/auth")
+        if (mounted) router.replace('/auth')
       })
-  }, [])
+
+    return () => {
+      mounted = false
+    }
+  }, [router])
 
   if (!user) {
     return null

@@ -7,10 +7,10 @@ import { Button } from "packages/ui";
 export default function CTA() {
   return (
     <motion.section
-      initial={{ opacity: 0, y: 30 }}
+      initial={{ opacity: 0, y: 12 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
+      viewport={{ once: true, margin: "-80px" }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
       className="py-32 px-4 relative overflow-hidden"
     >
       <div className="relative max-w-4xl mx-auto text-center">
@@ -22,11 +22,9 @@ export default function CTA() {
           Build your own zones, invite friends, and start real-time conversations.
         </p>
 
-<Button asChild size="lg">
-  <Link href="/auth">
-    Get Started
-  </Link>
-</Button>
+        <Button asChild size="lg">
+          <Link href="/auth">Get Started</Link>
+        </Button>
       </div>
     </motion.section>
   );

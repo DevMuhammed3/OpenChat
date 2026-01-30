@@ -15,20 +15,20 @@ type User = {
   avatar?: string | null
 }
 
-type ChatItem = {
-  chatPublicId: string
-  participants: User[]
-  lastMessage?: {
-    text: string
-    createdAt: string
-  } | null
-}
+// type ChatItem = {
+//   chatPublicId: string
+//   participants: User[]
+//   lastMessage?: {
+//     text: string
+//     createdAt: string
+//   } | null
+// }
+
 
 export default function ChatList() {
   const { chatPublicId } = useParams<{ chatPublicId?: string }>()
   const router = useRouter()
 
-  const friends = useFriendsStore((s) => s.friends)
 
   const chats = useChatsStore((s) => s.chats)
   const setChats = useChatsStore((s) => s.setChats)

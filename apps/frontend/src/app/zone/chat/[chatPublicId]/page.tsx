@@ -14,12 +14,13 @@ import {
   SheetTitle,
 } from 'packages/ui'
 import { useChatsStore } from '@/app/stores/chat-store'
-import { Info, Loader2, PhoneCall, Send, User, Video } from 'lucide-react'
+import { Info, Loader2, PhoneCall, PhoneOff, Send, User, Video } from 'lucide-react'
 import { Menu } from 'lucide-react'
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { api } from '@openchat/lib'
 import ZoneSidebar from '../../_components/ZoneSidebar'
 import { useVoiceCall } from "@/hooks/useVoiceCall"
+import { useCallStore } from "@/app/stores/call-store"
 
 type Message = {
   id: number
@@ -41,8 +42,16 @@ export default function ChatPage() {
 
   const chats = useChatsStore((s) => s.chats)
   const [user, setUser] = useState<any>(null)
-  const { startCall, endCall, remoteAudioRef } = useVoiceCall()
-  // const friends = useFriendsStore((s) => s.friends)
+  const {
+    startCall,
+    inCall,
+    acceptCall,
+    onCallReject,
+    endCall,
+    remoteAudioRef,
+    ringtoneRef,
+  } = useVoiceCall()
+  const incoming = useCallStore((s) => s.incoming)
 
   const chat = chats.find((c) => c.chatPublicId === chatPublicId)
   const activeChat = chat ?? localChat
@@ -98,23 +107,6 @@ export default function ChatPage() {
     }
   }, [chatPublicId])
 
-  // join room
-  useEffect(() => {
-    if (!chatPublicId) return
-
-    if (!socket.connected) {
-      socket.connect()
-    }
-
-    socket.emit("join-room", { chatPublicId })
-
-    return () => {
-      socket.emit("leave-room", { chatPublicId })
-    }
-  }, [chatPublicId])
-
-  // listen
-
   useEffect(() => {
     const handler = (msg: Message & { chatPublicId: string }) => {
       if (msg.chatPublicId !== chatPublicId) return
@@ -167,7 +159,6 @@ export default function ChatPage() {
                 h-[100svh]
               "
       >
-        <audio ref={remoteAudioRef} autoPlay hidden />
         <Loader2
           className="
                     h-8 w-8
@@ -265,22 +256,80 @@ export default function ChatPage() {
         </div>
 
 
+        {/* <MicTest /> */}
+
+        <audio ref={remoteAudioRef} autoPlay />
+        <audio ref={ringtoneRef} src="/sounds/rining.mp3" preload="auto" />
+
+        {incoming && !inCall && (
+          <div className="fixed bottom-4 right-4 bg-black text-white p-4 rounded">
+            <Avatar
+              className="
+              felx justify-center
+                    h-10 w-10
+                  "
+            >
+              <AvatarFallback
+                className="
+                        text-primary-foreground
+                      "
+              >
+                <User
+                  className="
+                            h-5 w-5
+                          "
+                />
+              </AvatarFallback>
+            </Avatar>
+
+            <p>Incoming call</p>
+            <Button onClick={acceptCall}>
+              <PhoneCall className="w-3 h-3 scale-[1.25]" strokeWidth={2} />
+              Accept
+            </Button>
+            <Button variant="destructive" onClick={() => onCallReject}>
+              <PhoneOff className="w-3 h-3 scale-[1.25]" strokeWidth={2} />
+              Reject
+            </Button>
+          </div>
+        )}
+
+        {inCall && (
+          <div className="flex justify-center  items-center right-4 bg-black text-white p-4 rounded-xl">
+            <Avatar
+              className="
+                    h-10 w-10
+                  "
+            >
+              <AvatarFallback
+                className="
+                        text-primary-foreground
+                      "
+              >
+                <User
+                  className="
+                            h-5 w-5
+                          "
+                />
+              </AvatarFallback>
+            </Avatar>
+            <Button className='bg-red-600 hover:bg-red-600/50 m-2' variant="destructive" onClick={endCall}>
+              <PhoneOff className="w-3 h-3 scale-[1.25]" strokeWidth={2} />
+              Disconnect
+            </Button>
+          </div>
+        )}
 
         <Button
           variant="destructive"
           onClick={() => {
-            if (otherUser) startCall(otherUser.id)
-
+            if (!chatPublicId) return
+            startCall(chatPublicId)
           }}
         >
           <PhoneCall className="w-3 h-3 scale-[1.25]" strokeWidth={2} />
         </Button>
-        <Button
-          variant="secondary"
-          onClick={endCall}
-        >
-          End
-        </Button>
+
 
 
         <Button
@@ -352,6 +401,6 @@ export default function ChatPage() {
           </Button>
         </div>
       </div>
-    </div>
+    </div >
   )
 }

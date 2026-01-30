@@ -1,7 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { UserPlus, MessageCircle, Podcast} from "lucide-react";
+import { motion, Variants } from "framer-motion";
+import { UserPlus, MessageCircle, Podcast } from "lucide-react";
 
 const steps = [
   {
@@ -22,13 +22,37 @@ const steps = [
   }
 ];
 
+const container: Variants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+};
+
+const item: Variants = {
+  hidden: { opacity: 0, y: 12 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.25,
+      ease: "easeOut",
+    },
+  },
+};
+
 export default function HowItWorks() {
   return (
+
     <motion.section
       id="how-it-works"
-      initial={{ opacity: 0 }}
-      whileInView={{ opacity: 1 }}
-      viewport={{ once: true }}
+      variants={container}
+      initial="hidden"
+      whileInView="show"
+      viewport={{ once: true, margin: "-80px" }}
       className="py-24 px-4"
     >
       <div className="max-w-5xl mx-auto">
@@ -36,18 +60,26 @@ export default function HowItWorks() {
           How It Works
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+
+        <motion.div
+          variants={container}
+          className="grid grid-cols-1 md:grid-cols-3 gap-8"
+        >
           {steps.map((step, index) => {
             const Icon = step.icon;
 
             return (
+
               <motion.div
                 key={step.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.15 }}
-                className="relative rounded-2xl border border-white/10 bg-background/60 backdrop-blur p-6 text-center"
+                variants={item}
+                className="
+    relative rounded-2xl
+    border border-white/10
+    bg-background
+    p-6
+    text-center
+  "
               >
                 <span className="absolute -top-3 -left-3 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-bold">
                   {index + 1}
@@ -67,9 +99,10 @@ export default function HowItWorks() {
               </motion.div>
             );
           })}
-        </div>
-      </div>
-    </motion.section>
+
+        </motion.div>
+      </div >
+    </motion.section >
   );
 }
 

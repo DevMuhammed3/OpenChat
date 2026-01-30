@@ -102,9 +102,17 @@ export class AuthController {
   }
 
 
+
   static async register(req: Request, res: Response) {
     try {
       const { name, username, email, password } = req.body
+
+      if (!name || !username || !email || !password) {
+        return res.status(400).json({
+          message: "name, username, email and password are required",
+        })
+      }
+
       const { user, token } = await AuthService.register(
         name,
         username,
@@ -112,14 +120,25 @@ export class AuthController {
         password
       )
 
-      // Set cookie (HTTPOnly)
-      const cookie = serialize('token', token, getCookieOptions(req))
-      res.setHeader('Set-Cookie', cookie)
-      res.json({ user })
+      const cookie = serialize("token", token, getCookieOptions(req))
+      res.setHeader("Set-Cookie", cookie)
+
+      return res.status(201).json({ user })
     } catch (err: any) {
-      res.status(400).json({ message: "Something wrong!" })
+      console.error("REGISTER ERROR:", err)
+
+      if (err.code === "P2002") {
+        return res.status(400).json({
+          message: "Email or username already exists",
+        })
+      }
+
+      return res.status(400).json({
+        message: err.message || "Registration failed",
+      })
     }
   }
+
 
   static async login(req: Request, res: Response) {
     try {

@@ -1,8 +1,18 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "baseUrl": "."
+    "outDir": "dist",
+    "rootDir": "src",
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "target": "ES2022",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
   },
-  "include": ["**/*.ts"]
+  "include": ["src"]
 }
 

@@ -6,6 +6,7 @@ import friendRoutes from "./routes/friend.routes.js";
 import chatRoutes from "./routes/chat.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import { isAllowedOrigin } from "./config/origin.js";
+import webrtcRoutes from "./routes/webrtc.routes.js"
 
 export const app: Express = express();
 
@@ -13,9 +14,9 @@ export const app: Express = express();
 app.use(
   cors({
     origin(origin, callback) {
-  if (!origin || isAllowedOrigin(origin)) {
-  return callback(null, true);
-}
+      if (!origin || isAllowedOrigin(origin)) {
+        return callback(null, true);
+      }
 
       callback(new Error("Not allowed by CORS"));
     },
@@ -38,3 +39,4 @@ app.use("/auth", authRoutes);
 app.use("/users", userRoutes);
 app.use("/friends", friendRoutes);
 app.use("/chats", chatRoutes);
+app.use("/webrtc", webrtcRoutes)

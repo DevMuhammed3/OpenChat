@@ -6,27 +6,22 @@ html {
   scroll-behavior: smooth;
 }
 
-.stars {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  background:
-    radial-gradient(1px 1px at 20% 30%, white, transparent),
-    radial-gradient(1px 1px at 80% 70%, white, transparent),
-    radial-gradient(1px 1px at 50% 50%, white, transparent),
-    radial-gradient(2px 2px at 10% 80%, white, transparent),
-    radial-gradient(2px 2px at 90% 20%, white, transparent);
-  background-size: 200px 200px;
+
+.stars::before {
+  content: '';
+  position: absolute;
+  inset: -200%;
+  background: inherit;
   animation: moveStars 60s linear infinite;
-  opacity: 0.6;
 }
 
 @keyframes moveStars {
   from {
-    background-position: 0 0;
+    transform: translate3d(0, 0, 0);
   }
+
   to {
-    background-position: -1000px 1000px;
+    transform: translate3d(-500px, 500px, 0);
   }
 }
 
@@ -34,9 +29,11 @@ html {
   .border-border {
     @apply border-[color:hsl(var(--border))];
   }
+
   .bg-background {
     @apply bg-[color:hsl(var(--background))];
   }
+
   .text-foreground {
     @apply text-[color:hsl(var(--foreground))];
   }
@@ -104,6 +101,7 @@ html {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
@@ -121,11 +119,21 @@ input:focus-visible {
 }
 
 @layer base {
-  input, textarea, select {
+
+  input,
+  textarea,
+  select {
     @apply transition-none;
   }
 }
-@layer base { input, textarea { @apply transition-none; } }
+
+@layer base {
+
+  input,
+  textarea {
+    @apply transition-none;
+  }
+}
 
 @layer base {
   *:focus {
@@ -156,27 +164,27 @@ input:focus-visible {
   }
 
   /* ===== Custom Scrollbar ===== */
-::-webkit-scrollbar {
-  width: 8px;
-}
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
 
-::-webkit-scrollbar-thumb {
-  background-color: hsl(var(--muted));
-  border-radius: 999px;
-}
+  ::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted));
+    border-radius: 999px;
+  }
 
-::-webkit-scrollbar-thumb:hover {
-  background-color: hsl(var(--muted-foreground));
-}
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground));
+  }
 
-/* Firefox */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: hsl(var(--muted)) transparent;
-}
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted)) transparent;
+  }
 
 }

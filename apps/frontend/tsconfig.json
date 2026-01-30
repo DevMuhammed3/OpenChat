@@ -29,11 +29,14 @@
       "@openchat/ui/*": ["../../packages/components/src/*"],
       "@openchat/components": ["../../packages/components/src"],
       "@openchat/lib": ["../../packages/lib/src"],
-      "@openchat/lib/*": ["../../packages/lib/src/*"]
+      "@openchat/lib/*": ["../../packages/lib/src/*"],
+      "@openchat/types": ["../../packages/types/src"],
+      "@openchat/types/*": ["../../packages/types/src/*"]
     }
   },
   "references": [
-  { "path": "../../packages/lib" }
+  { "path": "../../packages/lib" },
+  { "path": "../../packages/types" }
 ],
   "include": [
     "next-env.d.ts",

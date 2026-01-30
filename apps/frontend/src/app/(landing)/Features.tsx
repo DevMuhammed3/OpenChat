@@ -13,7 +13,7 @@ const containerVariants: Variants = {
   show: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.15,
+      staggerChildren: 0.35,
     },
   },
 };
@@ -24,7 +24,7 @@ const itemVariants: Variants = {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.4,
+      duration: 1,
       ease: "easeOut",
     },
   },
@@ -83,7 +83,7 @@ export default function Features() {
             <motion.div
               key={feature.title}
               variants={itemVariants}
-              className="rounded-2xl border border-white/10 bg-background/60 backdrop-blur p-6 hover:-translate-y-1 hover:shadow-xl transition-all"
+              className="rounded-2xl border border-white/10 bg-background/80 p-6 hover:-translate-y-1 hover:shadow-xl transition-all"
             >
               <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
                 <Icon className="h-6 w-6 text-primary" />
