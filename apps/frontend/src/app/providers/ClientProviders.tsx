@@ -7,7 +7,7 @@ import GlobalCallProvider from './global-call-provider'
 import { AppThemeProvider } from './theme-provider'
 import { RealtimeProvider } from './realtime-provider'
 import { NotificationsProvider } from './notifications-provider'
-import { GlobalCallSystem } from '../zone/_components/global/call-system'
+// import { GlobalCallSystem } from '../zone/_components/global/call-system'
 import { useEffect } from "react"
 
 export default function ClientProviders({
@@ -30,7 +30,7 @@ export default function ClientProviders({
       <UserProvider>
         <RealtimeProvider>
           <NotificationsProvider>
-            <GlobalCallSystem />
+            {/*<GlobalCallSystem />*/}
             {children}
             <GlobalCallProvider />
           </NotificationsProvider>

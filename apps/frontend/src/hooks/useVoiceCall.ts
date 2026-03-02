@@ -16,7 +16,7 @@ export function useVoiceCall() {
   const ringtoneRef = useRef<HTMLAudioElement | null>(null)
   const cleaningRef = useRef(false)
 
-  const showIncoming = useCallStore((s) => s.showIncoming)
+  // const showIncoming = useCallStore((s) => s.showIncoming)
   const clearCall = useCallStore((s) => s.clear)
   const getActiveChatId = () => useCallStore.getState().chatPublicId
 
@@ -182,7 +182,7 @@ export function useVoiceCall() {
   useEffect(() => {
     function onOffer({ chatPublicId, offer, from }: CallOfferPayload) {
       pendingOfferRef.current = offer
-      showIncoming({ chatPublicId, caller: from })
+      // showIncoming({ chatPublicId, caller: from })
       playRingtone()
     }
 
