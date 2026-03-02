@@ -87,12 +87,21 @@ model Message {
   id        Int      @id @default(autoincrement())
   chatId    Int
   senderId  Int
-  text      String
+  text      String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  isEdited Boolean @default(false)
+  fileUrl   String?
+  fileType  String?
+
+  isDeleted   Boolean   @default(false)
+  deletedAt   DateTime?
+
+  replyToId   Int?
+  replyTo     Message?  @relation("MessageReplies", fields: [replyToId], references: [id])
+  replies     Message[] @relation("MessageReplies")
 
   chat Chat @relation(fields: [chatId], references: [id])
-
   sender User @relation("UserSentMessages", fields: [senderId], references: [id])
 }
 

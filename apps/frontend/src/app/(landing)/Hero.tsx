@@ -170,10 +170,33 @@ export default function Hero() {
     <section
       className="
             flex items-center justify-center
-            min-h-screen
+            min-h-[80vh]
+            lg:min-h-screen
             pt-32 px-6
           "
     >
+      {/* Glow Background */}
+      <div className="absolute inset-0 -z-10 overflow-hidden">
+        <div className="
+    absolute 
+    top-1/3 right-1/4
+    w-[300px] h-[300px]
+    md:w-[500px] md:h-[500px]
+    bg-purple-600/20
+    blur-[120px] md:blur-[180px]
+    rounded-full
+  " />
+
+        <div className="
+    hidden md:block
+    absolute 
+    bottom-1/4 left-1/4
+    w-[500px] h-[500px]
+bg-gradient-to-r from-cyan-500/30 to-transparent
+    blur-[160px]
+    rounded-full
+  " />
+      </div>
       <div
         className="
                 flex flex-col lg:flex-row items-center
@@ -232,7 +255,8 @@ export default function Hero() {
         {/*  PHONE  */}
         <div
           className="
-                    flex-1 flex justify-center
+          hidden
+                    flex-1 lg:flex justify-center
                   "
         >
           <motion.div

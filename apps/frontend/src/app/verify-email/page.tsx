@@ -49,48 +49,75 @@ export default function VerifyEmail() {
     setResending(false);
 
     if (res.ok) {
-      setMessage("📧 Verification code sent again");
+      setMessage("Verification code sent again");
     } else {
       setMessage(data.message || "Something went wrong");
     }
   }
 
   return (
-    <div className="max-w-sm mx-auto mt-20 p-6 border rounded">
-      <h2 className="text-xl font-bold mb-2">Verify your email</h2>
+    <div className="relative flex min-h-screen items-center justify-center bg-[#0b1220] overflow-hidden">
 
-      <p className="text-sm text-gray-600 mb-4">
-        We sent a 6-digit code to your email
-      </p>
+      {/* subtle stars */}
+      <div className="absolute inset-0 -z-10 opacity-5 bg-[radial-gradient(white_1px,transparent_1px)] [background-size:40px_40px]" />
 
-      <input
-        type="text"
-        maxLength={6}
-        value={code}
-        onChange={(e) => setCode(e.target.value)}
-        className="w-full border p-2 text-center text-xl tracking-widest"
-        placeholder="------"
-      />
+      <div className="w-full max-w-md bg-[#111a2b] border border-white/5 rounded-2xl p-8 shadow-2xl">
 
-      <button
-        onClick={handleVerify}
-        disabled={loading || code.length !== 6}
-        className="w-full mt-4 bg-black text-white py-2 rounded"
-      >
-        {loading ? "Verifying..." : "Verify"}
-      </button>
+        {/* Title */}
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-semibold text-white">
+            Verify your email
+          </h2>
+          <p className="text-sm text-white/60 mt-2">
+            Enter the 6-digit code sent to your email
+          </p>
+        </div>
 
-      <button
-        onClick={handleResend}
-        disabled={resending}
-        className="w-full mt-2 text-sm underline"
-      >
-        {resending ? "Sending..." : "Resend code"}
-      </button>
+        {/* Input */}
+        <input
+          type="text"
+          inputMode="numeric"
+          maxLength={6}
+          value={code}
+          onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+          placeholder="000000"
+          className="w-full bg-[#0f1626] border border-white/10 focus:border-white/20 rounded-xl py-4 text-center text-2xl tracking-[0.4em] text-white placeholder:text-white/30 transition"
+        />
 
-      {message && (
-        <p className="text-center mt-3 text-sm">{message}</p>
-      )}
+        {/* Verify Button */}
+        <button
+          onClick={handleVerify}
+          disabled={loading || code.length !== 6}
+          className="w-full mt-6 bg-white text-black font-medium py-3 rounded-xl hover:opacity-90 transition disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {loading ? "Verifying..." : "Verify Email"}
+        </button>
+
+        {/* Resend */}
+        <div className="text-center mt-4">
+          <button
+            onClick={handleResend}
+            disabled={resending}
+            className="text-sm text-white/50 hover:text-white transition disabled:opacity-50"
+          >
+            {resending ? "Sending..." : "Resend code"}
+          </button>
+        </div>
+
+        {/* Message */}
+        {message && (
+          <div
+            className={`mt-6 text-center text-sm font-medium ${message.includes("success")
+              ? "text-green-400"
+              : message.includes("sent")
+                ? "text-blue-400"
+                : "text-red-400"
+              }`}
+          >
+            {message}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

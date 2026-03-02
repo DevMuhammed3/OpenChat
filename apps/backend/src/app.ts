@@ -39,4 +39,5 @@ app.use("/auth", authRoutes);
 app.use("/users", userRoutes);
 app.use("/friends", friendRoutes);
 app.use("/chats", chatRoutes);
+app.use("/uploads", express.static("uploads"))
 app.use("/webrtc", webrtcRoutes)

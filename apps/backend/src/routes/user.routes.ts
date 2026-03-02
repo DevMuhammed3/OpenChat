@@ -1,7 +1,12 @@
 import { Router } from "express";
 import { prisma } from "../config/prisma.js";
+import { authMiddleware } from '../middlewares/auth.middleware.js'
+import { upload } from "../middlewares/upload.middleware.js";
+import { updateAvatar, updateProfile } from "../controllers/user.controller.js";
 
 const router = Router();
+
+router.patch('/profile', authMiddleware, updateProfile)
 
 router.get("/:username", async (req, res) => {
   const username = req.params.username;
@@ -22,5 +27,11 @@ router.get("/:username", async (req, res) => {
   res.json({ user });
 });
 
-export default router;
+router.patch(
+  '/avatar',
+  authMiddleware,
+  upload.single('avatar'),
+  updateAvatar
+)
 
+export default router;

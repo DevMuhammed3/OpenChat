@@ -1,33 +1,50 @@
 import { create } from "zustand"
-import { Caller } from "@openchat/types"
 
-type CallState = {
-  incoming: boolean
+type Status = "idle" | "calling" | "incoming" | "connected"
+
+interface CallUser {
+  id: number
+  name: string
+  image?: string
+}
+
+interface CallStore {
+  status: Status
   chatPublicId: string | null
-  caller: Caller | null
-  showIncoming: (data: {
-    chatPublicId: string
-    caller: Caller
-  }) => void
+  user: CallUser | null
+
+  setCalling: (chatPublicId: string, user: CallUser) => void
+  setIncoming: (chatPublicId: string, user: CallUser) => void
+  setConnected: () => void
   clear: () => void
 }
 
-export const useCallStore = create<CallState>((set) => ({
-  incoming: false,
+export const useCallStore = create<CallStore>((set) => ({
+  status: "idle",
   chatPublicId: null,
-  caller: null,
+  user: null,
 
-  showIncoming: ({ chatPublicId, caller }) =>
+  setCalling: (chatPublicId, user) =>
     set({
-      incoming: true,
+      status: "calling",
       chatPublicId,
-      caller,
+      user,
     }),
+
+  setIncoming: (chatPublicId, user) =>
+    set({
+      status: "incoming",
+      chatPublicId,
+      user,
+    }),
+
+  setConnected: () =>
+    set({ status: "connected" }),
 
   clear: () =>
     set({
-      incoming: false,
+      status: "idle",
       chatPublicId: null,
-      caller: null,
+      user: null,
     }),
 }))

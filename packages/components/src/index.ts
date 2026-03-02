@@ -15,3 +15,4 @@ export * from './ui/scroll-area';
 export * from './ui/sonner';
 export * from './ui/sheet';
 export * from './ui/Navbar';
+export * from './ui/switch';

@@ -3,6 +3,8 @@ import { create } from 'zustand'
 export type User = {
   id: number
   username: string
+  name?: string | null
+  avatar?: string | null
 }
 
 export type Friend = User

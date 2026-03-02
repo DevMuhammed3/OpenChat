@@ -17,6 +17,7 @@ import { Alert, AlertDescription } from 'packages/ui';
 import { Eye, EyeOff, Mail, Lock, User, CheckCircle2 } from 'lucide-react';
 import { useRouter } from "next/navigation";
 import { api } from '@openchat/lib';
+import { signupSchema, loginSchema } from "@openchat/lib/validations/auth";
 
 export default function AuthPage() {
 
@@ -76,31 +77,28 @@ export default function AuthPage() {
 
       setMessage({ type: "success", text: "Login successful!" });
 
-      setTimeout(() => {
-        router.replace("/zone");
-      }, 300);
+      router.replace("/zone");
+      router.refresh();
     } catch (err) {
       console.error(err);
       setMessage({ type: "error", text: "Something went wrong" });
     }
   };
 
-  const handleSignup = async (e?: any) => {
+  const handleSignup = async (e?: React.KeyboardEvent) => {
     if (e?.preventDefault) e.preventDefault();
     setMessage({ type: "", text: "" });
 
-    if (
-      !signupData.name ||
-      !signupData.username ||
-      !signupData.email ||
-      !signupData.password
-    ) {
-      setMessage({ type: "error", text: "Please fill in all fields" });
-      return;
-    }
+    const result = signupSchema.safeParse(signupData);
 
-    if (signupData.password !== signupData.confirmPassword) {
-      setMessage({ type: "error", text: "Passwords do not match" });
+    if (!result.success) {
+      const firstError =
+        Object.values(result.error.flatten().fieldErrors)[0]?.[0];
+
+      setMessage({
+        type: "error",
+        text: firstError || "Invalid data",
+      });
       return;
     }
 
@@ -109,12 +107,7 @@ export default function AuthPage() {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: signupData.name,
-          username: signupData.username,
-          email: signupData.email,
-          password: signupData.password,
-        }),
+        body: JSON.stringify(result.data),
       });
 
       const data = await res.json();
@@ -127,17 +120,14 @@ export default function AuthPage() {
         return;
       }
 
-      // Auto-login after signup
       setMessage({
         type: "success",
         text: "Account created! Logging in...",
       });
 
-      setTimeout(() => {
-        router.replace("/zone");
-      }, 300);
+      router.replace("/zone");
+      router.refresh();
     } catch (err) {
-      console.error(err);
       setMessage({ type: "error", text: "Something went wrong" });
     }
   };
@@ -317,7 +307,7 @@ export default function AuthPage() {
                 </div>
               </CardContent>
               <CardFooter>
-                <Button onClick={(e) => handleSignup(e)} className="w-full">Create Account</Button>
+                <Button onClick={(e: any) => handleSignup(e)} className="w-full">Create Account</Button>
               </CardFooter>
             </Card>
           </TabsContent>

@@ -1,33 +1,30 @@
 'use client'
 
-import { useEffect, useRef } from "react"
+import { useEffect } from "react"
+
+let audioContext: AudioContext | null = null
 
 export function useAudioUnlock() {
-  const unlockedRef = useRef(false)
-
   useEffect(() => {
-    const unlock = async () => {
-      if (unlockedRef.current) return
-
-      try {
-        const audio = new Audio()
-        audio.muted = true
-        await audio.play()
-        unlockedRef.current = true
-      } catch {
+    function unlock() {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
       }
 
-      document.removeEventListener("click", unlock)
-      document.removeEventListener("keydown", unlock)
+      if (audioContext.state === "suspended") {
+        audioContext.resume()
+      }
+
+      window.removeEventListener("click", unlock)
+      window.removeEventListener("touchstart", unlock)
     }
 
-    document.addEventListener("click", unlock)
-    document.addEventListener("keydown", unlock)
+    window.addEventListener("click", unlock)
+    window.addEventListener("touchstart", unlock)
 
     return () => {
-      document.removeEventListener("click", unlock)
-      document.removeEventListener("keydown", unlock)
+      window.removeEventListener("click", unlock)
+      window.removeEventListener("touchstart", unlock)
     }
   }, [])
 }
-

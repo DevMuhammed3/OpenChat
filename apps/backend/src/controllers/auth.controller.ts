@@ -6,6 +6,7 @@ import { serialize } from 'cookie'
 import { getCookieOptions } from '../utils/cookie.js'
 import { sendOTPEmail } from '../utils/email.js'
 import { generateOTP } from '../utils/otp.js'
+// import { signupSchema, loginSchema } from "@openchat/lib/validations/auth";
 
 export class AuthController {
 
@@ -167,6 +168,7 @@ export class AuthController {
           username: true,
           email: true,
           emailVerified: true,
+          avatar: true,
         },
       })
 

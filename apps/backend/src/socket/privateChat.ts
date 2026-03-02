@@ -36,8 +36,21 @@ export function privateChatHandler(io: Server, socket: Socket) {
 
   socket.on(
     "private-message",
-    async ({ chatPublicId, text }: { chatPublicId: string; text: string }) => {
-      if (!text?.trim()) return
+    async (
+      {
+        chatPublicId,
+        text,
+        fileUrl,
+        fileType,
+      }: {
+        chatPublicId: string
+        text?: string | null
+        fileUrl?: string | null
+        fileType?: string | null
+      },
+      callback?: (message: any) => void
+    ) => {
+      if (!text?.trim() && !fileUrl) return
 
       const allowed = await isUserInChat(userId, chatPublicId)
       if (!allowed) return
@@ -53,19 +66,28 @@ export function privateChatHandler(io: Server, socket: Socket) {
         data: {
           chatId: chat.id,
           senderId: userId,
-          text,
+          text: text?.trim() || null,
+          fileUrl: fileUrl || null,
+          fileType: fileType || null,
         },
       })
 
       const room = `chat:${chatPublicId}`
 
-      socket.to(room).emit("private-message", {
+      const messagePayload = {
         id: saved.id,
         text: saved.text,
+        fileUrl: saved.fileUrl,
+        fileType: saved.fileType,
         senderId: userId,
         chatPublicId,
         createdAt: saved.createdAt,
-      })
+      }
+      socket.to(room).emit("private-message", messagePayload)
+
+      if (callback) {
+        callback(messagePayload)
+      }
 
       socket.to(room).emit("chat-notification", {
         chatPublicId,
@@ -108,7 +130,6 @@ export function privateChatHandler(io: Server, socket: Socket) {
     })
   })
 
-  // call:end
   socket.on("call:end", async ({ chatPublicId }) => {
     const allowed = await isUserInChat(userId, chatPublicId)
     if (!allowed) return

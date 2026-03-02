@@ -1,62 +1,30 @@
-'use client'
+// app/zone/layout.tsx  (Server Component)
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { getCurrentUser } from '@/lib/getCurrentUser'
 import ZoneSidebar from './_components/ZoneSidebar'
-import { api } from '@openchat/lib'
 import { RealtimeProvider } from '../providers/realtime-provider'
+import { redirect } from 'next/navigation'
 
-export default function ZoneLayout({
+export default async function ZoneLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const router = useRouter()
-  const [user, setUser] = useState<any>(null)
+  const user = await getCurrentUser()
 
-  useEffect(() => {
-    api('/auth/me', { credentials: 'include' })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (!data?.user) {
-          router.replace('/auth')
-        } else {
-          setUser(data.user)
-        }
-      })
-  }, [router])
+  if (!user) {
+    redirect('/auth')
+  }
 
   return (
     <RealtimeProvider>
-      <div
-        className="
-    flex
-    h-[100svh]
-  "
-      >
-        {/* Sidebar */}
-        <div
-          className="
-      hidden md:flex
-    "
-        >
+      <div className="flex h-[100svh]">
+        <div className="hidden md:flex">
           <ZoneSidebar user={user} />
         </div>
 
-        {/* Content (Chat panel) */}
-        <div
-          className="
-      flex-1 flex flex-col
-    "
-        >
-          {/* Mobile Header */}
-
-          {/* Chat / Page */}
-          <main
-            className="
-        flex-1 overflow-hidden
-      "
-          >
+        <div className="flex-1 flex flex-col">
+          <main className="flex-1 overflow-hidden">
             {children}
           </main>
         </div>
