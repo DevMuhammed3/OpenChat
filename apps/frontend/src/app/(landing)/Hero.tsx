@@ -1,12 +1,13 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { Info } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from 'packages/ui'
 import { useEffect, useState } from 'react'
 
 /*  TEXT TYPING  */
-const words = ['Private Chats', 'Secure Communities', 'Real-Time Conversations']
+const words = ['Powerful', 'Simple', 'Private']
 
 
 type Message = {
@@ -45,20 +46,12 @@ export default function Hero() {
   const [typing, setTyping] = useState<null | 'me' | 'other'>(null)
 
   const SCRIPT: Message[] = [
-    { id: 1, from: 'other', text: 'Hey 👋' },
-    { id: 2, from: 'other', text: 'Do you know what OpenChat is?' },
-    { id: 3, from: 'me', text: 'Not really… what is it?' },
-    { id: 4, from: 'other', text: 'A private & secure real-time chat.' },
-    { id: 5, from: 'me', text: 'Sounds interesting 👀' },
-    { id: 6, from: 'other', text: 'End-to-end encrypted.' },
-    {
-      id: 7,
-      from: 'other',
-      link: {
-        label: 'OpenChat',
-        href: '/auth',
-      },
-    },
+    { id: 1, from: 'me', text: 'I want Discord but simpler 😩' },
+    { id: 2, from: 'other', text: "That's exactly what this is." },
+    { id: 3, from: 'me', text: 'And private? No phone number?' },
+    { id: 4, from: 'other', text: 'Open source. No ads. No tracking.' },
+    { id: 5, from: 'me', text: 'Just sign up and go 🚀' },
+    { id: 6, from: 'other', text: 'Join', link: { label: 'OpenChat', href: '/auth' } },
   ]
 
 
@@ -89,54 +82,6 @@ export default function Hero() {
     }
   }, [])
 
-  function ChatMessage({ from, text, link }: ChatMessageProps) {
-    const isMe = from === 'me'
-
-    return (
-      <div
-        className={`
-        max-w-[70%] px-3 py-2 rounded-xl text-sm
-        ${isMe
-            ? 'ml-auto bg-cyan-400 text-black'
-            : 'bg-zinc-800 text-white'}
-      `}
-      >
-        {text && <span>{text}</span>}
-
-        {link && (
-          <Link
-            href={link.href}
-            className="
-            font-semibold underline underline-offset-4
-            hover:opacity-80 transition
-          "
-          >
-            {link.label}
-          </Link>
-        )}
-      </div>
-    )
-  }
-
-  function TypingIndicator({ from }: TypingIndicatorProps) {
-    const isMe = from === 'me'
-
-    return (
-      <div
-        className={`
-        max-w-[20%] px-3 py-2 rounded-xl
-        flex gap-1 items-center
-        ${isMe
-            ? 'ml-auto bg-cyan-600'
-            : 'bg-zinc-800'}
-      `}
-      >
-        <span className="w-1.5 h-1.5 bg-white/60 rounded-full animate-bounce" />
-        <span className="w-1.5 h-1.5 bg-white/60 rounded-full animate-bounce delay-100" />
-        <span className="w-1.5 h-1.5 bg-white/60 rounded-full animate-bounce delay-200" />
-      </div>
-    )
-  }
 
   useEffect(() => {
     const currentWord = words[wordIndex]
@@ -170,7 +115,7 @@ export default function Hero() {
     <section
       className="
             flex items-center justify-center
-            min-h-[80vh]
+            min-h-[100vh]
             lg:min-h-screen
             pt-32 px-6
           "
@@ -180,10 +125,10 @@ export default function Hero() {
         <div className="
     absolute 
     top-1/3 right-1/4
-    w-[300px] h-[300px]
-    md:w-[500px] md:h-[500px]
+    w-[250px] h-[260px]
+    md:w-[400px] md:h-[400px]
     bg-purple-600/20
-    blur-[120px] md:blur-[180px]
+    blur-[120px] md:blur-[150px]
     rounded-full
   " />
 
@@ -218,7 +163,7 @@ bg-gradient-to-r from-cyan-500/30 to-transparent
                         lg:text-4xl font-bold leading-tight
                       "
           >
-            OpenChat for{' '}
+            Chat that's{' '}
             <span
               className="
                             text-purple-500
@@ -242,9 +187,7 @@ bg-gradient-to-r from-cyan-500/30 to-transparent
                         text-muted-foreground
                       "
           >
-            Create private zones, organize groups, and chat with
-            your community in real time — fully encrypted and built
-            for privacy.
+            Channels, groups, and private chats — all in one app. Open source, no ads, no phone number needed
           </p>
 
           <Button asChild size="lg">
@@ -256,7 +199,7 @@ bg-gradient-to-r from-cyan-500/30 to-transparent
         <div
           className="
           hidden
-                    flex-1 lg:flex justify-center
+          flex-1 lg:flex justify-center
                   "
         >
           <motion.div
@@ -271,12 +214,11 @@ bg-gradient-to-r from-cyan-500/30 to-transparent
                         w-[320px] h-[640px]
                         p-2
                         bg-gradient
-                        rounded-[3rem] border 
-    bg-zinc-900/80
-                         border border-white/10
-                            shadow-[inset_0_0_40px_rgba(0,0,0,0.6)]
-
-                      "
+                        rounded-[3rem] 
+                      bg-zinc-900/80
+                        border border-white/10
+                        shadow-[inset_0_0_40px_rgba(0,0,0,0.6)]
+            "
           >
             {/*  iPhone 14 Pro Dynamic Island  */}
             <div
@@ -328,11 +270,30 @@ bg-gradient-to-r from-cyan-500/30 to-transparent
                             backdrop-blur-xl
 bg-gradient-to-br from-[#061326]/60 via-[#130626]/50 to-[#070430]/50
     shadow-[inset_0_0_30px_rgba(0,0,0,0.6)]
-
-
                           "
             >
 
+              {/* Chat Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-white/5 mb-2">
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <img
+                      src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
+                      alt="Avatar"
+                      className="w-8 h-8 rounded-full bg-purple-500/20 border border-white/10"
+                    />
+                    <div className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 rounded-full border-2 border-black" />
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold text-white leading-none">Alex Rivera</p>
+                    <p className="text-[9px] text-emerald-500/80 font-medium mt-1">Online</p>
+                  </div>
+                </div>
+
+                <button className="p-1 hover:bg-white/5 rounded-full transition-colors">
+                  <Info className="text-white/30 hover:text-white/60" size={16} />
+                </button>
+              </div>
 
               <div className="flex-1 flex flex-col justify-end gap-2">
                 {visibleMessages.map((msg) => (
@@ -370,3 +331,56 @@ bg-gradient-to-br from-[#061326]/60 via-[#130626]/50 to-[#070430]/50
     </section>
   )
 }
+
+function ChatMessage({ from, text, link }: ChatMessageProps) {
+  const isMe = from === 'me'
+
+  return (
+    <div className={`flex items-end gap-2 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
+      {!isMe && (
+        <img
+          src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
+          className="w-6 h-6 rounded-full bg-zinc-800 mb-1"
+          alt="User"
+        />
+      )}
+
+      <div
+        className={`
+          min-w-fit max-w-[80%] px-3 py-2 rounded-2xl text-[12px] leading-snug
+          ${isMe
+            ? 'bg-purple-600 text-white rounded-br-none shadow-lg shadow-purple-900/20'
+            : 'bg-zinc-800/80 text-zinc-100 rounded-bl-none'}
+        `}
+      >
+        {text && <span>{text}</span>}
+        {link && (
+          <Link href={link.href} className="px-1 mt-1 font-bold text-purple-400 underline decoration-2">
+            {link.label}
+          </Link>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function TypingIndicator({ from }: TypingIndicatorProps) {
+  const isMe = from === 'me'
+
+  return (
+    <div
+      className={`
+        max-w-[20%] px-3 py-2 rounded-xl
+        flex gap-1 items-center
+        ${isMe
+          ? 'ml-auto bg-purple-400'
+          : 'bg-zinc-800'}
+      `}
+    >
+      <span className="w-1.5 h-1.5 bg-white/60 rounded-full animate-bounce" />
+      <span className="w-1.5 h-1.5 bg-white/60 rounded-full animate-bounce delay-100" />
+      <span className="w-1.5 h-1.5 bg-white/60 rounded-full animate-bounce delay-200" />
+    </div>
+  )
+}
+

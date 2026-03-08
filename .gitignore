@@ -4,7 +4,7 @@ node_modules/
 apps/*/node_modules/
 packages/*/node_modules/
 **/.prisma/
-
+client_secret_918576031078-fjn85k09fs1duof884k9gt2c3fpl2j9f.apps.googleusercontent.com.json
 # Build output
 .next/
 dist/

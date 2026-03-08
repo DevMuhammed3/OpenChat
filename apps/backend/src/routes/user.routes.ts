@@ -8,6 +8,31 @@ const router = Router();
 
 router.patch('/profile', authMiddleware, updateProfile)
 
+router.get("/search", authMiddleware, async (req, res) => {
+  const q = req.query.q as string
+
+  if (!q) return res.json({ users: [] })
+
+  const users = await prisma.user.findMany({
+    where: {
+      username: {
+        contains: q,
+        mode: "insensitive"
+      }
+    },
+    select: {
+      id: true,
+      username: true,
+      avatar: true,
+      name: true
+    },
+    take: 10
+  })
+
+  res.json({ users })
+})
+
+
 router.get("/:username", async (req, res) => {
   const username = req.params.username;
 

@@ -5,23 +5,24 @@ import { io } from "../index.js"
 import multer from "multer"
 import path from "path"
 import fs from "fs"
+import crypto from "crypto"
 
 const uploadDir = "uploads"
 
 if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir)
+  fs.mkdirSync(uploadDir, { recursive: true })
 }
 
 const storage = multer.diskStorage({
   destination: uploadDir,
   filename: (_, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname))
+    cb(null, crypto.randomUUID() + path.extname(file.originalname))
   },
 })
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
   fileFilter: (_, file, cb) => {
     if (!file.mimetype.startsWith("image/")) {
       cb(new Error("Only images allowed"))
@@ -56,19 +57,32 @@ export const getChatMessages = async (req: Request, res: Response) => {
       return res.status(403).json({ message: "Forbidden" });
     }
 
+    const { cursor } = req.query
+
     const messages = await prisma.message.findMany({
       where: { chatId: chat.id },
-      orderBy: { createdAt: "asc" },
+      take: 50,
+      ...(cursor && {
+        cursor: { id: Number(cursor) },
+        skip: 1
+      }),
       include: {
-        replyTo: true,
+        sender: {
+          select: {
+            id: true,
+            username: true,
+            avatar: true
+          }
+        },
       },
-    });
+      orderBy: { id: "desc" }
+    })
 
     const safeMessages = messages.map(msg =>
       msg.isDeleted
-        ? { ...msg, text: null }
+        ? { ...msg, text: null, fileUrl: null, fileType: null }
         : msg
-    );
+    )
 
     res.json({ messages: safeMessages });
   } catch (err) {
@@ -89,6 +103,7 @@ export const getChats = async (req: Request, res: Response) => {
 
     const chats = await prisma.chat.findMany({
       where: {
+        type: "DM",
         participants: {
           some: { userId },
         },
@@ -110,18 +125,18 @@ export const getChats = async (req: Request, res: Response) => {
           take: 1,
         },
       },
-      orderBy: {
-        createdAt: "desc",
-      },
     });
 
     res.json({
       chats: chats.map((chat: any) => ({
         chatPublicId: chat.publicId,
+        type: chat.type,
+        name: chat.name,
+        avatar: chat.avatar ?? null,
         participants: chat.participants.map((p: any) => p.user),
         lastMessage: chat.messages?.[0] ?? null,
       })),
-    });
+    })
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Internal server error" });
@@ -159,12 +174,13 @@ export const startChat = async (req: Request, res: Response) => {
 
     const existingChat = await prisma.chat.findFirst({
       where: {
+        type: "DM",
         AND: [
           { participants: { some: { userId } } },
-          { participants: { some: { userId: friendId } } },
-        ],
-      },
-    });
+          { participants: { some: { userId: friendId } } }
+        ]
+      }
+    })
 
     if (existingChat) {
       return res.json({ chatPublicId: existingChat.publicId });
@@ -246,9 +262,18 @@ export const editMessage = async (req: Request, res: Response) => {
       where: { id: messageId },
       include: {
         chat: {
-          select: { publicId: true },
+          select: {
+            publicId: true
+          }
         },
-      },
+        sender: {
+          select: {
+            id: true,
+            username: true,
+            avatar: true
+          }
+        }
+      }
     });
 
     if (!message) {
@@ -268,6 +293,15 @@ export const editMessage = async (req: Request, res: Response) => {
       data: {
         text,
         isEdited: true,
+      },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            username: true,
+            avatar: true
+          }
+        }
       }
     });
 
@@ -346,3 +380,4 @@ export const deleteMessage = async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
+

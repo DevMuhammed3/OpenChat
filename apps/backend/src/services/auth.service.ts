@@ -37,7 +37,6 @@ export class AuthService {
       },
     });
 
-    // 🔢 OTP
     const code = generateOTP();
 
     await prisma.emailOTP.deleteMany({
@@ -73,9 +72,10 @@ export class AuthService {
   static async login(email: string, password: string) {
     const user = await prisma.user.findUnique({ where: { email } });
 
-    if (!user) throw new Error("Invalid credentials");
+    if (!user || !user.password) throw new Error("Invalid credentials");
 
     const match = await bcrypt.compare(password, user.password);
+
     if (!match) throw new Error("Invalid credentials");
 
     const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET!, {

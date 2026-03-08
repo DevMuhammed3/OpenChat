@@ -26,14 +26,14 @@ export default function VerifyEmail() {
     setLoading(false);
 
     if (res.ok) {
-      setMessage("✅ Email verified successfully");
+      setMessage(" Email verified successfully");
 
       setTimeout(() => {
         router.push("/zone");
         router.refresh();
       }, 1500);
     } else {
-      setMessage(data.message || "❌ Invalid code");
+      setMessage(data.message || "Invalid code");
     }
   }
 

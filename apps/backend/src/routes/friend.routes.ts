@@ -7,6 +7,7 @@ const router = Router();
 
 // Protected routes
 router.get("/search", authMiddleware, friendController.searchUser);
+router.get("/pending", authMiddleware, friendController.pending);
 router.get("/requests", authMiddleware, friendController.getRequests);
 router.get("/list", authMiddleware, friendController.getFriends);
 router.post("/request/", authMiddleware, requireVerified, friendController.sendRequest);

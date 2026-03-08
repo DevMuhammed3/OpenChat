@@ -11,25 +11,24 @@ import {
 
 const router = Router();
 
-router.get("/", authMiddleware, getChats);
-
-router.post("/start", authMiddleware, startChat);
+router.get("/", authMiddleware, getChats)
+router.post("/start", authMiddleware, startChat)
 
 router.get(
   "/:chatPublicId/messages",
   authMiddleware,
   getChatMessages
-);
+)
+
 router.post(
   "/:chatPublicId/upload",
   authMiddleware,
   uploadFile
 )
-// app.use("/uploads", express.static("uploads"))
 
 router.patch("/messages/:id", authMiddleware, editMessage)
 
-router.delete("/messages/:id", authMiddleware, deleteMessage);
+router.delete("/messages/:id", authMiddleware, deleteMessage)
 
 export default router;
 

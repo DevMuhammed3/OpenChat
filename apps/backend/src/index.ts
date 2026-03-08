@@ -32,7 +32,7 @@ io.on('connection', async (socket) => {
   console.log(`Socket connected: ${socket.id} (user ${userId})`)
 
 
-  socket.join(userId.toString())
+  socket.join(`user:${userId}`)
 
   const chats = await prisma.chat.findMany({
     where: {

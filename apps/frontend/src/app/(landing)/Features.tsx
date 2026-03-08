@@ -33,30 +33,26 @@ const itemVariants: Variants = {
 
 const features = [
   {
-    title: "Real-time Chat",
-    description:
-      "Instant messaging powered by WebSockets for smooth conversations.",
+    title: "Instant Messaging",
+    description: "Send messages that arrive in real time — no delays, no refresh needed.",
     icon: MessageSquare,
   },
   {
-    title: "Zones & Groups",
-    description:
-      "Create zones and organize conversations into groups with ease.",
+    title: "Channels & Groups",
+    description: "Organize your community like Discord — but way easier on your phone.",
     icon: Group,
   },
   {
-    title: "Secure",
-    description:
-      "Authentication, authorization, and protected APIs by design.",
+    title: "Private by Default",
+    description: "End-to-end encrypted. No ads. No one reads your messages — not even us.",
     icon: ShieldCheck,
   },
   {
-    title: "Fast & Scalable",
-    description:
-      "Optimized architecture that scales with growing communities.",
+    title: "Open Source & Free",
+    description: "100% free, no hidden fees. The code is public — nothing to hide.",
     icon: Zap,
   },
-];
+]
 
 export default function Features() {
   return (
@@ -68,7 +64,7 @@ export default function Features() {
       viewport={{ once: true }}
       className="py-24 px-4 max-w-6xl mx-auto"
     >
-      <h2 className="text-4xl font-bold text-center mb-12">
+      <h2 className="text-4xl text-center font-extrabold mb-12">
         Why OpenChat?
       </h2>
 

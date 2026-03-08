@@ -1,6 +1,7 @@
 import express, { Express } from "express";
 import cors from "cors";
 import authRoutes from "./routes/auth.routes.js";
+import zonesRoutes from "./routes/zones.routes.js";
 import cookieParser from "cookie-parser";
 import friendRoutes from "./routes/friend.routes.js";
 import chatRoutes from "./routes/chat.routes.js";
@@ -17,7 +18,6 @@ app.use(
       if (!origin || isAllowedOrigin(origin)) {
         return callback(null, true);
       }
-
       callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
@@ -30,14 +30,16 @@ app.use(cookieParser());
 app.use(express.json());
 
 // API routes
-//
-app.get('/health', (req, res) => {
-  res.status(200).send('ok')
+
+app.get('/health', (_req, res) => {
+  res.status(200).send('Server is working')
 })
 
 app.use("/auth", authRoutes);
 app.use("/users", userRoutes);
 app.use("/friends", friendRoutes);
 app.use("/chats", chatRoutes);
+app.use("/zones", zonesRoutes)
+
 app.use("/uploads", express.static("uploads"))
 app.use("/webrtc", webrtcRoutes)
