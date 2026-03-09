@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/lib/getCurrentUser'
 import ZoneSidebar from './_components/ZoneSidebar'
 import { RealtimeProvider } from '../providers/realtime-provider'
 import { redirect } from 'next/navigation'
+import ZonesList from './_components/zones/ZonesList'
 
 export default async function ZoneLayout({
   children,
@@ -19,6 +20,7 @@ export default async function ZoneLayout({
   return (
     <RealtimeProvider>
       <div className="flex h-[100svh]">
+        <ZonesList />
         <div className="hidden md:flex">
           <ZoneSidebar user={user} />
         </div>

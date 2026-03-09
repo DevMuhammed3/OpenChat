@@ -14,12 +14,12 @@ import {
   SheetTitle,
 } from 'packages/ui'
 import { useChatsStore } from '@/app/stores/chat-store'
-import { Info, Loader2, Paperclip, PhoneCall, PhoneOff, Send, User, Video, X } from 'lucide-react'
+import { Info, Loader2, Paperclip, PhoneCall, Send, User, Video, X } from 'lucide-react'
 import { Menu, SquarePen, Trash } from 'lucide-react'
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { api } from '@openchat/lib'
 import ZoneSidebar from '../../_components/ZoneSidebar'
-import { useVoiceCall } from "@/hooks/useVoiceCall"
+// import { useVoiceCall } from "@/hooks/useVoiceCall"
 import { useCallStore } from "@/app/stores/call-store"
 
 type Message = {
@@ -46,9 +46,9 @@ export default function ChatPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const setCalling = useCallStore((s) => s.setCalling)
-  const status = useCallStore((s) => s.status)
+  // const status = useCallStore((s) => s.status)
   // const setCalling = useCallStore((s) => s.setCalling)
-  const clear = useCallStore((s) => s.clear)
+  // const clear = useCallStore((s) => s.clear)
 
   // const endRef = useRef<HTMLDivElement>(null)
   const messagesRef = useRef<HTMLDivElement>(null)
@@ -71,7 +71,9 @@ export default function ChatPage() {
   const chat = chats.find((c) => c.chatPublicId === chatPublicId)
   const activeChat = chat ?? localChat
 
-  const otherUser = currentUserId
+  const isGroup = activeChat?.type === "ZONE"
+
+  const otherUser = !isGroup && currentUserId
     ? activeChat?.participants.find((p: any) => p.id !== currentUserId)
     : null
 
@@ -154,35 +156,36 @@ export default function ChatPage() {
 
   }
 
-  const handleFileUpload = async (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = e.target.files?.[0]
-    if (!file || !chatPublicId) return
+  // const handleFileUpload = async (
+  //   e: React.ChangeEvent<HTMLInputElement>
+  // ) => {
+  //   const file = e.target.files?.[0]
+  //   if (!file || !chatPublicId) return
+  //
+  //   const formData = new FormData()
+  //   formData.append("file", file)
+  //
+  //   const res = await api(`/chats/${chatPublicId}/upload`, {
+  //     method: "POST",
+  //     body: formData,
+  //     credentials: "include"
+  //   })
+  //
+  //   const data = await res.json()
+  //
+  //   // optimistic update
+  //   setMessages(prev => [
+  //     ...prev,
+  //     {
+  //       id: Date.now(),
+  //       text: null,
+  //       senderId: currentUserId!,
+  //       fileUrl: data.fileUrl,
+  //       fileType: file.type
+  //     }
+  //   ])
+  // }
 
-    const formData = new FormData()
-    formData.append("file", file)
-
-    const res = await api(`/chats/${chatPublicId}/upload`, {
-      method: "POST",
-      body: formData,
-      credentials: "include"
-    })
-
-    const data = await res.json()
-
-    // optimistic update
-    setMessages(prev => [
-      ...prev,
-      {
-        id: Date.now(),
-        text: null,
-        senderId: currentUserId!,
-        fileUrl: data.fileUrl,
-        fileType: file.type
-      }
-    ])
-  }
 
   useEffect(() => {
     const handler = (updatedMessage: Message) => {
@@ -313,7 +316,7 @@ export default function ChatPage() {
     <div
       className="
             flex flex-col
-            h-[100svh]
+            h-[100svh] w-full
           "
     >
       <div
@@ -391,7 +394,7 @@ export default function ChatPage() {
                         font-medium text-sm
                       "
           >
-            {otherUser?.username}
+            {isGroup ? activeChat?.name : otherUser?.username}
           </p>
         </div>
 
@@ -493,8 +496,8 @@ export default function ChatPage() {
                           {/* Message Text */}
                           <div
                             onDoubleClick={() => {
-                              if (m.senderId === currentUserId && !m.isDeleted) return
-                              if (m.isDeleted) return
+                              if (m.senderId !== currentUserId || m.isDeleted) return
+
                               setEditingId(m.id)
                               setEditText(m.text ?? '')
                             }}

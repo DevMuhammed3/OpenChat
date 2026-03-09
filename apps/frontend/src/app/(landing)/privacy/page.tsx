@@ -45,7 +45,8 @@ export default function PrivacyPage() {
           <p>
             OpenChat is built with privacy and security in mind.
             We use secure authentication systems and encrypted communication
-            channels to protect your data.
+            channels to protect your data. End-to-end encryption is currently
+            in development and will be available in an upcoming release.
           </p>
         </section>
 

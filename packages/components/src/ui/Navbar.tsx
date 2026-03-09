@@ -25,11 +25,16 @@ export default function Navbar() {
             <a href="#how-it-works" className="hover:text-foreground">
               How it works
             </a>
+
+            <a href="#faq" className="hover:text-foreground">
+              FAQ
+            </a>
+
           </nav>
 
-<Button asChild className="mx-4" size="sm">
-  <Link href="/auth">Get Started</Link>
-</Button>
+          <Button asChild className="mx-4" size="sm">
+            <Link href="/auth">Get Started</Link>
+          </Button>
         </div>
       </div>
     </motion.header>

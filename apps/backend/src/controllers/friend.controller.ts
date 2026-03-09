@@ -6,7 +6,7 @@ export const friendController = {
 
   async getFriends(req: Request, res: Response) {
     if (!req.user?.id) {
-      return res.status(401).json({ message : "Not authenticated" });
+      return res.status(401).json({ message: "Not authenticated" });
     }
 
     const userId = req.user.id;
@@ -87,30 +87,30 @@ export const friendController = {
     }
 
     const alreadyFriends = await prisma.friend.findFirst({
-  where: {
-    OR: [
-      { user1Id: senderId, user2Id: receiverId },
-      { user1Id: receiverId, user2Id: senderId },
-    ],
-  },
-});
+      where: {
+        OR: [
+          { user1Id: senderId, user2Id: receiverId },
+          { user1Id: receiverId, user2Id: senderId },
+        ],
+      },
+    });
 
-if (alreadyFriends) {
-  return res.status(400).json({ message: "You are already friends" });
-}
+    if (alreadyFriends) {
+      return res.status(400).json({ message: "You are already friends" });
+    }
 
-const reverseRequest = await prisma.friendRequest.findFirst({
-  where: {
-    senderId: receiverId,
-    receiverId: senderId,
-  },
-});
+    const reverseRequest = await prisma.friendRequest.findFirst({
+      where: {
+        senderId: receiverId,
+        receiverId: senderId,
+      },
+    });
 
-if (reverseRequest) {
-  return res.status(400).json({
-    message: "This user already sent you a friend request",
-  });
-}
+    if (reverseRequest) {
+      return res.status(400).json({
+        message: "This user already sent you a friend request",
+      });
+    }
 
 
 
@@ -122,35 +122,58 @@ if (reverseRequest) {
       return res.status(400).json({ message: "Request already sent" });
     }
 
-   const request = await prisma.friendRequest.create({
-  data: { senderId, receiverId },
-  include: {
-    sender: {
-      select: {
-        id: true,
-        username: true,
-        name: true,
-        avatar: true,
+    const request = await prisma.friendRequest.create({
+      data: { senderId, receiverId },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            username: true,
+            name: true,
+            avatar: true,
+          },
+        },
       },
-    },
-  },
-});
+    });
 
-io.to(receiverId.toString()).emit(
-  "friend:request",
-  {
-    request: {
-      id: request.id,
-      from: request.sender,
-      createdAt: request.createdAt,
-    },
-  }
-);
+    io.to(receiverId.toString()).emit(
+      "friend:request",
+      {
+        request: {
+          id: request.id,
+          from: request.sender,
+          createdAt: request.createdAt,
+        },
+      }
+    );
 
     res.json({ message: "Friend request sent" });
   },
 
 
+
+  async pending(req: Request, res: Response) {
+    if (!req.user?.id) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    const senderId = req.user.id;
+
+    const requests = await prisma.friendRequest.findMany({
+      where: { senderId },
+      include: {
+        receiver: { select: { id: true, username: true, name: true, avatar: true } }
+      }
+    });
+
+    const formatted = requests.map(r => ({
+      id: r.id,
+      to: r.receiver,
+      createdAt: r.createdAt
+    }));
+
+    res.json({ requests: formatted })
+  },
 
   async getRequests(req: Request, res: Response) {
     if (!req.user?.id) {
@@ -210,48 +233,48 @@ io.to(receiverId.toString()).emit(
       where: { id: requestId },
     });
 
-   const senderUser = await prisma.user.findUnique({
-  where: { id: senderId },
-  select: { id: true, username: true, name: true, avatar: true },
-})
+    const senderUser = await prisma.user.findUnique({
+      where: { id: senderId },
+      select: { id: true, username: true, name: true, avatar: true },
+    })
 
-const receiverUser = await prisma.user.findUnique({
-  where: { id: receiverId },
-  select: { id: true, username: true, name: true, avatar: true },
-})
+    const receiverUser = await prisma.user.findUnique({
+      where: { id: receiverId },
+      select: { id: true, username: true, name: true, avatar: true },
+    })
 
-io.to(senderId.toString()).emit("friend:accepted", {
-  friend: receiverUser,
-})
+    io.to(senderId.toString()).emit("friend:accepted", {
+      friend: receiverUser,
+    })
 
-io.to(receiverId.toString()).emit("friend:accepted", {
-  friend: senderUser,
-})
+    io.to(receiverId.toString()).emit("friend:accepted", {
+      friend: senderUser,
+    })
     res.json({ message: "Friend added" });
   },
 
 
-async rejectRequest(req: Request, res: Response) {
-  const requestId = Number(req.params.id);
+  async rejectRequest(req: Request, res: Response) {
+    const requestId = Number(req.params.id);
 
-  const reqData = await prisma.friendRequest.findUnique({
-    where: { id: requestId },
-  });
+    const reqData = await prisma.friendRequest.findUnique({
+      where: { id: requestId },
+    });
 
-  if (!reqData) {
-    return res.status(404).json({ message: "Request not found" });
+    if (!reqData) {
+      return res.status(404).json({ message: "Request not found" });
+    }
+
+    await prisma.friendRequest.delete({
+      where: { id: requestId },
+    });
+
+    io.to(reqData.senderId.toString()).emit("friend:rejected", {
+      requestId,
+    });
+
+    res.json({ message: "Friend request rejected" });
   }
-
-  await prisma.friendRequest.delete({
-    where: { id: requestId },
-  });
-
-  io.to(reqData.senderId.toString()).emit("friend:rejected", {
-    requestId,
-  });
-
-  res.json({ message: "Friend request rejected" });
-}
 
 };
 

@@ -5,40 +5,39 @@ import { UserPlus, MessageCircle, Podcast } from "lucide-react";
 
 const steps = [
   {
-    title: "Create Account",
-    description: "Sign up in seconds and get instant access.",
+    title: "Create Your Account",
+    description: "No phone number needed. Sign up with email in seconds — free forever.",
     icon: UserPlus,
   },
   {
     title: "Start Chatting",
-    description: "Join rooms or start private conversations.",
+    description: "Message anyone privately, or jump into group conversations instantly.",
     icon: MessageCircle,
   },
   {
-    title: "Create or Join Zones",
-    description:
-      "Join existing zones or create your own and start chatting in groups.",
+    title: "Build Your Community",
+    description: "Create your own space with channels and groups — like Discord, but simpler.",
     icon: Podcast,
-  }
-];
+  },
+]
 
 const container: Variants = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.1,
+      staggerChildren: 0.05,
     },
   },
 };
 
 const item: Variants = {
-  hidden: { opacity: 0, y: 12 },
+  hidden: { opacity: 0, y: 16 },
   show: {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.25,
+      duration: 0.2,
       ease: "easeOut",
     },
   },
@@ -46,7 +45,6 @@ const item: Variants = {
 
 export default function HowItWorks() {
   return (
-
     <motion.section
       id="how-it-works"
       variants={container}
@@ -56,15 +54,12 @@ export default function HowItWorks() {
       className="py-24 px-4"
     >
       <div className="max-w-5xl mx-auto">
-        <h2 className="text-4xl font-bold text-center mb-12">
+        <h2 className="text-4xl font-extrabold text-center mb-12">
           How It Works
         </h2>
 
 
-        <motion.div
-          variants={container}
-          className="grid grid-cols-1 md:grid-cols-3 gap-8"
-        >
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {steps.map((step, index) => {
             const Icon = step.icon;
 
@@ -81,6 +76,7 @@ export default function HowItWorks() {
     text-center
   "
               >
+
                 <span className="absolute -top-3 -left-3 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-bold">
                   {index + 1}
                 </span>
@@ -100,7 +96,7 @@ export default function HowItWorks() {
             );
           })}
 
-        </motion.div>
+        </div >
       </div >
     </motion.section >
   );

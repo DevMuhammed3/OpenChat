@@ -7,6 +7,7 @@ import { User, Shield, Lock, Bell, Trash2, LogOut, ArrowLeft } from 'lucide-reac
 import { useUserStore } from '@/app/stores/user-store'
 import { useChatsStore } from '@/app/stores/chat-store'
 import { useFriendsStore } from '@/app/stores/friends-store'
+import { Button } from 'packages/ui'
 
 const tabs = [
   { name: 'Profile', href: '/settings/profile', icon: User },
@@ -35,15 +36,16 @@ export default function SettingsSidebar() {
   }
 
   return (
-    <div className="w-64 bg-[#0a101c] border-r border-white/5 p-6 flex flex-col">
+    <div className="fixed min-h-[100vh] w-64 bg-[#0a101c] border-r border-white/5 p-6 flex flex-col">
       <div className="mb-6">
-        <button
+        <Button
+          variant="ghost"
           onClick={() => router.push('/zone')}
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-white transition"
         >
           <ArrowLeft size={16} />
           Back
-        </button>
+        </Button>
       </div>
       {/* Tabs */}
       <div className="space-y-2 flex-1">
@@ -73,13 +75,14 @@ export default function SettingsSidebar() {
       <div className="h-px bg-white/5 my-4" />
 
       {/* Logout */}
-      <button
+      <Button
+        variant="destructive"
         onClick={handleLogout}
-        className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-red-400 transition-all duration-200 hover:bg-red-500/10 hover:text-red-500"
+        className="flex justify-start gap-3 px-3 py-2 rounded-lg text-sm text-red-400 transition-all duration-200 hover:bg-red-500/10 hover:text-red-500"
       >
         <LogOut size={16} />
         Logout
-      </button>
+      </Button>
 
     </div>
   )

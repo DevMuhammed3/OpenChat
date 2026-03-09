@@ -15,12 +15,13 @@ model User {
   email           String    @unique
   emailVerified  Boolean  @default(false)
   avatar          String?
-  password        String
+  password        String?
   role            String    @default("USER")
   bio             String?   @db.Text
   phone           String?   @unique
   status          Boolean   @default(false)
   isActive        Boolean   @default(true)
+  isOnline Boolean @default(false)
 
   // Security
   lastLogin        DateTime?
@@ -49,8 +50,12 @@ model User {
   // Messages
   sentMessages Message[] @relation("UserSentMessages")
 
+  messageReactions MessageReaction[]
+
   // chat 
   chatParticipants ChatParticipant[]
+
+  createdInvites ChatInvite[]
 }
 
 model EmailOTP {
@@ -61,14 +66,27 @@ model EmailOTP {
   createdAt DateTime @default(now())
 }
 
+enum FriendRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+}
+
 model FriendRequest {
   id         Int      @id @default(autoincrement())
   senderId   Int
   receiverId Int
   createdAt  DateTime @default(now())
 
+  status FriendRequestStatus @default(PENDING)
+
+
   sender   User @relation("sentRequests", fields: [senderId], references: [id])
   receiver User @relation("receivedRequests", fields: [receiverId], references: [id])
+
+  @@unique([senderId, receiverId])
+
 }
 
 model Friend {
@@ -85,6 +103,7 @@ model Friend {
 
 model Message {
   id        Int      @id @default(autoincrement())
+  @@index([chatId, createdAt(sort: Desc)])
   chatId    Int
   senderId  Int
   text      String?
@@ -101,17 +120,51 @@ model Message {
   replyTo     Message?  @relation("MessageReplies", fields: [replyToId], references: [id])
   replies     Message[] @relation("MessageReplies")
 
+  reactions MessageReaction[]
+
   chat Chat @relation(fields: [chatId], references: [id])
   sender User @relation("UserSentMessages", fields: [senderId], references: [id])
+}
+
+model MessageReaction {
+  id Int @id @default(autoincrement())
+  @@index([messageId])
+
+  messageId Int
+  userId    Int
+
+  emoji String
+
+  message Message @relation(fields: [messageId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([messageId, userId, emoji])
+}
+
+enum ChatType {
+  DM
+  ZONE
 }
 
 model Chat {
   id        Int      @id @default(autoincrement())
   publicId  String   @unique
+  type ChatType @default(DM)
+  name      String?
+  avatar    String?
+  createdBy Int?
   createdAt DateTime @default(now())
+
+  invites ChatInvite[]
 
   participants ChatParticipant[]
   messages     Message[]
+}
+
+enum ZoneRole {
+  OWNER
+  ADMIN
+  MEMBER
 }
 
 model ChatParticipant {
@@ -119,8 +172,29 @@ model ChatParticipant {
   chatId Int
   userId Int
 
+  role ZoneRole @default(MEMBER)
+
   chat Chat @relation(fields: [chatId], references: [id])
   user User @relation(fields: [userId], references: [id])
 
   @@unique([chatId, userId])
+}
+
+model ChatInvite {
+  id   Int    @id @default(autoincrement())
+  @@index([chatId])
+  code String @unique
+
+  chatId    Int
+  createdBy Int
+
+  maxUses Int?
+  uses    Int @default(0)
+
+  expiresAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  chat    Chat @relation(fields: [chatId], references: [id])
+  creator User @relation(fields: [createdBy], references: [id])
 }

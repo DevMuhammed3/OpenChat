@@ -18,6 +18,9 @@ export default function Footer() {
             <Link href="#how-it-works" className="hover:text-white transition">
               How It Works
             </Link>
+            <Link href="#faq" className="hover:text-white transition">
+              FAQ
+            </Link>
             <Link href="/privacy" className="hover:text-white transition">
               Privacy
             </Link>

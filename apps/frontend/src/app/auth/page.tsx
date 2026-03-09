@@ -18,6 +18,8 @@ import { Eye, EyeOff, Mail, Lock, User, CheckCircle2 } from 'lucide-react';
 import { useRouter } from "next/navigation";
 import { api } from '@openchat/lib';
 import { signupSchema, loginSchema } from "@openchat/lib/validations/auth";
+import { useGoogleLogin } from "@react-oauth/google";
+import Link from 'next/link';
 
 export default function AuthPage() {
 
@@ -85,6 +87,34 @@ export default function AuthPage() {
     }
   };
 
+  const handleGoogleLogin = async (tokenResponse: any) => {
+    try {
+
+      const res = await api(`/auth/google`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          token: tokenResponse.access_token
+        }),
+      });
+
+      if (!res.ok) {
+        setMessage({ type: "error", text: "Google login failed" });
+        return;
+      }
+
+      router.replace("/zone");
+      router.refresh();
+
+    } catch (err) {
+      console.error(err);
+      setMessage({ type: "error", text: "Something went wrong" });
+    }
+  };
+
   const handleSignup = async (e?: React.KeyboardEvent) => {
     if (e?.preventDefault) e.preventDefault();
     setMessage({ type: "", text: "" });
@@ -131,6 +161,36 @@ export default function AuthPage() {
       setMessage({ type: "error", text: "Something went wrong" });
     }
   };
+
+  const login = useGoogleLogin({
+    flow: "auth-code",
+    onSuccess: async (codeResponse) => {
+      try {
+        const res = await api(`/auth/google`, {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            code: codeResponse.code,
+          }),
+        });
+
+        if (!res.ok) {
+          setMessage({ type: "error", text: "Google login failed" });
+          return;
+        }
+
+        router.replace("/zone");
+        router.refresh();
+      } catch (err) {
+        console.error(err);
+        setMessage({ type: "error", text: "Something went wrong" });
+      }
+    },
+    onError: () => setMessage({ type: "error", text: "Google login failed" }),
+  });
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-background to-muted p-4">
@@ -203,8 +263,24 @@ export default function AuthPage() {
                   <button type="button" className="text-sm text-primary hover:underline">Forgot password?</button>
                 </div>
               </CardContent>
-              <CardFooter>
-                <Button onClick={(e) => handleLogin(e)} className="w-full">Login</Button>
+              <CardFooter className="flex flex-col gap-3">
+                <Button onClick={(e) => handleLogin(e)} className="w-full">
+                  Login
+                </Button>
+
+                <div className="relative w-full text-center text-sm">
+                  <span className="bg-background px-2 text-muted-foreground">or</span>
+                </div>
+
+                <Button
+                  variant="outline"
+                  onClick={() => login()}
+                  className="w-full flex items-center gap-2"
+                >
+                  <img src="/google.svg" className="w-4 h-4" />
+                  Continue with Google
+                </Button>
+
               </CardFooter>
             </Card>
           </TabsContent>
@@ -313,16 +389,24 @@ export default function AuthPage() {
           </TabsContent>
         </Tabs>
 
-        <div className="mt-6 text-center text-sm text-muted-foreground">
+        <div className="mt-4 text-center text-sm text-muted-foreground">
           <p>By creating an account, you agree to our</p>
-          <div className="space-x-1">
-            <button className="text-primary hover:underline">Terms of Service</button>
-            <span>and</span>
-            <button className="text-primary hover:underline">Privacy Policy</button>
-          </div>
+          <Link
+            href={"/terms"}
+            className="text-primary p-3 hover:underline">
+            Terms of Service
+          </Link>
+
+          <span>and</span>
+
+          <Link
+            href={"/privacy"}
+            className="text-primary p-3 hover:underline">
+            Privacy Policy
+          </Link>
         </div>
       </div>
-    </div>
+    </div >
   );
 }
 

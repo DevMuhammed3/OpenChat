@@ -1,14 +1,14 @@
 'use client'
 
 import { Avatar, AvatarFallback, Button } from 'packages/ui'
-import { LogOut, Settings } from 'lucide-react'
+import { Settings } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
-import { api, getAvatarUrl } from '@openchat/lib'
-import { useChatsStore } from '@/app/stores/chat-store'
-import { useFriendsStore } from '@/app/stores/friends-store'
+import { getAvatarUrl } from '@openchat/lib'
+// import { useChatsStore } from '@/app/stores/chat-store'
+// import { useFriendsStore } from '@/app/stores/friends-store'
 import { useUserStore } from '@/app/stores/user-store'
-import { useState } from 'react'
+// import { useState } from 'react'
 
 export default function UserBar({ user: serverUser }: { user: any }) {
   const storeUser = useUserStore(s => s.user)
@@ -73,6 +73,7 @@ export default function UserBar({ user: serverUser }: { user: any }) {
           <Settings className="h-4 w-4" />
         </Button>
 
+        {/*     
         <Button
           size="icon"
           variant="destructive"
@@ -89,6 +90,7 @@ export default function UserBar({ user: serverUser }: { user: any }) {
         >
           <LogOut className="h-4 w-4" />
         </Button>
+*/}
       </div>
     </div>
   )
