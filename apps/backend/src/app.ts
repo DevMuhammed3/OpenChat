@@ -25,6 +25,14 @@ app.use(
 );
 
 // app.options("/*", cors());
+//
+app.use((_req, res, next) => {
+  res.setHeader(
+    "Cross-Origin-Opener-Policy",
+    "same-origin-allow-popups"
+  );
+  next();
+});
 
 app.use(cookieParser());
 app.use(express.json());

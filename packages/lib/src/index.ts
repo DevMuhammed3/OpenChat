@@ -1,8 +1,8 @@
 // export * from './utils'
 // export * from './socket'
 
-export * from "./webrtc"
-export * from "./audio"
+export * from "./webrtc/index"
+export * from "./audio/index"
 
 // named export passthrough (ensure stable ESM named exports)
 export { cn } from './utils'
