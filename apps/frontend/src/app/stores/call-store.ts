@@ -12,6 +12,7 @@ interface CallStore {
   status: Status
   chatPublicId: string | null
   user: CallUser | null
+  isCaller: boolean
 
   setCalling: (chatPublicId: string, user: CallUser) => void
   setIncoming: (chatPublicId: string, user: CallUser) => void
@@ -23,12 +24,14 @@ export const useCallStore = create<CallStore>((set) => ({
   status: "idle",
   chatPublicId: null,
   user: null,
+  isCaller: false,
 
   setCalling: (chatPublicId, user) =>
     set({
       status: "calling",
       chatPublicId,
       user,
+      isCaller: true,
     }),
 
   setIncoming: (chatPublicId, user) =>
@@ -36,6 +39,7 @@ export const useCallStore = create<CallStore>((set) => ({
       status: "incoming",
       chatPublicId,
       user,
+      isCaller: false,
     }),
 
   setConnected: () =>
@@ -46,5 +50,6 @@ export const useCallStore = create<CallStore>((set) => ({
       status: "idle",
       chatPublicId: null,
       user: null,
+      isCaller: false,
     }),
 }))

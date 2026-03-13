@@ -103,9 +103,14 @@ export const createGroup = [
               { userId: creatorId, role: ZoneRole.OWNER },
               ...validUsers.map(u => ({ userId: u.id, role: ZoneRole.MEMBER }))
             ]
+          },
+          channels: {
+            create: [
+              { publicId: crypto.randomUUID(), name: "general", type: "TEXT" }
+            ]
           }
         },
-        include: { participants: true }
+        include: { participants: true, channels: true }
       })
       res.json({
         zone: {
@@ -195,5 +200,71 @@ export const leaveZone = async (req: Request, res: Response) => {
   } catch (err) {
     console.error(err)
     res.status(500).json({ message: "Failed to leave zone" })
+  }
+}
+
+export const getZoneChannels = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id
+    const { chatPublicId } = req.params
+    if (!userId) return res.status(401).json({ message: "Unauthorized" })
+
+    const chat = await prisma.chat.findUnique({
+      where: { publicId: chatPublicId },
+      include: {
+        participants: { where: { userId } },
+        channels: true
+      }
+    })
+
+    if (!chat || chat.participants.length === 0) {
+      return res.status(403).json({ message: "Forbidden" })
+    }
+
+    res.json({ channels: chat.channels })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ message: "Failed to fetch channels" })
+  }
+}
+
+export const createChannel = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id
+    const { chatPublicId } = req.params
+    const { name, type } = req.body as { name: string; type?: "TEXT" | "VOICE" }
+
+    if (!userId) return res.status(401).json({ message: "Unauthorized" })
+    if (!name?.trim()) return res.status(400).json({ message: "Channel name required" })
+
+    const chat = await prisma.chat.findUnique({
+      where: { publicId: chatPublicId },
+      include: {
+        participants: { where: { userId } }
+      }
+    })
+
+    if (!chat || chat.participants.length === 0) {
+      return res.status(403).json({ message: "Forbidden" })
+    }
+
+    const participant = chat.participants[0]
+    if (participant.role !== ZoneRole.OWNER && participant.role !== ZoneRole.ADMIN) {
+      return res.status(403).json({ message: "Only managers can create channels" })
+    }
+
+    const channel = await prisma.channel.create({
+      data: {
+        publicId: crypto.randomUUID(),
+        name: name.toLowerCase().replace(/\s+/g, '-'),
+        type: type || "TEXT",
+        chatId: chat.id
+      }
+    })
+
+    res.json({ channel })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ message: "Failed to create channel" })
   }
 }

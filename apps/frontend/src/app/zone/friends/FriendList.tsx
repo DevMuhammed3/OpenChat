@@ -24,6 +24,7 @@ export default function FriendList({ onSelectFriend }: FriendListProps) {
 
   const friends = useFriendsStore((s) => s.friends)
   const setFriends = useFriendsStore((s) => s.setFriends)
+  const onlineUsers = useFriendsStore((s) => s.onlineUsers)
 
   const [loading, setLoading] = useState(true)
 
@@ -141,20 +142,25 @@ export default function FriendList({ onSelectFriend }: FriendListProps) {
                       isActive ? 'bg-muted' : 'hover:bg-muted/50'
                     )}
                   >
-                    <Avatar className="h-10 w-10 ring-1 ring-border">
-                      {avatarUrl ? (
-                        <img
-                          src={avatarUrl}
-                          alt={friend.username}
-                          className="h-full w-full object-cover rounded-full"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <AvatarFallback>
-                          {friend.username?.[0]?.toUpperCase()}
-                        </AvatarFallback>
+                    <div className="relative">
+                      <Avatar className="h-10 w-10 ring-1 ring-border">
+                        {avatarUrl ? (
+                          <img
+                            src={avatarUrl}
+                            alt={friend.username}
+                            className="h-full w-full object-cover rounded-full"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <AvatarFallback>
+                            {friend.username?.[0]?.toUpperCase()}
+                          </AvatarFallback>
+                        )}
+                      </Avatar>
+                      {onlineUsers.has(friend.id) && (
+                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-background rounded-full" />
                       )}
-                    </Avatar>
+                    </div>
 
                     <div className="flex-1 min-w-0 text-left">
                       <p className="font-medium text-md truncate">

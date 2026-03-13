@@ -20,18 +20,24 @@ export function privateChatHandler(io: Server, socket: Socket) {
   const userId = socket.data.userId
   if (!userId) return
 
-  socket.on("join-room", async ({ chatPublicId }: { chatPublicId: string }) => {
+  socket.on("join-room", async ({ chatPublicId, channelPublicId }: { chatPublicId: string; channelPublicId?: string }) => {
     if (!chatPublicId) return
 
     const allowed = await isUserInChat(userId, chatPublicId)
     if (!allowed) return
 
     socket.join(`chat:${chatPublicId}`)
+    if (channelPublicId) {
+      socket.join(`channel:${channelPublicId}`)
+    }
   })
 
-  socket.on("leave-room", ({ chatPublicId }: { chatPublicId: string }) => {
+  socket.on("leave-room", ({ chatPublicId, channelPublicId }: { chatPublicId: string; channelPublicId?: string }) => {
     if (!chatPublicId) return
     socket.leave(`chat:${chatPublicId}`)
+    if (channelPublicId) {
+      socket.leave(`channel:${channelPublicId}`)
+    }
   })
 
   socket.on(
@@ -39,11 +45,13 @@ export function privateChatHandler(io: Server, socket: Socket) {
     async (
       {
         chatPublicId,
+        channelPublicId,
         text,
         fileUrl,
         fileType,
       }: {
         chatPublicId: string
+        channelPublicId?: string | null
         text?: string | null
         fileUrl?: string | null
         fileType?: string | null
@@ -62,6 +70,15 @@ export function privateChatHandler(io: Server, socket: Socket) {
 
       if (!chat) return
 
+      let channelId: number | undefined
+      if (channelPublicId) {
+        const channel = await prisma.channel.findUnique({
+          where: { publicId: channelPublicId },
+          select: { id: true }
+        })
+        channelId = channel?.id
+      }
+
       const saved = await prisma.message.create({
         data: {
           chatId: chat.id,
@@ -69,10 +86,11 @@ export function privateChatHandler(io: Server, socket: Socket) {
           text: text?.trim() || null,
           fileUrl: fileUrl || null,
           fileType: fileType || null,
+          channelId: channelId,
         },
       })
 
-      const room = `chat:${chatPublicId}`
+      const room = channelPublicId ? `channel:${channelPublicId}` : `chat:${chatPublicId}`
 
       const messagePayload = {
         id: saved.id,
@@ -81,18 +99,29 @@ export function privateChatHandler(io: Server, socket: Socket) {
         fileType: saved.fileType,
         senderId: userId,
         chatPublicId,
+        channelPublicId,
         createdAt: saved.createdAt,
       }
-      socket.to(room).emit("private-message", messagePayload)
+      
+      // If it's a channel message, we still might want to notify the chat room for unread counts
+      if (channelPublicId) {
+        socket.to(`channel:${channelPublicId}`).emit("private-message", messagePayload)
+        socket.to(`chat:${chatPublicId}`).emit("chat-notification", {
+          chatPublicId,
+          channelPublicId,
+          senderId: userId,
+        })
+      } else {
+        socket.to(`chat:${chatPublicId}`).emit("private-message", messagePayload)
+        socket.to(`chat:${chatPublicId}`).emit("chat-notification", {
+          chatPublicId,
+          senderId: userId,
+        })
+      }
 
       if (callback) {
         callback(messagePayload)
       }
-
-      socket.to(room).emit("chat-notification", {
-        chatPublicId,
-        senderId: userId,
-      })
     }
   )
 
@@ -137,6 +166,17 @@ export function privateChatHandler(io: Server, socket: Socket) {
     socket.to(`chat:${chatPublicId}`).emit("call:end", {
       chatPublicId,
       from: userId,
+    })
+  })
+
+  socket.on("chat:typing", async ({ chatPublicId, isTyping }: { chatPublicId: string, isTyping: boolean }) => {
+    const allowed = await isUserInChat(userId, chatPublicId)
+    if (!allowed) return
+
+    socket.to(`chat:${chatPublicId}`).emit("chat:typing", {
+      chatPublicId,
+      userId,
+      isTyping
     })
   })
 

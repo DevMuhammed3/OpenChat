@@ -39,7 +39,7 @@ export default function AuthPage() {
 
   // Redirect if logged in
   useEffect(() => {
-    api(`/auth/me`, {
+    api(`/auth/me?t=${Date.now()}`, {
       credentials: "include",
     })
       .then((res) => {

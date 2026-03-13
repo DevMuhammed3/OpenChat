@@ -31,7 +31,7 @@ export function callHandler(
 
       const existingPartner = activeCalls.get(userId)
       if (existingPartner) {
-        io.to(existingPartner.toString()).emit("call:ended")
+        io.to(`user:${existingPartner}`).emit("call:ended")
         activeCalls.delete(existingPartner)
         activeCalls.delete(userId)
       }
@@ -51,16 +51,18 @@ export function callHandler(
       activeCalls.set(userId, toUserId)
       activeCalls.set(toUserId, userId)
 
-      io.to(toUserId.toString()).emit("incoming:call", {
-        chatPublicId,
-        user: {
-          id: caller.id,
-          name: caller.username,
-          image: caller.avatar
-            ? `${process.env.BASE_URL}/uploads/${caller.avatar}`
-            : null,
-        },
-      })
+      if (toUserId) {
+        io.to(`user:${toUserId}`).emit("incoming:call", {
+          chatPublicId,
+          user: {
+            id: caller.id,
+            name: caller.username,
+            image: caller.avatar
+              ? `${process.env.BASE_URL}/uploads/${caller.avatar}`
+              : null,
+          },
+        })
+      }
     } catch (err) {
       console.error("CALL USER ERROR:", err)
     }
@@ -70,9 +72,11 @@ export function callHandler(
      ACCEPT
   ========================== */
   socket.on("call:accept", ({ toUserId, chatPublicId }: CallPayload) => {
-    io.to(toUserId.toString()).emit("call:accepted", {
-      chatPublicId,
-    })
+    if (toUserId) {
+      io.to(`user:${toUserId}`).emit("call:accepted", {
+        chatPublicId,
+      })
+    }
   })
 
   /* =========================
@@ -80,11 +84,12 @@ export function callHandler(
   ========================== */
   socket.on("call:reject", ({ toUserId, chatPublicId }: CallPayload) => {
     activeCalls.delete(userId)
-    activeCalls.delete(toUserId)
-
-    io.to(toUserId.toString()).emit("call:rejected", {
-      chatPublicId,
-    })
+    if (toUserId) {
+      activeCalls.delete(toUserId)
+      io.to(`user:${toUserId}`).emit("call:rejected", {
+        chatPublicId,
+      })
+    }
   })
 
   /* =========================
@@ -92,11 +97,12 @@ export function callHandler(
   ========================== */
   socket.on("call:end", ({ toUserId, chatPublicId }: CallPayload) => {
     activeCalls.delete(userId)
-    activeCalls.delete(toUserId)
-
-    io.to(toUserId.toString()).emit("call:ended", {
-      chatPublicId,
-    })
+    if (toUserId) {
+      activeCalls.delete(toUserId)
+      io.to(`user:${toUserId}`).emit("call:ended", {
+        chatPublicId,
+      })
+    }
   })
 
   /* =========================
@@ -105,10 +111,10 @@ export function callHandler(
   socket.on("disconnect", () => {
     const partner = activeCalls.get(userId)
 
-    if (partner) {
-      io.to(partner.toString()).emit("call:ended")
-      activeCalls.delete(userId)
-      activeCalls.delete(partner)
-    }
+      if (partner) {
+        io.to(`user:${partner}`).emit("call:ended")
+        activeCalls.delete(userId)
+        activeCalls.delete(partner)
+      }
   })
 }

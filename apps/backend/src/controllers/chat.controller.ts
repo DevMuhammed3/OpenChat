@@ -57,10 +57,22 @@ export const getChatMessages = async (req: Request, res: Response) => {
       return res.status(403).json({ message: "Forbidden" });
     }
 
-    const { cursor } = req.query
+    const { cursor, channelPublicId } = req.query as { cursor?: string; channelPublicId?: string }
+
+    let channelId: number | undefined
+    if (channelPublicId) {
+      const channel = await prisma.channel.findUnique({
+        where: { publicId: channelPublicId },
+        select: { id: true }
+      })
+      channelId = channel?.id
+    }
 
     const messages = await prisma.message.findMany({
-      where: { chatId: chat.id },
+      where: { 
+        chatId: chat.id,
+        ...(channelId !== undefined ? { channelId } : { channelId: null })
+      },
       take: 50,
       ...(cursor && {
         cursor: { id: Number(cursor) },

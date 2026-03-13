@@ -29,6 +29,11 @@ type FriendsState = {
   addRequest: (request: FriendRequest) => void
   removeRequest: (requestId: number) => void
 
+  onlineUsers: Set<number>
+  setOnline: (userId: number) => void
+  setOffline: (userId: number) => void
+  setBulkOnline: (userIds: number[]) => void
+
   reset: () => void
 }
 
@@ -75,11 +80,28 @@ export const useFriendsStore = create<FriendsState>((set) => ({
       requests: state.requests.filter((r) => r.id !== requestId),
     })),
 
+  onlineUsers: new Set<number>(),
+  setOnline: (userId) =>
+    set((state) => {
+      const next = new Set(state.onlineUsers)
+      next.add(userId)
+      return { onlineUsers: next }
+    }),
+  setOffline: (userId) =>
+    set((state) => {
+      const next = new Set(state.onlineUsers)
+      next.delete(userId)
+      return { onlineUsers: next }
+    }),
+  setBulkOnline: (userIds) =>
+    set(() => ({ onlineUsers: new Set(userIds) })),
+
   reset: () =>
     set({
       friends: [],
       requests: [],
       friendsLoaded: false,
       requestsLoaded: false,
+      onlineUsers: new Set<number>(),
     }),
 }))

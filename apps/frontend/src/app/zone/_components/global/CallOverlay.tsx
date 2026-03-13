@@ -86,24 +86,29 @@ export default function CallOverlay({
         <div className="flex justify-center gap-8 pt-4">
 
           {status === "incoming" && (
-            <>
-              <Button
-                size="icon"
-                className="h-16 w-16 rounded-full bg-green-600 hover:bg-green-700"
-                onClick={onAccept}
-              >
-                <Phone className="h-6 w-6" />
-              </Button>
+            <div className="flex justify-center gap-12 pt-4">
+              <div className="flex flex-col items-center gap-3">
+                <Button
+                  size="icon"
+                  className="h-16 w-16 rounded-full bg-green-600 hover:bg-green-700"
+                  onClick={onAccept}
+                >
+                  <Phone className="h-7 w-7" />
+                </Button>
+                <p className="text-xs font-medium text-muted-foreground">Accept</p>
+              </div>
 
-              <Button
-                size="icon"
-                // variant="destructive"
-                className="h-16 w-16 rounded-full bg-red-600 hover:bg-red-700"
-                onClick={onEnd}
-              >
-                <PhoneOff className="h-6 w-6" />
-              </Button>
-            </>
+              <div className="flex flex-col items-center gap-3">
+                <Button
+                  size="icon"
+                  className="h-16 w-16 rounded-full bg-red-600 hover:bg-red-700"
+                  onClick={onReject}
+                >
+                  <PhoneOff className="h-7 w-7" />
+                </Button>
+                <p className="text-xs font-medium text-muted-foreground">Decline</p>
+              </div>
+            </div>
           )}
 
           {status === "calling" && (

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { socket, getAudioStream, createPeer, api } from "@openchat/lib"
 import { useCallStore } from "@/app/stores/call-store"
 import {
@@ -15,6 +15,7 @@ export function useVoiceCall() {
   const pendingOfferRef = useRef<RTCSessionDescriptionInit | null>(null)
   const ringtoneRef = useRef<HTMLAudioElement | null>(null)
   const cleaningRef = useRef(false)
+  const iceQueueRef = useRef<RTCIceCandidateInit[]>([])
 
   // const showIncoming = useCallStore((s) => s.showIncoming)
   const clearCall = useCallStore((s) => s.clear)
@@ -32,7 +33,7 @@ export function useVoiceCall() {
     return data.iceServers
   }
 
-  function playRingtone() {
+  const playRingtone = useCallback(() => {
     const audio = ringtoneRef.current
     if (!audio) return
 
@@ -41,7 +42,7 @@ export function useVoiceCall() {
     audio.muted = false
 
     audio.play().catch(() => { })
-  }
+  }, [])
 
   // function playRingtone() {
   //   if (!ringtoneRef.current) return
@@ -50,17 +51,17 @@ export function useVoiceCall() {
   //   ringtoneRef.current.play().catch(() => { })
   // }
 
-  function stopRingtone() {
+  const stopRingtone = useCallback(() => {
     if (!ringtoneRef.current) return
     ringtoneRef.current.pause()
     ringtoneRef.current.currentTime = 0
-  }
+  }, [])
 
   useEffect(() => {
     if (!socket.connected) socket.connect()
   }, [])
 
-  async function startCall(chatPublicId: string) {
+  const startCall = useCallback(async (chatPublicId: string) => {
     if (inCall) return
 
     useCallStore.setState({ chatPublicId })
@@ -93,9 +94,9 @@ export function useVoiceCall() {
     await peer.setLocalDescription(offer)
 
     socket.emit("call:offer", { chatPublicId, offer })
-  }
+  }, [inCall])
 
-  async function acceptCall() {
+  const acceptCall = useCallback(async () => {
     const chatPublicId = getActiveChatId()
     if (!pendingOfferRef.current || !chatPublicId) return
 
@@ -123,7 +124,13 @@ export function useVoiceCall() {
       socket.emit("call:ice", { chatPublicId, candidate: e.candidate })
     }
 
-    await peer.setRemoteDescription(pendingOfferRef.current)
+    await peer.setRemoteDescription(new RTCSessionDescription(pendingOfferRef.current))
+
+    // Drain queued ICE candidates
+    for (const cand of iceQueueRef.current) {
+      await peer.addIceCandidate(cand).catch(e => console.error("Ice queue error:", e))
+    }
+    iceQueueRef.current = []
 
     const answer = await peer.createAnswer()
     await peer.setLocalDescription(answer)
@@ -133,9 +140,9 @@ export function useVoiceCall() {
     pendingOfferRef.current = null
     clearCall()
     setInCall(true)
-  }
+  }, [stopRingtone, clearCall])
 
-  function cleanupCall() {
+  const cleanupCall = useCallback(() => {
     if (cleaningRef.current) return
     cleaningRef.current = true
 
@@ -156,13 +163,14 @@ export function useVoiceCall() {
     }
 
     pendingOfferRef.current = null
+    iceQueueRef.current = []
     clearCall()
     setInCall(false)
 
     setTimeout(() => {
       cleaningRef.current = false
     }, 300)
-  }
+  }, [stopRingtone, clearCall])
 
 
   function onCallReject({ chatPublicId }: { chatPublicId: string }) {
@@ -172,18 +180,21 @@ export function useVoiceCall() {
   }
 
 
-  function endCall() {
-    const cid = getActiveChatId()
-    if (cid) socket.emit("call:end", { chatPublicId: cid })
+  const endCall = useCallback(() => {
     cleanupCall()
-  }
+  }, [cleanupCall])
 
 
   useEffect(() => {
-    function onOffer({ chatPublicId, offer, from }: CallOfferPayload) {
+    async function handleOnOffer({ chatPublicId, offer, from }: CallOfferPayload) {
       pendingOfferRef.current = offer
-      // showIncoming({ chatPublicId, caller: from })
-      playRingtone()
+
+      const state = useCallStore.getState()
+      // If the user already clicked "Accept" in the UI (status connected), 
+      // we can immediately proceed with the WebRTC handshake.
+      if (state.status === "connected" && !state.isCaller) {
+        await acceptCall()
+      }
     }
 
 
@@ -201,14 +212,28 @@ export function useVoiceCall() {
         return
       }
 
-      peer.setRemoteDescription(answer)
+      peer.setRemoteDescription(answer).then(() => {
+        // Drain queued ICE candidates for the caller
+        for (const cand of iceQueueRef.current) {
+          peer.addIceCandidate(cand).catch(e => console.error("Ice queue error:", e))
+        }
+        iceQueueRef.current = []
+      })
     }
 
 
     function onIce({ chatPublicId, candidate }: CallIcePayload) {
       const cid = getActiveChatId()
-      if (chatPublicId !== cid || !peerRef.current) return
-      peerRef.current.addIceCandidate(candidate)
+      const peer = peerRef.current
+      if (chatPublicId !== cid || !peer) return
+
+      if (!peer.remoteDescription) {
+        iceQueueRef.current.push(candidate)
+      } else {
+        peer.addIceCandidate(candidate).catch(e => {
+          console.warn("Error adding ice candidate:", e)
+        })
+      }
     }
 
     function onCallEnd({ chatPublicId }: CallEndPayload) {
@@ -223,7 +248,7 @@ export function useVoiceCall() {
       cleanupCall()
     }
 
-    socket.on("call:offer", onOffer)
+    socket.on("call:offer", handleOnOffer)
     socket.on("call:answer", onAnswer)
     socket.on("call:ice", onIce)
     socket.on("call:end", onCallEnd)
@@ -233,14 +258,14 @@ export function useVoiceCall() {
     })
 
     return () => {
-      socket.off("call:offer", onOffer)
+      socket.off("call:offer", handleOnOffer)
       socket.off("call:answer", onAnswer)
       socket.off("call:ice", onIce)
       socket.off("call:end", onCallEnd)
       socket.off("call:reject", onCallReject)
       socket.off("disconnect", cleanupCall)
     }
-  }, [])
+  }, [acceptCall, cleanupCall, clearCall, playRingtone, stopRingtone, inCall])
 
   return {
     startCall,
@@ -250,5 +275,7 @@ export function useVoiceCall() {
     inCall,
     remoteAudioRef,
     ringtoneRef,
+    playRingtone,
+    stopRingtone,
   }
 }

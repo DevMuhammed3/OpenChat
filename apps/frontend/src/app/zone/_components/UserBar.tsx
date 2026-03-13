@@ -1,10 +1,10 @@
 'use client'
 
 import { Avatar, AvatarFallback, Button } from 'packages/ui'
-import { Settings } from 'lucide-react'
+import { Settings, LogOut, LayoutDashboard } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
-import { getAvatarUrl } from '@openchat/lib'
+import { getAvatarUrl, api } from '@openchat/lib'
 // import { useChatsStore } from '@/app/stores/chat-store'
 // import { useFriendsStore } from '@/app/stores/friends-store'
 import { useUserStore } from '@/app/stores/user-store'
@@ -67,30 +67,42 @@ export default function UserBar({ user: serverUser }: { user: any }) {
 
         <Button
           size="icon"
-          variant="destructive"
+          variant="ghost"
+          onClick={() => router.push("/dashboard")}
+          className="hover:text-primary transition-colors"
+        >
+          <LayoutDashboard className="h-4 w-4" />
+        </Button>
+
+        <Button
+          size="icon"
+          variant="ghost"
           onClick={() => router.push("/settings/profile")}
+          className="hover:text-primary transition-colors"
         >
           <Settings className="h-4 w-4" />
         </Button>
 
-        {/*     
         <Button
           size="icon"
           variant="destructive"
           onClick={async () => {
-            await api(`/auth/logout`, {
-              method: 'POST',
-              credentials: 'include',
-            })
-            useUserStore.getState().reset()
-            useChatsStore.getState().reset()
-            useFriendsStore.getState().reset()
-            router.replace('/auth')
+            try {
+              await api(`/auth/logout`, {
+                method: 'POST',
+                credentials: 'include',
+              })
+            } catch (err) {
+              console.error('Logout failed:', err)
+            }
+            useUserStore.getState().clearUser()
+            // useChatsStore.getState().reset()
+            // useFriendsStore.getState().reset()
+            window.location.href = '/auth'
           }}
         >
           <LogOut className="h-4 w-4" />
         </Button>
-*/}
       </div>
     </div>
   )

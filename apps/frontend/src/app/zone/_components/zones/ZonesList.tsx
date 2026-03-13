@@ -67,7 +67,7 @@ export default function ZonesList() {
     router.push(`/zone/zones/${zone.publicId}`)
   }
   return (
-    <div className="w-16 bg-[#0b1220] border-r border-white/5 flex flex-col items-center py-3 gap-3">
+    <div className="w-16 bg-[#050912] border-r border-white/5 flex flex-col items-center py-3 gap-3">
 
       <Button
         onClick={() => { router.push("/zone") }}
