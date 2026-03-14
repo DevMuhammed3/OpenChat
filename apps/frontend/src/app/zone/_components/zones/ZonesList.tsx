@@ -67,12 +67,12 @@ export default function ZonesList() {
     router.push(`/zone/zones/${zone.publicId}`)
   }
   return (
-    <div className="w-16 bg-[#050912] border-r border-white/5 flex flex-col items-center py-3 gap-3">
+    <div className="w-16 bg-background border-r border-white/5 flex flex-col items-center py-3 gap-3">
 
       <Button
         onClick={() => { router.push("/zone") }}
 
-        className="w-10 h-10 rounded-xl bg-[#111a2b] hover:bg-[#1b253b]"
+        className="w-10 h-10 rounded-xl bg-background hover:bg-secondary border border-white/5"
       >
         <Home size={18} />
       </Button>
@@ -107,7 +107,7 @@ export default function ZonesList() {
               transition
               ${active
                 ? "bg-primary text-primary-foreground"
-                : "bg-[#111a2b] hover:bg-[#1b253b]"
+                : "bg-background hover:bg-secondary border border-white/5"
               }
             `}
           >
@@ -128,7 +128,7 @@ export default function ZonesList() {
       <div className="w-8 h-[1px] bg-white/10" />
       <Button
         onClick={() => setOpen(true)}
-        className="w-10 h-10 border-t rounded-xl bg-[#111a2b] hover:bg-[#1b253b]"
+        className="w-10 h-10 rounded-xl bg-background hover:bg-secondary border border-white/5"
       >
         <Plus size={18} />
       </Button>

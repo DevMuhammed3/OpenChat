@@ -19,7 +19,7 @@ export default function ZoneSidebar({
   const pathname = usePathname()
   const router = useRouter()
   const params = useParams<{ zonePublicId?: string; channelPublicId?: string }>()
-  
+
   const zonePublicId = params?.zonePublicId
   const [channels, setChannels] = useState<any[]>([])
   const [zone, setZone] = useState<any>(null)
@@ -62,7 +62,7 @@ export default function ZoneSidebar({
   }
 
   return (
-    <div className="w-64 h-full border-r border-white/5 bg-[#0b1220] flex flex-col">
+    <div className="w-64 h-full border-r border-white/5 bg-background flex flex-col">
       {/* Header */}
       <div className="h-12 px-4 border-b border-white/5 flex items-center shadow-sm">
         <h2 className="font-bold text-sm truncate">
@@ -86,13 +86,8 @@ export default function ZoneSidebar({
                 Friends
               </Button>
             </div>
-            
-            <div className="px-4 py-2 mt-2">
-              <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">
-                Direct Messages
-              </p>
-            </div>
-            
+
+
             <div className="flex-1 overflow-y-auto">
               <ChatList />
             </div>
@@ -106,8 +101,8 @@ export default function ZoneSidebar({
                   <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">
                     Text Channels
                   </p>
-                  <Plus 
-                    className="w-3 h-3 text-zinc-500 cursor-pointer hover:text-zinc-200 opacity-0 group-hover:opacity-100 transition" 
+                  <Plus
+                    className="w-3 h-3 text-zinc-500 cursor-pointer hover:text-zinc-200 opacity-0 group-hover:opacity-100 transition"
                     onClick={() => { setModalType('TEXT'); setIsModalOpen(true); }}
                   />
                 </div>
@@ -119,8 +114,8 @@ export default function ZoneSidebar({
                       onClick={() => router.push(`/zone/zones/${zonePublicId}/channels/${channel.publicId}`)}
                       className={cn(
                         'w-full justify-start gap-2 px-2 py-1.5 h-auto rounded-md text-sm font-medium transition-colors',
-                        params.channelPublicId === channel.publicId 
-                          ? 'bg-white/10 text-white' 
+                        params.channelPublicId === channel.publicId
+                          ? 'bg-white/10 text-white'
                           : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'
                       )}
                     >
@@ -137,8 +132,8 @@ export default function ZoneSidebar({
                   <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">
                     Voice Channels
                   </p>
-                  <Plus 
-                    className="w-3 h-3 text-zinc-500 cursor-pointer hover:text-zinc-200 opacity-0 group-hover:opacity-100 transition" 
+                  <Plus
+                    className="w-3 h-3 text-zinc-500 cursor-pointer hover:text-zinc-200 opacity-0 group-hover:opacity-100 transition"
                     onClick={() => { setModalType('VOICE'); setIsModalOpen(true); }}
                   />
                 </div>
@@ -163,7 +158,7 @@ export default function ZoneSidebar({
       {/* User Bar */}
       <UserBar user={user} />
 
-      <CreateChannelModal 
+      <CreateChannelModal
         open={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onCreate={handleCreateChannel}

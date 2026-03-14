@@ -40,3 +40,18 @@ export const updateAvatar = async (req: Request, res: Response) => {
     res.status(400).json({ message: err.message })
   }
 }
+
+export const removeAvatar = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id
+    if (!userId) {
+      return res.status(401).json({ message: 'Not authenticated' })
+    }
+
+    const user = await UserService.removeAvatar(userId)
+
+    res.json({ user })
+  } catch (err: any) {
+    res.status(400).json({ message: err.message })
+  }
+}

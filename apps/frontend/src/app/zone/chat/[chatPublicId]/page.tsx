@@ -441,8 +441,9 @@ export default function ChatPage() {
 
         <Button
           onClick={() => {
-            if (!otherUser) return
+            if (!otherUser || !chatPublicId) return
 
+            socket.emit("join-room", { chatPublicId })
             socket.emit("call:user", {
               toUserId: otherUser.id,
               chatPublicId
@@ -453,7 +454,8 @@ export default function ChatPage() {
               name: otherUser.username,
               image: otherUser.image,
             })
-          }}        >
+          }}
+        >
           <PhoneCall className="w-3 h-3 scale-[1.25]" strokeWidth={2} />
         </Button>
 

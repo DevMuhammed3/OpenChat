@@ -152,14 +152,27 @@ export default function ProfilePage() {
     }
   }
 
-  const handleRemoveAvatar = () => {
-    setAvatarLoading(true)
+  const handleRemoveAvatar = async () => {
+    try {
+      setAvatarLoading(true)
 
-    setTimeout(() => {
-      updateUser({ avatar: null })
+      const res = await api('/users/avatar', {
+        method: 'DELETE',
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.message)
+      }
+
+      updateUser(data.user)
       toast.success('Avatar removed')
+    } catch (err: any) {
+      toast.error(err.message)
+    } finally {
       setAvatarLoading(false)
-    }, 600)
+    }
   }
 
   return (

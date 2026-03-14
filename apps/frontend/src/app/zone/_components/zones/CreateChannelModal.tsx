@@ -31,7 +31,7 @@ export function CreateChannelModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-[#111a2b] border-white/5 text-white">
+      <DialogContent className="bg-background border-white/5 text-white">
         <DialogHeader>
           <DialogTitle>Create Channel</DialogTitle>
         </DialogHeader>
@@ -44,7 +44,7 @@ export function CreateChannelModal({
                 onClick={() => setType('TEXT')}
                 className={cn(
                   "flex items-center gap-3 p-3 rounded-md transition-colors",
-                  type === 'TEXT' ? "bg-white/10 text-white" : "bg-[#0b1220] text-zinc-400 hover:bg-white/5"
+                  type === 'TEXT' ? "bg-white/10 text-white" : "bg-muted/50 text-zinc-400 hover:bg-white/5"
                 )}
               >
                 <Hash className="w-5 h-5" />
@@ -57,7 +57,7 @@ export function CreateChannelModal({
                 onClick={() => setType('VOICE')}
                 className={cn(
                   "flex items-center gap-3 p-3 rounded-md transition-colors",
-                  type === 'VOICE' ? "bg-white/10 text-white" : "bg-[#0b1220] text-zinc-400 hover:bg-white/5"
+                  type === 'VOICE' ? "bg-white/10 text-white" : "bg-muted/50 text-zinc-400 hover:bg-white/5"
                 )}
               >
                 <Volume2 className="w-5 h-5" />
@@ -77,13 +77,13 @@ export function CreateChannelModal({
                 value={name}
                 onChange={e => setName(e.target.value)}
                 placeholder="new-channel"
-                className="bg-[#0b1220] border-none pl-9 focus-visible:ring-1 focus-visible:ring-primary h-10"
+                className="bg-muted/50 border-none pl-9 focus-visible:ring-1 focus-visible:ring-primary h-10"
               />
             </div>
           </div>
         </div>
 
-        <DialogFooter className="bg-[#1b253b] -m-6 mt-0 p-4 rounded-b-lg">
+        <DialogFooter className="bg-secondary/50 -m-6 mt-0 p-4 rounded-b-lg">
           <Button variant="ghost" onClick={onClose} disabled={loading}>Cancel</Button>
           <Button onClick={handleCreate} disabled={!name.trim() || loading}>
             {loading ? "Creating..." : "Create Channel"}

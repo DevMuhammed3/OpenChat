@@ -102,7 +102,7 @@ export function privateChatHandler(io: Server, socket: Socket) {
         channelPublicId,
         createdAt: saved.createdAt,
       }
-      
+
       // If it's a channel message, we still might want to notify the chat room for unread counts
       if (channelPublicId) {
         socket.to(`channel:${channelPublicId}`).emit("private-message", messagePayload)
@@ -126,49 +126,6 @@ export function privateChatHandler(io: Server, socket: Socket) {
   )
 
 
-  socket.on("call:offer", async ({ chatPublicId, offer }) => {
-    const allowed = await isUserInChat(userId, chatPublicId)
-    if (!allowed) return
-
-    socket.to(`chat:${chatPublicId}`).emit("call:offer", {
-      chatPublicId,
-      from: userId,
-      offer,
-    })
-  })
-
-  socket.on("call:answer", async ({ chatPublicId, answer }) => {
-    const allowed = await isUserInChat(userId, chatPublicId)
-    if (!allowed) return
-
-    socket.to(`chat:${chatPublicId}`).emit("call:answer", {
-      chatPublicId,
-      from: userId,
-      answer,
-    })
-  })
-
-  socket.on("call:ice", async ({ chatPublicId, candidate }) => {
-    const allowed = await isUserInChat(userId, chatPublicId)
-    if (!allowed) return
-
-    socket.to(`chat:${chatPublicId}`).emit("call:ice", {
-      chatPublicId,
-      from: userId,
-      candidate,
-    })
-  })
-
-  socket.on("call:end", async ({ chatPublicId }) => {
-    const allowed = await isUserInChat(userId, chatPublicId)
-    if (!allowed) return
-
-    socket.to(`chat:${chatPublicId}`).emit("call:end", {
-      chatPublicId,
-      from: userId,
-    })
-  })
-
   socket.on("chat:typing", async ({ chatPublicId, isTyping }: { chatPublicId: string, isTyping: boolean }) => {
     const allowed = await isUserInChat(userId, chatPublicId)
     if (!allowed) return
@@ -179,6 +136,5 @@ export function privateChatHandler(io: Server, socket: Socket) {
       isTyping
     })
   })
-
 }
 

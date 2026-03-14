@@ -88,4 +88,35 @@ export class UserService {
       },
     })
   }
+  
+  static async removeAvatar(userId: number) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    })
+
+    if (!user) {
+      throw new Error('User not found')
+    }
+
+    if (user.avatar) {
+      const oldPath = path.join('uploads', user.avatar)
+      try {
+        await fs.promises.unlink(oldPath)
+      } catch { }
+    }
+
+    return prisma.user.update({
+      where: { id: userId },
+      data: { avatar: null },
+      select: {
+        id: true,
+        name: true,
+        username: true,
+        email: true,
+        avatar: true,
+        bio: true,
+        emailVerified: true,
+      },
+    })
+  }
 }

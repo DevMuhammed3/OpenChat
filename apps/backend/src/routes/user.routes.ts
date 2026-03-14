@@ -2,10 +2,11 @@ import { Router } from "express";
 import { prisma } from "../config/prisma.js";
 import { authMiddleware } from '../middlewares/auth.middleware.js'
 import { upload } from "../middlewares/upload.middleware.js";
-import { updateAvatar, updateProfile } from "../controllers/user.controller.js";
+import { updateAvatar, updateProfile, removeAvatar } from "../controllers/user.controller.js";
 
 const router = Router();
 
+router.delete('/avatar', authMiddleware, removeAvatar)
 router.patch('/profile', authMiddleware, updateProfile)
 
 router.get("/search", authMiddleware, async (req, res) => {

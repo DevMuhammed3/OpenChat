@@ -1,165 +1,138 @@
-# OpenChat (monorepo)
+# 🚀 OpenChat
 
-This repository contains a small monorepo with a frontend (Next + React), a backend (Express + Socket.io,Prisma), and shared packages (`@openchat/lib`, `@openchat/components`).
+**The Ultimate Real-Time Chat & Voice Platform.**  
+A high-performance monorepo featuring non-blocking voice calls, persistent sessions, and a premium messaging experience.
 
-This README explains how to get the project running locally and developer recommendations.
+---
 
-Requirements
+## ✨ Key Features
 
-# Node.js: >= 20.19 (recommended 20.x). A `.nvmrc` file is included for convenience.
-# OpenChat (monorepo)
+- **🛡️ Production-Ready Voice Calling**: 
+  - Robust WebRTC & Socket.io signaling.
+  - **Non-Blocking Floating UI**: Keep chatting while on a call.
+  - **Server-Side Persistence**: Refresh the page? No problem. The call automatically reconnects.
+  - **Graceful Disconnects**: 10-second grace period for network drops.
+- **💬 Real-Time Messaging**: Instant delivery via Socket.io with typing indicators and read receipts.
+- **📁 Zone-Based Communities**: Organize chats into Discord-style "Zones" with dedicated text and voice channels.
+- **🔐 Secure Authentication**: 
+  - JWT + HTTP-only Cookie authentication.
+  - Google OAuth integration.
+  - Email verification system.
+- **🎨 Premium UI/UX**:
+  - Dark-mode first, glassmorphic design.
+  - Smooth micro-animations powered by Framer Motion.
+  - Responsive, compact floating call overlays.
+- **⚙️ Integrated Settings**: 
+  - Profile management (Avatar upload/removal, bio, username).
+  - Account security and notifications.
 
-This repository contains a monorepo for OpenChat:
+---
 
-- `apps/frontend` — Next + React client
-- `apps/backend` — Express + Socket.io server (with Prisma schema)
-- `packages/lib` — shared utilities (helpers, socket client)
-- `packages/components` — shared UI components
+## 🛠️ Technology Stack
 
-This README covers how to set up the project locally, common workflows for developing across the workspace, and troubleshooting tips.
+| **Component** | **Technologies** |
+| :--- | :--- |
+| **Frontend** | [Next.js 15](https://nextjs.org/) (Turbopack), [React 19](https://react.dev/), [Tailwind CSS](https://tailwindcss.com/), [Zustand](https://zustand-demo.pmnd.rs/), [Framer Motion](https://www.framer.com/motion/) |
+| **Backend** | [Node.js](https://nodejs.org/), [Express](https://expressjs.com/), [Socket.io](https://socket.io/), [Prisma ORM](https://www.prisma.io/) |
+| **Database** | [PostgreSQL](https://www.postgresql.org/) |
+| **Real-Time** | WebRTC (PeerConnection API), Socket.io |
+| **Monorepo** | [pnpm Workspaces](https://pnpm.io/workspaces) |
 
-## Requirements
+---
 
-- Node.js: >= 20.x (20.x recommended). Use `nvm` to manage Node versions — a `.nvmrc` is included.
-- pnpm: v7+ (workspace-aware). Install with `npm i -g pnpm` if needed.
+## 🚀 Getting Started
 
-## Quick setup
+### Prerequisites
 
-1. Use the recommended Node version:
+- **Node.js** >= 20.x
+- **pnpm** >= 9.x
+- **PostgreSQL** instance
 
-```bash
-nvm install 20
-nvm use 20
-node -v # should be >= 20.x (20.x recommended)
+### Setup
+
+1. **Clone & Install**:
+   ```bash
+   git clone https://github.com/your-username/openchat.git
+   cd openchat
+   pnpm install
+   ```
+
+2. **Environment Configuration**:
+   Create `.env.local` files in both `apps/frontend` and `apps/backend` (or use the root `.env.local` for shared values).
+
+   **Backend (`apps/backend/.env`):**
+   ```env
+   DATABASE_URL="postgresql://user:password@localhost:5432/openchat"
+   JWT_SECRET="your_secret_key"
+   CLIENT_URL="http://localhost:3000"
+   BASE_URL="http://localhost:4000"
+   ```
+
+   **Frontend (`apps/frontend/.env.local`):**
+   ```env
+   NEXT_PUBLIC_API_URL="http://localhost:4000"
+   NEXT_PUBLIC_GOOGLE_CLIENT_ID="your_google_id"
+   ```
+
+3. **Database Migration**:
+   ```bash
+   cd apps/backend
+   pnpm prisma generate
+   pnpm prisma migrate dev
+   ```
+
+4. **Run Development Mode**:
+   From the project root:
+   ```bash
+   pnpm dev
+   ```
+   - Frontend: `http://localhost:3000`
+   - Backend: `http://localhost:4000`
+
+---
+
+## 🏗️ Project Structure
+
+```text
+├── apps/
+│   ├── frontend/        # Next.js Application (Client)
+│   └── backend/         # Express & Socket.io Server
+├── packages/
+│   ├── components/      # Shared shadcn/ui components
+│   ├── lib/             # Shared utilities & API clients
+│   └── types/           # Shared TypeScript interfaces
+├── pnpm-workspace.yaml  # Workspace configuration
+└── README.md            # You are here!
 ```
 
-2. Install dependencies (from repo root):
+---
 
-```bash
-pnpm install
-```
+## 📡 Voice Call Architecture
 
-3. Run development servers:
+OpenChat uses a custom-built WebRTC signaling state machine:
 
-```bash
-pnpm run dev    # runs frontend + backend concurrently (defined in root package.json)
-# or run individually
-pnpm dev:frontend 
-pnpm dev:backend
-```
+1.  **Initiation**: Client A emits `call:user` via Sockets.
+2.  **Tracking**: Backend stores call metadata in an `activeCalls` Map for persistence.
+3.  **Offer/Answer**: WebRTC `RTCPeerConnection` handshake occurs through Socket.io.
+4.  **ICE Candidates**: Network candidates are queued and drained only after the remote description is set to ensure 100% connection success.
+5.  **Reconnection**: If Client B refreshes, they emit `call:check`. The server provides the current call state, allowing Client B to re-mount the `GlobalCallProvider` and re-negotiate the stream.
 
-Open the frontend URL printed by Vite (typically http://localhost:3000). The backend listens on port 4000 by default.
+---
 
-## Environment variables
+## 🤝 Contributing
 
-- `NEXT_SOCKET_URL` — frontend socket URL (default: `http://localhost:4000`). Use this in `.env` at the frontend root if needed.
-- `PORT` or `SOCKET_PORT` — backend port (default: `4000`).
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-Create an `.env` file in `apps/frontend` or `apps/backend` for local overrides when needed.
+---
 
-## Building
+## 📄 License
 
-To build all packages and apps in the workspace:
+Distributed under the **MIT License**. See `LICENSE` for more information.
 
-```bash
-pnpm build
-```
+---
 
-To build a single package/app (example frontend):
-
-```bash
-pnpm --filter frontend build
-```
-
-## Prisma (backend)
-
-If you change the Prisma schema (`apps/backend/prisma/schema.prisma`) apply migrations locally with:
-
-```bash
-cd apps/backend
-npx prisma migrate dev
-```
-
-Or generate clients only:
-
-```bash
-npx prisma generate
-```
-
-## Working with shared packages (developer workflow)
-
-- Import shared code using the workspace package names, e.g.:
-
-```ts
-import { cn, socket } from '@openchat/lib'
-import { Button } from '@openchat/components'
-```
-
-- During development, the Vite config and TypeScript path mappings resolve those imports to the local `src/` folders so you can edit packages in place.
-
-- When editing a package (`packages/lib` or `packages/components`), run that package's build (or run the workspace build) so consuming apps get the latest `dist/` outputs when necessary:
-
-```bash
-pnpm --filter @openchat/lib build
-pnpm build
-```
-
-## Clean generated sources
-
-- Avoid committing generated JS inside `src/` of packages. Only `dist/` should contain build artifacts.
-- The repo includes clean scripts in packages to remove stray `.js` in `src` before building. To run all clean scripts:
-
-```bash
-pnpm run clean
-```
-
-## Common tasks & useful commands
-
-- Install dependencies: `pnpm install`
-- Start frontend dev: `pnpm --filter frontend dev`
-- Start backend dev: `pnpm --filter backend dev`
-- Start both: `pnpm run dev`
-- Build everything: `pnpm build`
-- Run workspace tests (if any): `pnpm test`
-
-## Troubleshooting
-
--- If Vite fails with Node crypto errors, you're likely on an unsupported Node version. Switch to Node 20.x:
-
-```bash
-nvm install 20
-nvm use 20
-```
-
-- If shared imports resolve incorrectly, verify `tsconfig.json` `paths` and `apps/frontend/next.config.js` aliases are present. They map `@openchat/*` to the packages' `src` folders.
-
-- If Tailwind styles don't appear in a consuming app, check PostCSS configuration and ensure `@tailwind` and `@import` ordering is correct in the app's `globals.css`.
-
-## Publishing packages
-
-- If you plan to publish packages, add an `exports` field to each package's `package.json` and produce both ESM and CJS outputs in the build. For internal development the TypeScript path mappings and Vite aliases are sufficient.
-
-## How to add a new package/app
-
-1. Create a new folder under `apps/` or `packages/`.
-2. Add a `package.json` with the workspace name (e.g. `@openchat/yourpkg`).
-3. Add TypeScript sources under `src/` and update root `pnpm build` if needed.
-4. Add path mappings in the root `tsconfig.json` if you want to import it by package name during dev.
-
-## CI
-
-This repository does not include any CI/workflow configuration by default. If you want CI, I can add a GitHub Actions workflow that uses Node 20 and runs builds, linting, and tests.
-
-## Need help?
-
-If you'd like, I can:
-
-- Remove remaining generated JS files under `src/` across the repo and add `prebuild` scripts to enforce a clean source tree.
-- Add `exports` fields to all `package.json` files and produce ESM+CJS builds.
-- Integrate Tailwind + shadcn into `apps/frontend` (or add it to other apps) and wire workspace imports for UI components.
-
-Tell me which of the above you'd like next and I will implement it.
-
-## License
-MIT License © 2025 OpenChat  
-Original author and project owner.
+**Built with ❤️ by the OpenChat Team.**
