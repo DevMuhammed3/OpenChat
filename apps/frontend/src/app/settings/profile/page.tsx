@@ -11,6 +11,7 @@ import {
   Textarea,
   Avatar,
   AvatarFallback,
+  Skeleton,
 } from 'packages/ui'
 
 import { useUserStore } from '@/app/stores/user-store'
@@ -65,7 +66,23 @@ export default function ProfilePage() {
   }, [user, reset])
 
   if (!isLoaded) {
-    return <div className="p-8">Loading profile...</div>
+     return (
+       <div className="max-w-3xl space-y-8 animate-pulse">
+         <div className="space-y-2">
+           <Skeleton className="h-8 w-48" />
+           <Skeleton className="h-4 w-64" />
+         </div>
+         <Card className="bg-[#111a2b] border border-white/5">
+           <CardContent className="h-40 flex items-center gap-6">
+              <Skeleton className="h-28 w-28 rounded-full" />
+              <div className="space-y-2 flex-1">
+                 <Skeleton className="h-4 w-32" />
+                 <Skeleton className="h-3 w-64" />
+              </div>
+           </CardContent>
+         </Card>
+       </div>
+     )
   }
 
   if (!user) {

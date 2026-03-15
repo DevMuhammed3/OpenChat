@@ -12,6 +12,7 @@ import {
   SheetContent,
   SheetTrigger,
   SheetTitle,
+  Skeleton,
 } from 'packages/ui'
 import { useChatsStore } from '@/app/stores/chat-store'
 import { Info, Loader2, Paperclip, PhoneCall, Send, User, Video, X } from 'lucide-react'
@@ -334,18 +335,21 @@ export default function ChatPage() {
 
   if (loading || !activeChat) {
     return (
-      <div
-        className="
-                flex items-center justify-center
-                h-[100svh]
-              "
-      >
-        <Loader2
-          className="
-                    h-8 w-8
-                    animate-spin
-                  "
-        />
+      <div className="flex flex-col h-[100svh] w-full bg-background animate-in fade-in duration-500">
+        <div className="h-16 border-b flex items-center px-4 gap-3">
+           <Skeleton className="h-10 w-10 rounded-full" />
+           <Skeleton className="h-4 w-32" />
+        </div>
+        <div className="flex-1 p-4 space-y-4 overflow-hidden">
+          {[...Array(8)].map((_, i) => (
+             <div key={i} className={cn("flex", i % 2 === 0 ? "justify-end" : "justify-start")}>
+                <Skeleton className={cn("h-12 w-48 rounded-2xl", i % 2 === 0 ? "rounded-br-sm" : "rounded-bl-sm")} />
+             </div>
+          ))}
+        </div>
+        <div className="p-4">
+           <Skeleton className="h-12 w-full rounded-2xl" />
+        </div>
       </div>
     )
   }

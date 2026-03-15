@@ -10,6 +10,7 @@ import { RealtimeProvider } from './realtime-provider'
 import { NotificationsProvider } from './notifications-provider'
 // import { GlobalCallSystem } from '../zone/_components/global/call-system'
 import { GoogleOAuthProvider } from "@react-oauth/google"
+import ChannelCallManager from '../zone/_components/ChannelCallManager'
 
 export default function ClientProviders({
   children,
@@ -35,6 +36,7 @@ export default function ClientProviders({
               {/*<GlobalCallSystem />*/}
               {children}
               <GlobalCallProvider />
+              <ChannelCallManager />
             </NotificationsProvider>
           </RealtimeProvider>
         </UserProvider>

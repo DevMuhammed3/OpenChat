@@ -11,6 +11,7 @@ export interface CallUser {
 interface CallStore {
   status: Status
   chatPublicId: string | null
+  channelPublicId: string | null
   user: CallUser | null
   isCaller: boolean
   isMuted: boolean
@@ -20,6 +21,7 @@ interface CallStore {
   setIncoming: (chatPublicId: string, user: CallUser) => void
   setConnecting: () => void
   setConnected: () => void
+  setChannelCall: (channelPublicId: string | null) => void
   toggleMuted: () => void
   toggleSpeaker: () => void
   clear: () => void
@@ -28,6 +30,7 @@ interface CallStore {
 export const useCallStore = create<CallStore>((set) => ({
   status: "idle",
   chatPublicId: null,
+  channelPublicId: null,
   user: null,
   isCaller: false,
   isMuted: false,
@@ -43,6 +46,8 @@ export const useCallStore = create<CallStore>((set) => ({
 
   setConnected: () => set({ status: "connected" }),
 
+  setChannelCall: (channelId) => set({ channelPublicId: channelId }),
+
   toggleMuted: () => set((state) => ({ isMuted: !state.isMuted })),
 
   toggleSpeaker: () => set((state) => ({ isSpeaker: !state.isSpeaker })),
@@ -51,6 +56,7 @@ export const useCallStore = create<CallStore>((set) => ({
     set({
       status: "idle",
       chatPublicId: null,
+      channelPublicId: null,
       user: null,
       isCaller: false,
       isMuted: false,

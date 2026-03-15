@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useParams } from "next/navigation"
-import { Avatar, AvatarFallback, AvatarImage, Button, Input } from "packages/ui"
+import { Avatar, AvatarFallback, AvatarImage, Button, Input, Skeleton } from "packages/ui"
 import { Info, Paperclip, Send, Hash, Plus } from "lucide-react"
 import { api, socket, getAvatarUrl, cn } from "@openchat/lib"
 import { useChatsStore } from "@/app/stores/chat-store"
@@ -217,7 +217,30 @@ export default function ChannelPage() {
     setPreviewUrl(null)
   }, [input, selectedFile, previewUrl, zonePublicId, channelPublicId, currentUserId, user])
 
-  if (!zone || !channel) return <div className="flex items-center justify-center h-[100svh]">Loading...</div>
+  if (!zone || !channel) {
+    return (
+      <div className="flex flex-col h-[100svh] bg-[#0b1220]">
+        <div className="h-12 border-b border-white/5 flex items-center px-4 gap-2">
+           <Skeleton className="h-5 w-5 rounded-full" />
+           <Skeleton className="h-4 w-24" />
+        </div>
+        <div className="flex-1 p-4 space-y-6 overflow-hidden">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="flex gap-4">
+              <Skeleton className="h-10 w-10 rounded-full" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-20 w-full" />
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="hidden md:flex p-4">
+           <Skeleton className="h-12 w-full rounded-lg" />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col h-[100svh] bg-[#0b1220]">

@@ -7,6 +7,7 @@ import { isAllowedOrigin } from './config/origin.js'
 import { socketAuth } from './socket/auth.js'
 import { prisma } from './config/prisma.js'
 import { callHandler } from "./socket/callHandler.js"
+import { channelCallHandler } from "./socket/channelCallHandler.js"
 
 const port = process.env.PORT || 4000
 
@@ -82,6 +83,7 @@ io.on('connection', async (socket) => {
 
   privateChatHandler(io, socket)
   callHandler(io, socket)
+  channelCallHandler(io, socket)
 
   socket.on('disconnect', async () => {
     console.log(`Socket disconnected: ${socket.id} (user ${userId})`)

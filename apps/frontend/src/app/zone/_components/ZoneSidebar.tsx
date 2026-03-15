@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, usePathname, useRouter } from 'next/navigation'
-import { Hash, Volume2, Plus, Users } from 'lucide-react'
-import { Button, ScrollArea } from 'packages/ui'
+import { Hash, Volume2, Plus, Users, PhoneOff } from 'lucide-react'
+import { Button, ScrollArea, Skeleton } from 'packages/ui'
 import { cn, api } from '@openchat/lib'
 import { useChatsStore } from '@/app/stores/chat-store'
 import ChatList from '../chat/ChatList'
 import UserBar from './UserBar'
 import { CreateChannelModal } from './zones/CreateChannelModal'
+import { useCallStore } from '@/app/stores/call-store'
 
 
 export default function ZoneSidebar({
@@ -25,6 +26,9 @@ export default function ZoneSidebar({
   const [zone, setZone] = useState<any>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [modalType, setModalType] = useState<'TEXT' | 'VOICE'>('TEXT')
+
+  const setChannelCall = useCallStore(s => s.setChannelCall)
+  const activeChannelPublicId = useCallStore(s => s.channelPublicId)
 
   const isHome = pathname.startsWith('/zone') && !zonePublicId
 
@@ -66,7 +70,7 @@ export default function ZoneSidebar({
       {/* Header */}
       <div className="h-12 px-4 border-b border-white/5 flex items-center shadow-sm">
         <h2 className="font-bold text-sm truncate">
-          {zonePublicId ? (zone?.name || 'Loading...') : 'Direct Messages'}
+          {zonePublicId ? (zone?.name || <Skeleton className="h-4 w-24" />) : 'Direct Messages'}
         </h2>
       </div>
 
@@ -139,14 +143,28 @@ export default function ZoneSidebar({
                 </div>
                 <div className="space-y-0.5 mt-1">
                   {channels.filter(c => c.type === 'VOICE').map(channel => (
-                    <Button
-                      key={channel.publicId}
-                      variant="ghost"
-                      className="w-full justify-start gap-2 px-2 py-1.5 h-auto rounded-md text-sm font-medium text-zinc-400 hover:bg-white/5 hover:text-zinc-200 transition-colors"
-                    >
-                      <Volume2 className="h-4 w-4 text-zinc-500" />
-                      {channel.name}
-                    </Button>
+                    <div key={channel.publicId} className="space-y-1">
+                      <Button
+                        variant="ghost"
+                        onClick={() => setChannelCall(channel.publicId)}
+                        className={cn(
+                          "w-full justify-start gap-2 px-2 py-1.5 h-auto rounded-md text-sm font-medium transition-colors",
+                          activeChannelPublicId === channel.publicId 
+                            ? "bg-white/10 text-white" 
+                            : "text-zinc-400 hover:bg-white/5 hover:text-zinc-200"
+                        )}
+                      >
+                        <Volume2 className="h-4 w-4 text-zinc-500" />
+                        {channel.name}
+                      </Button>
+                      
+                      {/* Active Participants Placeholder (Logic for real-time list can be added) */}
+                      {activeChannelPublicId === channel.publicId && (
+                         <div className="ml-8 text-xs text-zinc-500 italic pb-2">
+                           You are connected
+                         </div>
+                      )}
+                    </div>
                   ))}
                 </div>
               </div>
@@ -154,6 +172,26 @@ export default function ZoneSidebar({
           </ScrollArea>
         )}
       </div>
+
+      {/* Voice Status Bar */}
+      {activeChannelPublicId && (
+        <div className="mx-2 mb-2 p-2 bg-[#1b253b] rounded-lg flex items-center justify-between shadow-lg border border-primary/20 animate-in slide-in-from-bottom-2 duration-300">
+          <div className="flex flex-col">
+             <span className="text-[10px] font-bold text-primary uppercase tracking-wider">Voice Connected</span>
+             <span className="text-xs text-zinc-300 truncate w-32">
+               {channels.find(c => c.publicId === activeChannelPublicId)?.name || 'Channel'}
+             </span>
+          </div>
+          <Button 
+            size="icon" 
+            variant="ghost" 
+            onClick={() => setChannelCall(null)}
+            className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-400/10"
+          >
+            <PhoneOff size={16} />
+          </Button>
+        </div>
+      )}
 
       {/* User Bar */}
       <UserBar user={user} />
