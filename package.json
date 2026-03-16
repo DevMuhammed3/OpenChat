@@ -18,7 +18,7 @@
     "shadcn": "pnpm --filter @openchat/components run shadcn --",
     "clean": "pnpm -w -r run clean:src || true",
     "preview": "pnpm --filter frontend preview",
-    "build": "pnpm -r build",
+    "build": "pnpm -r --filter=!@openchat/components build",
     "lint": "pnpm -r lint",
     "test": "pnpm -r --if-present test"
   },

@@ -1,12 +1,6 @@
 "use client"
 
 import { motion } from "framer-motion"
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "packages/ui"
 
 const faqs = [
   {
@@ -68,24 +62,21 @@ export default function FAQ() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.2 }}
+          className="space-y-3"
         >
-          <Accordion type="single" collapsible className="w-full">
-            {faqs.map((faq, i) => (
-              <AccordionItem
-                key={i}
-                value={`item-${i}`}
-                className="border-b border-zinc-800/60 py-2"
-              >
-                <AccordionTrigger className="text-left text-lg font-medium text-zinc-100 md:hover:text-[#999BE4] transition-colors hover:no-underline">
-                  {faq.question}
-                </AccordionTrigger>
-
-                <AccordionContent className="text-zinc-400 text-base leading-relaxed pb-4">
-                  {faq.answer}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
+          {faqs.map((faq, i) => (
+            <details
+              key={i}
+              className="group rounded-xl border border-zinc-800/60 bg-zinc-900/20 px-5 py-4"
+            >
+              <summary className="cursor-pointer list-none text-left text-lg font-medium text-zinc-100 transition-colors group-open:text-[#999BE4]">
+                {faq.question}
+              </summary>
+              <p className="pt-3 text-base leading-relaxed text-zinc-400">
+                {faq.answer}
+              </p>
+            </details>
+          ))}
         </motion.div>
 
         <motion.div
