@@ -19,7 +19,8 @@
     "clean": "pnpm -w -r run clean:src || true",
     "preview": "pnpm --filter frontend preview",
     "build": "pnpm -r build",
-    "lint": "pnpm -r lint"
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r --if-present test"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
