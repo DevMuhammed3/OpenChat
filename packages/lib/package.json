@@ -10,7 +10,8 @@
     "clean:src": "node ./scripts/clean-src.js",
     "prebuild": "pnpm run clean:src",
     "build": "tsc -b",
-    "dev": "tsc -b --watch"
+    "dev": "tsc -b --watch",
+    "test": "tsx --test src/**/*.test.ts"
   },
   "dependencies": {
     "clsx": "^2.0.0",
