@@ -83,7 +83,7 @@ export default function UserBar({ user: serverUser }: { user: any }) {
           <Settings className="h-4 w-4" />
         </Button>
 
-        <Button
+        {/* <Button
           size="icon"
           variant="destructive"
           onClick={async () => {
@@ -102,7 +102,8 @@ export default function UserBar({ user: serverUser }: { user: any }) {
           }}
         >
           <LogOut className="h-4 w-4" />
-        </Button>
+        </Button> */}
+        
       </div>
     </div>
   )
