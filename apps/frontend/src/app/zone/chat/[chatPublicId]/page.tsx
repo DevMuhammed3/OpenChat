@@ -12,6 +12,7 @@ import {
   SheetContent,
   SheetTrigger,
   SheetTitle,
+  Skeleton,
 } from 'packages/ui'
 import { useChatsStore } from '@/app/stores/chat-store'
 import { Info, Loader2, Paperclip, PhoneCall, Send, User, Video, X } from 'lucide-react'
@@ -44,6 +45,8 @@ export default function ChatPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [typingUsers, setTypingUsers] = useState<Set<number>>(new Set())
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const setCalling = useCallStore((s) => s.setCalling)
   // const status = useCallStore((s) => s.status)
@@ -138,6 +141,42 @@ export default function ChatPage() {
       socket.off("private-message", handler)
     }
   }, [chatPublicId])
+
+  useEffect(() => {
+    if (!chatPublicId) return
+
+    const handler = ({ userId, isTyping }: { userId: number; isTyping: boolean }) => {
+      setTypingUsers((prev) => {
+        const next = new Set(prev)
+        if (isTyping) next.add(userId)
+        else next.delete(userId)
+        return next
+      })
+    }
+
+    socket.on("chat:typing", handler)
+    return () => {
+      socket.off("chat:typing", handler)
+    }
+  }, [chatPublicId])
+
+  const handleInputChange = (val: string) => {
+    setInput(val)
+
+    if (!chatPublicId) return
+
+    // Emit typing status
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current)
+    } else {
+      socket.emit("chat:typing", { chatPublicId, isTyping: true })
+    }
+
+    typingTimeoutRef.current = setTimeout(() => {
+      socket.emit("chat:typing", { chatPublicId, isTyping: false })
+      typingTimeoutRef.current = null
+    }, 3000)
+  }
 
   const handleFileSelect = (
     e: React.ChangeEvent<HTMLInputElement>
@@ -296,18 +335,21 @@ export default function ChatPage() {
 
   if (loading || !activeChat) {
     return (
-      <div
-        className="
-                flex items-center justify-center
-                h-[100svh]
-              "
-      >
-        <Loader2
-          className="
-                    h-8 w-8
-                    animate-spin
-                  "
-        />
+      <div className="flex flex-col h-[100svh] w-full bg-background animate-in fade-in duration-500">
+        <div className="h-16 border-b flex items-center px-4 gap-3">
+           <Skeleton className="h-10 w-10 rounded-full" />
+           <Skeleton className="h-4 w-32" />
+        </div>
+        <div className="flex-1 p-4 space-y-4 overflow-hidden">
+          {[...Array(8)].map((_, i) => (
+             <div key={i} className={cn("flex", i % 2 === 0 ? "justify-end" : "justify-start")}>
+                <Skeleton className={cn("h-12 w-48 rounded-2xl", i % 2 === 0 ? "rounded-br-sm" : "rounded-bl-sm")} />
+             </div>
+          ))}
+        </div>
+        <div className="p-4">
+           <Skeleton className="h-12 w-full rounded-2xl" />
+        </div>
       </div>
     )
   }
@@ -403,8 +445,9 @@ export default function ChatPage() {
 
         <Button
           onClick={() => {
-            if (!otherUser) return
+            if (!otherUser || !chatPublicId) return
 
+            socket.emit("join-room", { chatPublicId })
             socket.emit("call:user", {
               toUserId: otherUser.id,
               chatPublicId
@@ -415,7 +458,8 @@ export default function ChatPage() {
               name: otherUser.username,
               image: otherUser.image,
             })
-          }}        >
+          }}
+        >
           <PhoneCall className="w-3 h-3 scale-[1.25]" strokeWidth={2} />
         </Button>
 
@@ -631,10 +675,19 @@ export default function ChatPage() {
           </div>
         )}
 
-        <div className="flex items-center gap-2 px-3 py-2 bg-background/50 rounded-2xl border">
+        <div className="flex items-center gap-2 px-3 py-2 bg-background/50 rounded-2xl border relative">
+          {typingUsers.size > 0 && Array.from(typingUsers).map(uid => {
+             const user = activeChat?.participants.find((p: any) => p.id === uid)
+             if (!user) return null
+             return (
+               <div key={user.id} className="absolute -top-6 left-4 text-[10px] text-muted-foreground animate-pulse">
+                 {user.username} is typing...
+               </div>
+             )
+          })}
           <Input
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => handleInputChange(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault()

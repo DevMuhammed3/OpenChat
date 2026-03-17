@@ -11,6 +11,8 @@ import webrtcRoutes from "./routes/webrtc.routes.js"
 
 export const app: Express = express();
 
+app.set("trust proxy", true);
+
 
 app.use(
   cors({

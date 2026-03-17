@@ -18,7 +18,7 @@ export default function UserProvider({
 
     const fetchUser = async () => {
       try {
-        const res = await api('/auth/me')
+        const res = await api(`/auth/me?t=${Date.now()}`)
 
         if (!res.ok) throw new Error()
 

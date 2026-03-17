@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { Avatar, AvatarFallback, ScrollArea } from 'packages/ui'
+import { Avatar, AvatarFallback, ScrollArea, Skeleton } from 'packages/ui'
 import { User, Users } from 'lucide-react'
 import { cn, getAvatarUrl } from '@openchat/lib'
 import { api } from '@openchat/lib'
@@ -24,6 +24,7 @@ export default function FriendList({ onSelectFriend }: FriendListProps) {
 
   const friends = useFriendsStore((s) => s.friends)
   const setFriends = useFriendsStore((s) => s.setFriends)
+  const onlineUsers = useFriendsStore((s) => s.onlineUsers)
 
   const [loading, setLoading] = useState(true)
 
@@ -96,13 +97,16 @@ export default function FriendList({ onSelectFriend }: FriendListProps) {
 
         {/* Loading */}
         {loading && (
-          <div
-            className="
-              py-8
-              text-center text-sm text-muted-foreground
-            "
-          >
-            Loading friends...
+          <div className="space-y-4">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="flex items-center gap-3 p-3">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
@@ -141,20 +145,25 @@ export default function FriendList({ onSelectFriend }: FriendListProps) {
                       isActive ? 'bg-muted' : 'hover:bg-muted/50'
                     )}
                   >
-                    <Avatar className="h-10 w-10 ring-1 ring-border">
-                      {avatarUrl ? (
-                        <img
-                          src={avatarUrl}
-                          alt={friend.username}
-                          className="h-full w-full object-cover rounded-full"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <AvatarFallback>
-                          {friend.username?.[0]?.toUpperCase()}
-                        </AvatarFallback>
+                    <div className="relative">
+                      <Avatar className="h-10 w-10 ring-1 ring-border">
+                        {avatarUrl ? (
+                          <img
+                            src={avatarUrl}
+                            alt={friend.username}
+                            className="h-full w-full object-cover rounded-full"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <AvatarFallback>
+                            {friend.username?.[0]?.toUpperCase()}
+                          </AvatarFallback>
+                        )}
+                      </Avatar>
+                      {onlineUsers.has(friend.id) && (
+                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-background rounded-full" />
                       )}
-                    </Avatar>
+                    </div>
 
                     <div className="flex-1 min-w-0 text-left">
                       <p className="font-medium text-md truncate">

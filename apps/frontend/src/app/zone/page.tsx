@@ -22,7 +22,7 @@ export default function ZoneHome() {
   useEffect(() => {
     let mounted = true
 
-    api('/auth/me')
+    api(`/auth/me?t=${Date.now()}`)
       .then(res => res.json())
       .then(data => {
         if (!mounted) return

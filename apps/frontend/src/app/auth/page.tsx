@@ -27,6 +27,7 @@ export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
+  const [isPending, setIsPending] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [signupData, setSignupData] = useState({
@@ -39,7 +40,7 @@ export default function AuthPage() {
 
   // Redirect if logged in
   useEffect(() => {
-    api(`/auth/me`, {
+    api(`/auth/me?t=${Date.now()}`, {
       credentials: "include",
     })
       .then((res) => {
@@ -48,10 +49,30 @@ export default function AuthPage() {
         }
       })
       .catch(() => { });
-  }, []);
+  }, [router]);
+
+  const redirectToZone = async () => {
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const res = await api(`/auth/me?t=${Date.now()}`, {
+        credentials: "include",
+        cache: "no-store",
+      });
+
+      if (res.ok) {
+        window.location.assign("/zone");
+        return;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+
+    throw new Error("Session was not established");
+  };
 
   const handleLogin = async (e?: any) => {
     if (e?.preventDefault) e.preventDefault();
+    if (isPending) return;
+
     setMessage({ type: "", text: "" });
 
     if (!loginData.email || !loginData.password) {
@@ -60,6 +81,7 @@ export default function AuthPage() {
     }
 
     try {
+      setIsPending(true);
       const res = await api(`/auth/login`, {
         method: "POST",
         credentials: "include",
@@ -72,51 +94,26 @@ export default function AuthPage() {
       if (!res.ok) {
         setMessage({
           type: "error",
-          text: data.message || "Login failed",
+          text: data.message || "Invalid email or password",
         });
         return;
       }
 
-      setMessage({ type: "success", text: "Login successful!" });
+      setMessage({ type: "success", text: "Login successful! Redirecting..." });
 
-      router.replace("/zone");
-      router.refresh();
+      await redirectToZone();
     } catch (err) {
       console.error(err);
-      setMessage({ type: "error", text: "Something went wrong" });
+      setMessage({ type: "error", text: "Connection error. Please try again." });
+    } finally {
+      setIsPending(false);
     }
   };
 
-  const handleGoogleLogin = async (tokenResponse: any) => {
-    try {
-
-      const res = await api(`/auth/google`, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          token: tokenResponse.access_token
-        }),
-      });
-
-      if (!res.ok) {
-        setMessage({ type: "error", text: "Google login failed" });
-        return;
-      }
-
-      router.replace("/zone");
-      router.refresh();
-
-    } catch (err) {
-      console.error(err);
-      setMessage({ type: "error", text: "Something went wrong" });
-    }
-  };
-
-  const handleSignup = async (e?: React.KeyboardEvent) => {
+  const handleSignup = async (e?: any) => {
     if (e?.preventDefault) e.preventDefault();
+    if (isPending) return;
+
     setMessage({ type: "", text: "" });
 
     const result = signupSchema.safeParse(signupData);
@@ -133,6 +130,7 @@ export default function AuthPage() {
     }
 
     try {
+      setIsPending(true);
       const res = await api(`/auth/register`, {
         method: "POST",
         credentials: "include",
@@ -155,10 +153,11 @@ export default function AuthPage() {
         text: "Account created! Logging in...",
       });
 
-      router.replace("/zone");
-      router.refresh();
+      await redirectToZone();
     } catch (err) {
-      setMessage({ type: "error", text: "Something went wrong" });
+      setMessage({ type: "error", text: "Connection error. Please try again." });
+    } finally {
+      setIsPending(false);
     }
   };
 
@@ -166,6 +165,7 @@ export default function AuthPage() {
     flow: "auth-code",
     onSuccess: async (codeResponse) => {
       try {
+        setIsPending(true);
         const res = await api(`/auth/google`, {
           method: "POST",
           credentials: "include",
@@ -182,14 +182,18 @@ export default function AuthPage() {
           return;
         }
 
-        router.replace("/zone");
-        router.refresh();
+        await redirectToZone();
       } catch (err) {
         console.error(err);
         setMessage({ type: "error", text: "Something went wrong" });
+      } finally {
+        setIsPending(false);
       }
     },
-    onError: () => setMessage({ type: "error", text: "Google login failed" }),
+    onError: () => {
+      setMessage({ type: "error", text: "Google login failed" });
+      setIsPending(false);
+    }
   });
 
   return (
@@ -264,8 +268,8 @@ export default function AuthPage() {
                 </div>
               </CardContent>
               <CardFooter className="flex flex-col gap-3">
-                <Button onClick={(e) => handleLogin(e)} className="w-full">
-                  Login
+                <Button onClick={(e) => handleLogin(e)} className="w-full" disabled={isPending}>
+                  {isPending ? "Logging in..." : "Login"}
                 </Button>
 
                 <div className="relative w-full text-center text-sm">
@@ -383,7 +387,9 @@ export default function AuthPage() {
                 </div>
               </CardContent>
               <CardFooter>
-                <Button onClick={(e: any) => handleSignup(e)} className="w-full">Create Account</Button>
+                <Button onClick={(e: any) => handleSignup(e)} className="w-full" disabled={isPending}>
+                  {isPending ? "Creating account..." : "Create Account"}
+                </Button>
               </CardFooter>
             </Card>
           </TabsContent>
@@ -409,4 +415,3 @@ export default function AuthPage() {
     </div >
   );
 }
-

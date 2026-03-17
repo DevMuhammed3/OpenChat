@@ -3,6 +3,7 @@ import { authMiddleware } from "../middlewares/auth.middleware.js";
 import {
   getChatMessages,
   getChats,
+  getChat,
   startChat,
   editMessage,
   deleteMessage,
@@ -12,6 +13,7 @@ import {
 const router = Router();
 
 router.get("/", authMiddleware, getChats)
+router.get("/:chatPublicId", authMiddleware, getChat)
 router.post("/start", authMiddleware, startChat)
 
 router.get(
@@ -31,4 +33,3 @@ router.patch("/messages/:id", authMiddleware, editMessage)
 router.delete("/messages/:id", authMiddleware, deleteMessage)
 
 export default router;
-

@@ -124,6 +124,9 @@ model Message {
 
   chat Chat @relation(fields: [chatId], references: [id])
   sender User @relation("UserSentMessages", fields: [senderId], references: [id])
+
+  channelId Int?
+  channel   Channel? @relation(fields: [channelId], references: [id])
 }
 
 model MessageReaction {
@@ -159,6 +162,29 @@ model Chat {
 
   participants ChatParticipant[]
   messages     Message[]
+  channels     Channel[]
+}
+
+enum ChannelType {
+  TEXT
+  VOICE
+}
+
+model Channel {
+  id        Int      @id @default(autoincrement())
+  publicId  String   @unique
+  name      String
+  type      ChannelType @default(TEXT)
+  
+  chatId    Int
+  chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  
+  messages  Message[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([chatId])
 }
 
 enum ZoneRole {

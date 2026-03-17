@@ -22,17 +22,21 @@ export default function SettingsSidebar() {
   const router = useRouter()
 
   const handleLogout = async () => {
-    await api(`/auth/logout`, {
-      method: 'POST',
-      credentials: 'include',
-    })
+    try {
+      await api(`/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      })
+    } catch (error) {
+      console.error('Logout failed:', error)
+    }
 
     useUserStore.getState().clearUser()
     useChatsStore.getState().reset()
     useFriendsStore.getState().reset()
 
-    router.replace('/auth')
-    router.refresh()
+    // Use window.location.href to ensure a clean state and clear server-side caches
+    window.location.href = '/auth'
   }
 
   return (

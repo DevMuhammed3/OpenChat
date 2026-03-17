@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Avatar, AvatarFallback, ScrollArea } from 'packages/ui'
+import { Avatar, AvatarFallback, ScrollArea, Skeleton } from 'packages/ui'
 import { User, X } from 'lucide-react'
 import { cn, getAvatarUrl, api } from '@openchat/lib'
 import { useChatsStore } from '@/app/stores/chat-store'
@@ -62,8 +62,16 @@ export default function ChatList() {
 
   if (loading) {
     return (
-      <div className="p-4 text-sm text-muted-foreground">
-        Loading chats...
+      <div className="space-y-4 p-4">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="flex items-center gap-3">
+            <Skeleton className="h-10 w-10 rounded-full" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-3 w-16" />
+            </div>
+          </div>
+        ))}
       </div>
     )
   }

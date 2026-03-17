@@ -2,6 +2,7 @@ import { OAuth2Client } from "google-auth-library";
 import { prisma } from "../config/prisma.js";
 import { generateToken } from "../utils/generateToken.js";
 import { Request, Response } from "express";
+import { getCookieOptions } from "../utils/cookie.js";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -75,15 +76,7 @@ export const googleLogin = async (req: Request, res: Response) => {
 
     const jwt = generateToken(user.id);
 
-    res.cookie("token", jwt, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      domain:
-        process.env.NODE_ENV === "production"
-          ? ".openchat.qzz.io"
-          : undefined,
-    });
+    res.cookie("token", jwt, getCookieOptions(req));
 
     res.json(user);
   } catch (error) {

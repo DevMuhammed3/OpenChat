@@ -57,10 +57,22 @@ export const getChatMessages = async (req: Request, res: Response) => {
       return res.status(403).json({ message: "Forbidden" });
     }
 
-    const { cursor } = req.query
+    const { cursor, channelPublicId } = req.query as { cursor?: string; channelPublicId?: string }
+
+    let channelId: number | undefined
+    if (channelPublicId) {
+      const channel = await prisma.channel.findUnique({
+        where: { publicId: channelPublicId },
+        select: { id: true }
+      })
+      channelId = channel?.id
+    }
 
     const messages = await prisma.message.findMany({
-      where: { chatId: chat.id },
+      where: {
+        chatId: chat.id,
+        ...(channelId !== undefined ? { channelId } : { channelId: null })
+      },
       take: 50,
       ...(cursor && {
         cursor: { id: Number(cursor) },
@@ -137,6 +149,59 @@ export const getChats = async (req: Request, res: Response) => {
         lastMessage: chat.messages?.[0] ?? null,
       })),
     })
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+/**
+ * GET /chats/:chatPublicId
+ */
+export const getChat = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    const { chatPublicId } = req.params;
+
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const chat = await prisma.chat.findUnique({
+      where: { publicId: chatPublicId },
+      include: {
+        participants: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                avatar: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!chat) {
+      return res.status(404).json({ message: "Chat not found" });
+    }
+
+    const isMember = chat.participants.some(p => p.userId === userId);
+    if (!isMember) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    res.json({
+      chat: {
+        chatPublicId: chat.publicId,
+        type: chat.type,
+        name: chat.name,
+        avatar: chat.avatar ?? null,
+        participants: chat.participants.map((p: any) => p.user),
+      }
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Internal server error" });

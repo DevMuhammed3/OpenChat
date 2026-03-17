@@ -4,6 +4,14 @@ import { persist } from 'zustand/middleware'
 export type Chat = {
   chatPublicId: string
   participants: any[]
+  type?: 'DM' | 'ZONE'
+  name?: string | null
+  avatar?: string | null
+  channels?: {
+    publicId: string
+    name: string
+    type: 'TEXT' | 'VOICE'
+  }[]
   lastMessage?: {
     text: string
     createdAt: string
@@ -16,13 +24,16 @@ type ChatsState = {
   chatsLoaded: boolean
 
   activeChatPublicId: string | null
+  activeChannelPublicId: string | null
   unread: Record<string, number>
+  channelUnread: Record<string, number>
 
   setActiveChat: (id: string | null) => void
+  setActiveChannel: (id: string | null) => void
   markChatAsRead: (id: string) => void
-  incrementUnread: (id: string) => void
-  clearUnread: (id: string) => void
-  onIncomingMessage: (chatPublicId: string) => void
+  incrementUnread: (id: string, channelId?: string) => void
+  clearUnread: (id: string, channelId?: string) => void
+  onIncomingMessage: (chatPublicId: string, channelPublicId?: string) => void
 
   setChats: (chats: Chat[]) => void
   addChat: (chat: Chat) => void
@@ -40,12 +51,19 @@ export const useChatsStore = create<ChatsState>()(
       chatsLoaded: false,
 
       activeChatPublicId: null,
+      activeChannelPublicId: null,
       unread: {},
+      channelUnread: {},
 
 
       setActiveChat: (id) =>
         set({
           activeChatPublicId: id,
+        }),
+
+      setActiveChannel: (id) =>
+        set({
+          activeChannelPublicId: id,
         }),
 
       markChatAsRead: (id: string) =>
@@ -55,10 +73,19 @@ export const useChatsStore = create<ChatsState>()(
           return { unread }
         }),
 
-      incrementUnread: (id) =>
+      incrementUnread: (id, channelId) =>
         set((state) => {
-          if (state.activeChatPublicId === id) {
+          if (state.activeChatPublicId === id && (!channelId || state.activeChannelPublicId === channelId)) {
             return state
+          }
+
+          if (channelId) {
+            return {
+              channelUnread: {
+                ...state.channelUnread,
+                [channelId]: (state.channelUnread[channelId] || 0) + 1,
+              },
+            }
           }
 
           return {
@@ -69,17 +96,30 @@ export const useChatsStore = create<ChatsState>()(
           }
         }),
 
-      clearUnread: (id) =>
+      clearUnread: (id, channelId) =>
         set((state) => {
+          if (channelId) {
+            const channelUnread = { ...state.channelUnread }
+            delete channelUnread[channelId]
+            return { channelUnread }
+          }
           const unread = { ...state.unread }
           delete unread[id]
           return { unread }
         }),
 
 
-      onIncomingMessage: (chatPublicId: string) =>
+      onIncomingMessage: (chatPublicId: string, channelPublicId?: string) =>
         set((state) => {
           if (state.activeChatPublicId === chatPublicId) {
+            if (channelPublicId && state.activeChannelPublicId !== channelPublicId) {
+               return {
+                  channelUnread: {
+                    ...state.channelUnread,
+                    [channelPublicId]: (state.channelUnread[channelPublicId] || 0) + 1,
+                  },
+               }
+            }
             return state
           }
 

@@ -5,6 +5,7 @@ import { Info } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from 'packages/ui'
 import { useEffect, useState } from 'react'
+import { useUserStore } from '@/app/stores/user-store'
 
 /*  TEXT TYPING  */
 const words = ['Powerful', 'Simple', 'Private']
@@ -190,8 +191,10 @@ bg-gradient-to-r from-cyan-500/30 to-transparent
             Channels, groups, and private chats — all in one app. Open source, no ads, no phone number needed
           </p>
 
-          <Button asChild size="lg">
-            <Link href="/auth">Get Started</Link>
+          <Button asChild size="lg" className="px-8 h-12 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 border-0">
+            <Link href={useUserStore.getState().user ? "/dashboard" : "/auth"}>
+              {useUserStore.getState().user ? "Go to Dashboard" : "Get Started"}
+            </Link>
           </Button>
         </div>
 
