@@ -26,8 +26,16 @@ app.use(
   })
 );
 
-// app.options("/*", cors());
-//
+app.options(/.*/, cors({
+  origin(origin, callback) {
+    if (!origin || isAllowedOrigin(origin)) {
+      return callback(null, true);
+    }
+    callback(new Error("Not allowed by CORS"));
+  },
+  credentials: true,
+}));
+
 app.use((_req, res, next) => {
   res.setHeader(
     "Cross-Origin-Opener-Policy",
