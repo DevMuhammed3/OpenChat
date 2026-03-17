@@ -195,6 +195,11 @@ export const friendController = {
 
 
   async acceptRequest(req: Request, res: Response) {
+    if (!req.user?.id) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    const currentUserId = req.user.id;
     const requestId = Number(req.params.id);
 
     const reqData = await prisma.friendRequest.findUnique({
@@ -202,6 +207,10 @@ export const friendController = {
     });
 
     if (!reqData) return res.status(404).json({ message: "Request not found" });
+
+    if (reqData.receiverId !== currentUserId) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
 
     const senderId = reqData.senderId;
     const receiverId = reqData.receiverId;
@@ -255,6 +264,11 @@ export const friendController = {
 
 
   async rejectRequest(req: Request, res: Response) {
+    if (!req.user?.id) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    const currentUserId = req.user.id;
     const requestId = Number(req.params.id);
 
     const reqData = await prisma.friendRequest.findUnique({
@@ -263,6 +277,10 @@ export const friendController = {
 
     if (!reqData) {
       return res.status(404).json({ message: "Request not found" });
+    }
+
+    if (reqData.receiverId !== currentUserId && reqData.senderId !== currentUserId) {
+      return res.status(403).json({ message: "Forbidden" });
     }
 
     await prisma.friendRequest.delete({
@@ -277,4 +295,3 @@ export const friendController = {
   }
 
 };
-

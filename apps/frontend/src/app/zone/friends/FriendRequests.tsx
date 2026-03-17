@@ -38,12 +38,18 @@ export default function FriendRequests() {
   }, [requestsLoaded, setRequests])
 
   const accept = async (req: any) => {
-    await api(`/ friends / accept / ${req.id} `, { method: 'POST' })
+    const res = await api(`/friends/accept/${req.id}`, { method: 'POST' })
+    if (!res.ok) {
+      throw new Error("Failed to accept friend request")
+    }
     removeRequest(req.id)
   }
 
   const reject = async (id: number) => {
-    await api(`/ friends / reject / ${id} `, { method: 'DELETE' })
+    const res = await api(`/friends/reject/${id}`, { method: 'DELETE' })
+    if (!res.ok) {
+      throw new Error("Failed to reject friend request")
+    }
     removeRequest(id)
   }
 
@@ -58,19 +64,14 @@ export default function FriendRequests() {
       key={req.id}
       className="group flex items-center justify-between p-4 shadow-sm border-muted/60 hover:border-muted-foreground/20 transition-all duration-200"
     > <div className="flex items-center gap-4">
-
-        ```
-        < Avatar className="h-11 w-11 border-2 border-background shadow-sm" >
-          {
-            req.from.avatar && (
-              <AvatarImage src={req.from.avatar} />
-            )
-          }
-
-          < AvatarFallback className="bg-secondary text-secondary-foreground font-semibold text-xs" >
+        <Avatar className="h-11 w-11 border-2 border-background shadow-sm">
+          {req.from.avatar && (
+            <AvatarImage src={req.from.avatar} />
+          )}
+          <AvatarFallback className="bg-secondary text-secondary-foreground font-semibold text-xs">
             {req.from.username.slice(0, 2).toUpperCase()}
-          </AvatarFallback >
-        </Avatar >
+          </AvatarFallback>
+        </Avatar>
 
         <div className="flex flex-col space-y-0.5">
           <span className="text-sm font-bold tracking-tight group-hover:text-primary transition-colors">
@@ -82,7 +83,7 @@ export default function FriendRequests() {
           </span>
         </div>
 
-      </div >
+      </div>
 
       <div className="flex gap-2">
 
@@ -104,10 +105,10 @@ export default function FriendRequests() {
         </Button>
 
       </div>
-    </Card >
+    </Card>
     ))
     }
-  </div >
+  </div>
 
   )
 }
