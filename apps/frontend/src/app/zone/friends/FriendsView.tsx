@@ -10,6 +10,7 @@ import {
 import FriendList from "./FriendList"
 import AddFriend from "./AddFriend"
 import FriendRequests from "./FriendRequests"
+import BlockedUsers from "./BlockedUsers"
 
 import { api } from "@openchat/lib"
 import { useRouter } from "next/navigation"
@@ -44,6 +45,10 @@ export default function FriendsView() {
 
           <TabsTrigger value="add">
             Add Friend
+          </TabsTrigger>
+
+          <TabsTrigger value="blocked">
+            Blocked
           </TabsTrigger>
 
 
@@ -94,6 +99,10 @@ export default function FriendsView() {
 
       <TabsContent value="add" className="p-4">
         <AddFriend />
+      </TabsContent>
+
+      <TabsContent value="blocked" className="p-4">
+        <BlockedUsers />
       </TabsContent>
 
 

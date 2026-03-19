@@ -8,6 +8,9 @@ export type User = {
 }
 
 export type Friend = User
+export type BlockedUser = User & {
+  blockedAt?: string
+}
 
 export type FriendRequest = {
   id: number
@@ -17,15 +20,21 @@ export type FriendRequest = {
 
 type FriendsState = {
   friends: Friend[]
+  blockedUsers: BlockedUser[]
   requests: FriendRequest[]
 
   friendsLoaded: boolean
+  blockedUsersLoaded: boolean
   requestsLoaded: boolean
 
   setFriends: (friends: Friend[]) => void
+  setBlockedUsers: (users: BlockedUser[]) => void
   setRequests: (requests: FriendRequest[]) => void
 
   addFriend: (friend: Friend) => void
+  removeFriend: (userId: number) => void
+  addBlockedUser: (user: BlockedUser) => void
+  removeBlockedUser: (userId: number) => void
   addRequest: (request: FriendRequest) => void
   removeRequest: (requestId: number) => void
 
@@ -39,24 +48,18 @@ type FriendsState = {
 
 export const useFriendsStore = create<FriendsState>((set) => ({
   friends: [],
+  blockedUsers: [],
   requests: [],
 
   friendsLoaded: false,
+  blockedUsersLoaded: false,
   requestsLoaded: false,
 
-  setFriends: (newFriends) =>
-    set((state) => {
-      const map = new Map(state.friends.map((f) => [f.id, f]))
+  setFriends: (friends) =>
+    set({ friends, friendsLoaded: true }),
 
-      newFriends.forEach((f) => {
-        map.set(f.id, f)
-      })
-
-      return {
-        friends: Array.from(map.values()),
-        friendsLoaded: true,
-      }
-    }),
+  setBlockedUsers: (blockedUsers) =>
+    set({ blockedUsers, blockedUsersLoaded: true }),
 
   setRequests: (requests) =>
     set({ requests, requestsLoaded: true }),
@@ -67,6 +70,35 @@ export const useFriendsStore = create<FriendsState>((set) => ({
         ? state
         : { friends: [...state.friends, friend] }
     ),
+
+  removeFriend: (userId) =>
+    set((state) => ({
+      friends: state.friends.filter((friend) => friend.id !== userId),
+      onlineUsers: (() => {
+        const next = new Set(state.onlineUsers)
+        next.delete(userId)
+        return next
+      })(),
+    })),
+
+  addBlockedUser: (user) =>
+    set((state) => ({
+      blockedUsers: state.blockedUsers.some((item) => item.id === user.id)
+        ? state.blockedUsers.map((item) => (item.id === user.id ? user : item))
+        : [user, ...state.blockedUsers],
+      blockedUsersLoaded: true,
+      friends: state.friends.filter((friend) => friend.id !== user.id),
+      onlineUsers: (() => {
+        const next = new Set(state.onlineUsers)
+        next.delete(user.id)
+        return next
+      })(),
+    })),
+
+  removeBlockedUser: (userId) =>
+    set((state) => ({
+      blockedUsers: state.blockedUsers.filter((user) => user.id !== userId),
+    })),
 
   addRequest: (request) =>
     set((state) =>
@@ -99,8 +131,10 @@ export const useFriendsStore = create<FriendsState>((set) => ({
   reset: () =>
     set({
       friends: [],
+      blockedUsers: [],
       requests: [],
       friendsLoaded: false,
+      blockedUsersLoaded: false,
       requestsLoaded: false,
       onlineUsers: new Set<number>(),
     }),

@@ -5,6 +5,9 @@ import multer from "multer"
 import path from "path"
 import fs from "fs"
 import { ZoneRole } from "@prisma/client"
+import { resolveAssetUrl } from "../utils/resolveAssetUrl.js"
+import { getChannelCallPresence } from "../socket/channelCallHandler.js"
+import { io } from "../index.js"
 
 const uploadDir = "uploads/zones"
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true })
@@ -25,6 +28,81 @@ const upload = multer({
     cb(null, true)
   }
 })
+
+async function getZoneAndParticipant(chatPublicId: string, userId: number) {
+  const chat = await prisma.chat.findUnique({
+    where: { publicId: chatPublicId },
+    include: {
+      participants: {
+        where: { userId },
+      },
+    },
+  })
+
+  if (!chat) return { chat: null, participant: null }
+
+  return {
+    chat,
+    participant: chat.participants[0] ?? null,
+  }
+}
+
+async function buildZoneMembers(chatId: number) {
+  const participants = await prisma.chatParticipant.findMany({
+    where: { chatId },
+    include: {
+      user: {
+        select: {
+          id: true,
+          username: true,
+          avatar: true,
+        },
+      },
+    },
+    orderBy: [
+      { role: "asc" },
+      { userId: "asc" },
+    ],
+  })
+
+  return participants.map((participant) => ({
+    id: participant.user.id,
+    username: participant.user.username,
+    avatar: participant.user.avatar ?? null,
+    role: participant.role,
+  }))
+}
+
+async function emitZoneMembersUpdate(chatPublicId: string, chatId: number) {
+  const members = await buildZoneMembers(chatId)
+  io.to(`chat:${chatPublicId}`).emit("zone:members-updated", {
+    chatPublicId,
+    members,
+  })
+}
+
+function emitZoneChannelsUpdate(chatPublicId: string) {
+  io.to(`chat:${chatPublicId}`).emit("zone:channels-updated", {
+    chatPublicId,
+  })
+}
+
+async function emitZoneUpdated(chatPublicId: string) {
+  const zone = await prisma.chat.findUnique({
+    where: { publicId: chatPublicId },
+    select: { publicId: true, name: true, avatar: true, type: true },
+  })
+
+  if (!zone || zone.type !== "ZONE") return
+
+  io.to(`chat:${chatPublicId}`).emit("zone:updated", {
+    zone: {
+      publicId: zone.publicId,
+      name: zone.name,
+      avatar: resolveAssetUrl(zone.avatar ? `/uploads/zones/${zone.avatar}` : null),
+    },
+  })
+}
 
 export const getZones = async (req: Request, res: Response) => {
   try {
@@ -67,7 +145,7 @@ export const getZoneMembers = async (req: Request, res: Response) => {
       members: participants.map(p => ({
         id: p.user.id,
         username: p.user.username,
-        avatar: p.user.avatar ? `${process.env.BASE_URL}/uploads/zones/${p.user.avatar}` : null,
+        avatar: p.user.avatar ?? null,
         role: p.role
       }))
     })
@@ -133,17 +211,32 @@ export const updateZone = [
       const userId = req.user?.id
       const { chatPublicId } = req.params
       if (!userId) return res.status(401).json({ message: "Unauthorized" })
-      const dataToUpdate: any = { name: req.body.name }
+      const { chat, participant } = await getZoneAndParticipant(chatPublicId, userId)
+      if (!chat || chat.type !== "ZONE") return res.status(404).json({ message: "Zone not found" })
+      if (!participant || (participant.role !== ZoneRole.OWNER && participant.role !== ZoneRole.ADMIN)) {
+        return res.status(403).json({ message: "Only managers can update the zone" })
+      }
+
+      const dataToUpdate: { name?: string; avatar?: string } = {}
+      const nextName = typeof req.body.name === "string" ? req.body.name.trim() : ""
+      if (nextName) dataToUpdate.name = nextName
       if (req.file) dataToUpdate.avatar = req.file.filename
+      if (!dataToUpdate.name && !dataToUpdate.avatar) {
+        return res.status(400).json({ message: "Nothing to update" })
+      }
+
       const updatedZone = await prisma.chat.update({
         where: { publicId: chatPublicId },
         data: dataToUpdate
       })
+
+      await emitZoneUpdated(chatPublicId)
+
       res.json({
         zone: {
           publicId: updatedZone.publicId,
           name: updatedZone.name,
-          avatar: updatedZone.avatar ? `${process.env.BASE_URL}/uploads/zones/${updatedZone.avatar}` : null
+          avatar: resolveAssetUrl(updatedZone.avatar ? `/uploads/zones/${updatedZone.avatar}` : null)
         }
       })
     } catch (err) {
@@ -155,15 +248,21 @@ export const updateZone = [
 
 export const addUserToGroup = async (req: Request, res: Response) => {
   try {
+    const actorId = req.user?.id
     const { chatPublicId } = req.params
     const { userIds } = req.body as { userIds: number[] }
+    if (!actorId) return res.status(401).json({ message: "Unauthorized" })
     if (!userIds?.length) return res.status(400).json({ message: "No users provided" })
-    const chat = await prisma.chat.findUnique({ where: { publicId: chatPublicId } })
-    if (!chat) return res.status(404).json({ message: "Chat not found" })
+    const { chat, participant } = await getZoneAndParticipant(chatPublicId, actorId)
+    if (!chat || chat.type !== "ZONE") return res.status(404).json({ message: "Chat not found" })
+    if (!participant || (participant.role !== ZoneRole.OWNER && participant.role !== ZoneRole.ADMIN)) {
+      return res.status(403).json({ message: "Only managers can add members" })
+    }
     await prisma.chatParticipant.createMany({
       data: userIds.map(id => ({ chatId: chat.id, userId: id, role: ZoneRole.MEMBER })),
       skipDuplicates: true
     })
+    await emitZoneMembersUpdate(chatPublicId, chat.id)
     res.json({ success: true })
   } catch (err) {
     console.error(err)
@@ -173,11 +272,28 @@ export const addUserToGroup = async (req: Request, res: Response) => {
 
 export const removeUserFromGroup = async (req: Request, res: Response) => {
   try {
+    const actorId = req.user?.id
     const { chatPublicId } = req.params
     const userId = Number(req.params.userId)
-    const chat = await prisma.chat.findUnique({ where: { publicId: chatPublicId } })
-    if (!chat) return res.status(404).json({ message: "Chat not found" })
+    if (!actorId) return res.status(401).json({ message: "Unauthorized" })
+    const { chat, participant } = await getZoneAndParticipant(chatPublicId, actorId)
+    if (!chat || chat.type !== "ZONE") return res.status(404).json({ message: "Chat not found" })
+    if (!participant || (participant.role !== ZoneRole.OWNER && participant.role !== ZoneRole.ADMIN)) {
+      return res.status(403).json({ message: "Only managers can remove members" })
+    }
+    if (actorId === userId) return res.status(400).json({ message: "Use leave zone instead" })
+
+    const target = await prisma.chatParticipant.findUnique({
+      where: { chatId_userId: { chatId: chat.id, userId } },
+    })
+    if (!target) return res.status(404).json({ message: "Member not found" })
+    if (target.role === ZoneRole.OWNER) return res.status(403).json({ message: "Owner cannot be removed" })
+    if (participant.role === ZoneRole.ADMIN && target.role === ZoneRole.ADMIN) {
+      return res.status(403).json({ message: "Admins cannot remove other admins" })
+    }
+
     await prisma.chatParticipant.delete({ where: { chatId_userId: { chatId: chat.id, userId } } })
+    await emitZoneMembersUpdate(chatPublicId, chat.id)
     res.json({ success: true })
   } catch (err) {
     console.error(err)
@@ -196,6 +312,7 @@ export const leaveZone = async (req: Request, res: Response) => {
     if (!participant) return res.status(404).json({ message: "You are not a member" })
     if (participant.role === ZoneRole.OWNER) return res.status(400).json({ message: "Owner cannot leave zone" })
     await prisma.chatParticipant.delete({ where: { chatId_userId: { chatId: chat.id, userId } } })
+    await emitZoneMembersUpdate(chatPublicId, chat.id)
     res.json({ success: true })
   } catch (err) {
     console.error(err)
@@ -225,6 +342,192 @@ export const getZoneChannels = async (req: Request, res: Response) => {
   } catch (err) {
     console.error(err)
     res.status(500).json({ message: "Failed to fetch channels" })
+  }
+}
+
+export const getZoneVoicePresence = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id
+    const { chatPublicId } = req.params
+    if (!userId) return res.status(401).json({ message: "Unauthorized" })
+
+    const chat = await prisma.chat.findUnique({
+      where: { publicId: chatPublicId },
+      include: {
+        participants: { where: { userId } },
+        channels: {
+          where: { type: "VOICE" },
+          select: { publicId: true, name: true },
+        },
+      },
+    })
+
+    if (!chat || chat.type !== "ZONE" || chat.participants.length === 0) {
+      return res.status(403).json({ message: "Forbidden" })
+    }
+
+    const presence = getChannelCallPresence(chat.channels.map((channel) => channel.publicId))
+    res.json({ channels: presence })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ message: "Failed to fetch voice presence" })
+  }
+}
+
+export const createZoneInvite = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id
+    const { chatPublicId } = req.params
+
+    if (!userId) return res.status(401).json({ message: "Unauthorized" })
+
+    const chat = await prisma.chat.findUnique({
+      where: { publicId: chatPublicId },
+      include: {
+        participants: {
+          where: { userId },
+        },
+      },
+    })
+
+    if (!chat || chat.type !== "ZONE" || chat.participants.length === 0) {
+      return res.status(403).json({ message: "Forbidden" })
+    }
+
+    const invite = await prisma.chatInvite.create({
+      data: {
+        code: crypto.randomBytes(6).toString("base64url"),
+        chatId: chat.id,
+        createdBy: userId,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+      select: {
+        code: true,
+        expiresAt: true,
+      },
+    })
+
+    res.json({
+      invite: {
+        ...invite,
+      },
+    })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ message: "Failed to create invite" })
+  }
+}
+
+export const getZoneInvite = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id
+    const { code } = req.params
+
+    if (!userId) return res.status(401).json({ message: "Unauthorized" })
+
+    const invite = await prisma.chatInvite.findUnique({
+      where: { code },
+      include: {
+        chat: {
+          include: {
+            participants: {
+              where: { userId },
+            },
+            _count: {
+              select: { participants: true },
+            },
+          },
+        },
+      },
+    })
+
+    if (!invite || invite.chat.type !== "ZONE") {
+      return res.status(404).json({ message: "Invite not found" })
+    }
+
+    if (invite.expiresAt && invite.expiresAt.getTime() < Date.now()) {
+      return res.status(410).json({ message: "Invite expired" })
+    }
+
+    res.json({
+      invite: {
+        code: invite.code,
+        expiresAt: invite.expiresAt,
+        zone: {
+          publicId: invite.chat.publicId,
+          name: invite.chat.name,
+          avatar: invite.chat.avatar ? resolveAssetUrl(`/uploads/zones/${invite.chat.avatar}`) : null,
+          memberCount: invite.chat._count.participants,
+        },
+        isMember: invite.chat.participants.length > 0,
+      },
+    })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ message: "Failed to fetch invite" })
+  }
+}
+
+export const joinZoneInvite = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id
+    const { code } = req.params
+
+    if (!userId) return res.status(401).json({ message: "Unauthorized" })
+
+    const invite = await prisma.chatInvite.findUnique({
+      where: { code },
+      include: {
+        chat: {
+          include: {
+            participants: {
+              where: { userId },
+            },
+          },
+        },
+      },
+    })
+
+    if (!invite || invite.chat.type !== "ZONE") {
+      return res.status(404).json({ message: "Invite not found" })
+    }
+
+    if (invite.expiresAt && invite.expiresAt.getTime() < Date.now()) {
+      return res.status(410).json({ message: "Invite expired" })
+    }
+
+    if (invite.maxUses && invite.uses >= invite.maxUses) {
+      return res.status(410).json({ message: "Invite exhausted" })
+    }
+
+    if (invite.chat.participants.length === 0) {
+      await prisma.$transaction(async (tx) => {
+        await tx.chatParticipant.create({
+          data: {
+            chatId: invite.chat.id,
+            userId,
+            role: ZoneRole.MEMBER,
+          },
+        })
+
+        await tx.chatInvite.update({
+          where: { code },
+          data: { uses: { increment: 1 } },
+        })
+      })
+
+      await emitZoneMembersUpdate(invite.chat.publicId, invite.chat.id)
+    }
+
+    res.json({
+      zone: {
+        publicId: invite.chat.publicId,
+        name: invite.chat.name,
+      },
+    })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ message: "Failed to join invite" })
   }
 }
 
@@ -262,9 +565,53 @@ export const createChannel = async (req: Request, res: Response) => {
       }
     })
 
+    emitZoneChannelsUpdate(chatPublicId)
     res.json({ channel })
   } catch (err) {
     console.error(err)
     res.status(500).json({ message: "Failed to create channel" })
+  }
+}
+
+export const updateZoneMemberRole = async (req: Request, res: Response) => {
+  try {
+    const actorId = req.user?.id
+    const { chatPublicId, userId } = req.params
+    const { role } = req.body as { role?: ZoneRole }
+
+    if (!actorId) return res.status(401).json({ message: "Unauthorized" })
+    if (!role || !["ADMIN", "MEMBER"].includes(role)) {
+      return res.status(400).json({ message: "Invalid role" })
+    }
+
+    const { chat, participant } = await getZoneAndParticipant(chatPublicId, actorId)
+    if (!chat || chat.type !== "ZONE") return res.status(404).json({ message: "Zone not found" })
+    if (!participant || (participant.role !== ZoneRole.OWNER && participant.role !== ZoneRole.ADMIN)) {
+      return res.status(403).json({ message: "Only managers can update roles" })
+    }
+
+    const targetUserId = Number(userId)
+    const target = await prisma.chatParticipant.findUnique({
+      where: { chatId_userId: { chatId: chat.id, userId: targetUserId } },
+    })
+
+    if (!target) return res.status(404).json({ message: "Member not found" })
+    if (target.role === ZoneRole.OWNER) {
+      return res.status(403).json({ message: "Owner role cannot be changed" })
+    }
+    if (participant.role === ZoneRole.ADMIN) {
+      return res.status(403).json({ message: "Only owner can change roles" })
+    }
+
+    await prisma.chatParticipant.update({
+      where: { chatId_userId: { chatId: chat.id, userId: targetUserId } },
+      data: { role },
+    })
+
+    await emitZoneMembersUpdate(chatPublicId, chat.id)
+    res.json({ success: true })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ message: "Failed to update role" })
   }
 }

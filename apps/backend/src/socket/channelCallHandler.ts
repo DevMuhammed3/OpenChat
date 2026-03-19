@@ -1,5 +1,6 @@
 import { Server, Socket } from "socket.io"
 import { prisma } from "../config/prisma.js"
+import { resolveAssetUrl } from "../utils/resolveAssetUrl.js"
 
 interface ChannelParticipant {
   userId: number
@@ -10,6 +11,7 @@ interface ChannelParticipant {
 
 interface ActiveChannelCall {
   channelPublicId: string
+  chatPublicId: string
   participants: Map<number, ChannelParticipant>
 }
 
@@ -21,12 +23,32 @@ interface AuthenticatedSocket extends Socket {
   }
 }
 
+export function getChannelCallPresence(channelPublicIds: string[]) {
+  return channelPublicIds.map((channelPublicId) => ({
+    channelPublicId,
+    participants: Array.from(activeChannelCalls.get(channelPublicId)?.participants.values() ?? []),
+  }))
+}
+
 export function channelCallHandler(io: Server, socket: AuthenticatedSocket) {
   const userId = socket.data.userId
   if (!userId) return
 
   socket.on("channel:join-call", async ({ channelPublicId }: { channelPublicId: string }) => {
     try {
+      const channel = await prisma.channel.findUnique({
+        where: { publicId: channelPublicId },
+        select: {
+          publicId: true,
+          chat: {
+            select: {
+              publicId: true,
+            },
+          },
+        },
+      })
+      if (!channel) return
+
       const user = await prisma.user.findUnique({
         where: { id: userId },
         select: { id: true, username: true, avatar: true }
@@ -37,6 +59,7 @@ export function channelCallHandler(io: Server, socket: AuthenticatedSocket) {
       if (!call) {
         call = {
           channelPublicId,
+          chatPublicId: channel.chat.publicId,
           participants: new Map()
         }
         activeChannelCalls.set(channelPublicId, call)
@@ -46,7 +69,7 @@ export function channelCallHandler(io: Server, socket: AuthenticatedSocket) {
         userId: user.id,
         socketId: socket.id,
         username: user.username,
-        avatar: user.avatar ? `${process.env.BASE_URL}/uploads/${user.avatar}` : null
+        avatar: resolveAssetUrl(user.avatar)
       }
 
       call.participants.set(userId, participant)
@@ -54,12 +77,19 @@ export function channelCallHandler(io: Server, socket: AuthenticatedSocket) {
 
       // Notify others in the channel
       socket.to(`channel-call:${channelPublicId}`).emit("channel:user-joined", {
+        channelPublicId,
         participant
+      })
+      io.to(`chat:${call.chatPublicId}`).emit("zone:voice-presence", {
+        chatPublicId: call.chatPublicId,
+        channelPublicId,
+        participants: Array.from(call.participants.values()),
       })
 
       // Send list of current participants to the joiner
-      const currentParticipants = Array.from(call.participants.values()).filter(p => p.userId !== userId)
+      const currentParticipants = Array.from(call.participants.values())
       socket.emit("channel:current-participants", {
+        channelPublicId,
         participants: currentParticipants
       })
 
@@ -100,7 +130,13 @@ export function channelCallHandler(io: Server, socket: AuthenticatedSocket) {
       socket.leave(`channel-call:${channelPublicId}`)
       
       io.to(`channel-call:${channelPublicId}`).emit("channel:user-left", {
+        channelPublicId,
         userId
+      })
+      io.to(`chat:${call.chatPublicId}`).emit("zone:voice-presence", {
+        chatPublicId: call.chatPublicId,
+        channelPublicId,
+        participants: Array.from(call.participants.values()),
       })
 
       if (call.participants.size === 0) {

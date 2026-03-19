@@ -1,26 +1,34 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Room, RoomEvent, Track, type RemoteTrack } from "livekit-client"
-import { api } from "@openchat/lib"
+import { api, socket } from "@openchat/lib"
+import { useCallStore } from "@/app/stores/call-store"
 
 export function useChannelVoiceCall(channelPublicId: string | null) {
   const [inCall, setInCall] = useState(false)
-  const [participants, setParticipants] = useState<Array<{ userId: number }>>([])
   const [remoteStreams, setRemoteStreams] = useState<Map<number, MediaStream>>(new Map())
   const roomRef = useRef<Room | null>(null)
   const activeChannelRef = useRef<string | null>(null)
+  const setChannelParticipants = useCallStore((s) => s.setChannelParticipants)
+  const upsertChannelParticipant = useCallStore((s) => s.upsertChannelParticipant)
+  const removeChannelParticipant = useCallStore((s) => s.removeChannelParticipant)
 
   const cleanup = useCallback(() => {
     const room = roomRef.current
+    const activeChannelId = activeChannelRef.current
     roomRef.current = null
     activeChannelRef.current = null
     setInCall(false)
-    setParticipants([])
     setRemoteStreams(new Map())
+    setChannelParticipants([])
+
+    if (activeChannelId) {
+      socket.emit("channel:leave-call", { channelPublicId: activeChannelId })
+    }
 
     if (room) {
       room.disconnect()
     }
-  }, [])
+  }, [setChannelParticipants])
 
   const joinCall = useCallback(async () => {
     if (!channelPublicId) return
@@ -48,10 +56,6 @@ export function useChannelVoiceCall(channelPublicId: string | null) {
           const userId = Number(participant.identity)
           if (Number.isNaN(userId)) return
 
-          setParticipants((prev) =>
-            prev.some((entry) => entry.userId === userId) ? prev : [...prev, { userId }],
-          )
-
           setRemoteStreams((prev) => {
             const next = new Map(prev)
             next.set(userId, new MediaStream([track.mediaStreamTrack]))
@@ -69,7 +73,6 @@ export function useChannelVoiceCall(channelPublicId: string | null) {
             next.delete(userId)
             return next
           })
-          setParticipants((prev) => prev.filter((entry) => entry.userId !== userId))
         })
         .on(RoomEvent.ParticipantDisconnected, (participant) => {
           const userId = Number(participant.identity)
@@ -80,45 +83,112 @@ export function useChannelVoiceCall(channelPublicId: string | null) {
             next.delete(userId)
             return next
           })
-          setParticipants((prev) => prev.filter((entry) => entry.userId !== userId))
         })
         .on(RoomEvent.Disconnected, () => {
           roomRef.current = null
           activeChannelRef.current = null
           setInCall(false)
-          setParticipants([])
           setRemoteStreams(new Map())
+          setChannelParticipants([])
         })
 
       await room.connect(serverUrl, token)
       await room.localParticipant.setMicrophoneEnabled(true)
+      socket.emit("channel:join-call", { channelPublicId })
 
       roomRef.current = room
       activeChannelRef.current = channelPublicId
       setInCall(true)
-
-      const initialParticipants = Array.from(room.remoteParticipants.values())
-        .map((participant) => Number(participant.identity))
-        .filter((userId) => !Number.isNaN(userId))
-        .map((userId) => ({ userId }))
-      setParticipants(initialParticipants)
     } catch (err) {
       console.error("[useChannelVoiceCall] joinCall failed:", err)
       cleanup()
     }
-  }, [channelPublicId, cleanup])
+  }, [channelPublicId, cleanup, setChannelParticipants])
 
   const leaveCall = useCallback(() => {
     cleanup()
   }, [cleanup])
 
+  const setMuted = useCallback(async (muted: boolean) => {
+    const room = roomRef.current
+    if (!room) return
+
+    try {
+      await room.localParticipant.setMicrophoneEnabled(!muted)
+    } catch (err) {
+      console.error("[useChannelVoiceCall] setMuted failed:", err)
+    }
+  }, [])
+
   useEffect(() => cleanup, [cleanup])
+
+  useEffect(() => {
+    if (!channelPublicId) return
+
+    const handleReconnect = () => {
+      void joinCall()
+    }
+
+    socket.on("connect", handleReconnect)
+
+    return () => {
+      socket.off("connect", handleReconnect)
+    }
+  }, [channelPublicId, joinCall])
+
+  useEffect(() => {
+    if (!channelPublicId) {
+      setChannelParticipants([])
+      return
+    }
+
+    const handleCurrentParticipants = (payload: {
+      channelPublicId: string
+      participants: Array<{
+        userId: number
+        socketId: string
+        username: string
+        avatar: string | null
+      }>
+    }) => {
+      if (payload.channelPublicId !== channelPublicId) return
+      setChannelParticipants(payload.participants)
+    }
+
+    const handleUserJoined = (payload: {
+      channelPublicId: string
+      participant: {
+        userId: number
+        socketId: string
+        username: string
+        avatar: string | null
+      }
+    }) => {
+      if (payload.channelPublicId !== channelPublicId) return
+      upsertChannelParticipant(payload.participant)
+    }
+
+    const handleUserLeft = (payload: { channelPublicId: string; userId: number }) => {
+      if (payload.channelPublicId !== channelPublicId) return
+      removeChannelParticipant(payload.userId)
+    }
+
+    socket.on("channel:current-participants", handleCurrentParticipants)
+    socket.on("channel:user-joined", handleUserJoined)
+    socket.on("channel:user-left", handleUserLeft)
+
+    return () => {
+      socket.off("channel:current-participants", handleCurrentParticipants)
+      socket.off("channel:user-joined", handleUserJoined)
+      socket.off("channel:user-left", handleUserLeft)
+    }
+  }, [channelPublicId, removeChannelParticipant, setChannelParticipants, upsertChannelParticipant])
 
   return {
     inCall,
-    participants,
     remoteStreams,
     joinCall,
     leaveCall,
+    setMuted,
   }
 }

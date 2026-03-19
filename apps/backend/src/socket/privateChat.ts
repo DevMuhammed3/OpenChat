@@ -1,5 +1,6 @@
 import { Server, Socket } from "socket.io"
 import { prisma } from "../config/prisma.js"
+import { encryptMessage } from "../utils/crypto.js"
 
 async function isUserInChat(userId: number, chatPublicId: string) {
   const chat = await prisma.chat.findUnique({
@@ -83,21 +84,43 @@ export function privateChatHandler(io: Server, socket: Socket) {
         data: {
           chatId: chat.id,
           senderId: userId,
-          text: text?.trim() || null,
+          text: text?.trim() ? encryptMessage(text.trim()) : null,
           fileUrl: fileUrl || null,
           fileType: fileType || null,
           channelId: channelId,
         },
+        include: {
+          sender: {
+            select: {
+              id: true,
+              username: true,
+              avatar: true,
+            },
+          },
+        },
       })
 
-      const room = channelPublicId ? `channel:${channelPublicId}` : `chat:${chatPublicId}`
+      const recipients = channelPublicId
+        ? []
+        : await prisma.chatParticipant.findMany({
+            where: {
+              chatId: chat.id,
+              userId: {
+                not: userId,
+              },
+            },
+            select: {
+              userId: true,
+            },
+          })
 
       const messagePayload = {
         id: saved.id,
-        text: saved.text,
+        text: text?.trim() || null,
         fileUrl: saved.fileUrl,
         fileType: saved.fileType,
         senderId: userId,
+        sender: saved.sender,
         chatPublicId,
         channelPublicId,
         createdAt: saved.createdAt,
@@ -112,10 +135,12 @@ export function privateChatHandler(io: Server, socket: Socket) {
           senderId: userId,
         })
       } else {
-        socket.to(`chat:${chatPublicId}`).emit("private-message", messagePayload)
-        socket.to(`chat:${chatPublicId}`).emit("chat-notification", {
-          chatPublicId,
-          senderId: userId,
+        recipients.forEach(({ userId: recipientUserId }) => {
+          io.to(`user:${recipientUserId}`).emit("private-message", messagePayload)
+          io.to(`user:${recipientUserId}`).emit("chat-notification", {
+            chatPublicId,
+            senderId: userId,
+          })
         })
       }
 
@@ -137,4 +162,3 @@ export function privateChatHandler(io: Server, socket: Socket) {
     })
   })
 }
-

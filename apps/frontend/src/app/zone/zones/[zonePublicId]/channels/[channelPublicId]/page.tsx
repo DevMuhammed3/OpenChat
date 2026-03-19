@@ -3,23 +3,27 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useParams } from "next/navigation"
 import { Avatar, AvatarFallback, AvatarImage, Button, Input, Skeleton } from "packages/ui"
-import { Info, Paperclip, Send, Hash, Plus } from "lucide-react"
-import { api, socket, getAvatarUrl, cn } from "@openchat/lib"
+import { Info, Send, Hash, Plus, Link2, Check } from "lucide-react"
+import { api, socket, getAvatarUrl } from "@openchat/lib"
 import { useChatsStore } from "@/app/stores/chat-store"
-import { ChatHeader } from "../../../../_components/zones/ChatHeader"
+import MessageText from "../../../../_components/chat/MessageText"
+import ZoneDashboardSheet from "../../../../_components/zones/ZoneDashboardSheet"
 
 type Message = {
   id: number
   text: string | null
   senderId: number
-  sender?: {
-    id: number
-    username: string
-    avatar?: string | null
-  }
-  fileUrl?: string
-  fileType?: string
+  sender?: ChannelUser
+  fileUrl?: string | null
+  fileType?: string | null
   isDeleted?: boolean
+  createdAt?: string
+}
+
+type ChannelUser = {
+  id: number
+  username: string
+  avatar?: string | null
 }
 
 type Zone = {
@@ -41,21 +45,45 @@ type Channel = {
   type: "TEXT" | "VOICE"
 }
 
+function getMessageTimestamp(message: Message) {
+  if (message.createdAt) {
+    const parsed = new Date(message.createdAt).getTime()
+    if (!Number.isNaN(parsed)) return parsed
+  }
+
+  return message.id
+}
+
+function sortMessages(messages: Message[]) {
+  return [...messages].sort((a, b) => {
+    const timeDiff = getMessageTimestamp(a) - getMessageTimestamp(b)
+    return timeDiff !== 0 ? timeDiff : a.id - b.id
+  })
+}
+
+function mergeMessage(messages: Message[], message: Message) {
+  const deduped = messages.filter((item) => item.id !== message.id)
+  deduped.push(message)
+  return sortMessages(deduped)
+}
+
 export default function ChannelPage() {
   const { zonePublicId, channelPublicId } = useParams<{ zonePublicId: string; channelPublicId: string }>()
   const [zone, setZone] = useState<Zone | null>(null)
   const [channel, setChannel] = useState<Channel | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
-  const [members, setMembers] = useState<Member[]>([])
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<ChannelUser | null>(null)
   const [currentUserId, setCurrentUserId] = useState<number | null>(null)
   const [input, setInput] = useState("")
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [inviteCopied, setInviteCopied] = useState(false)
+  const [creatingInvite, setCreatingInvite] = useState(false)
+  const [dashboardOpen, setDashboardOpen] = useState(false)
 
   const messagesRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const userCache = useRef<Map<number, Member>>(new Map())
+  const userCache = useRef<Map<number, ChannelUser>>(new Map())
 
   const setActiveChat = useChatsStore(s => s.setActiveChat)
   const setActiveChannel = useChatsStore(s => s.setActiveChannel)
@@ -88,25 +116,25 @@ export default function ChannelPage() {
         // Zone
         const zonesRes = await api("/zones")
         const zonesData = await zonesRes.json()
-        const currentZone = zonesData.zones.find((z: Zone) => z.publicId === zonePublicId)
+        const zones = Array.isArray(zonesData?.zones) ? zonesData.zones : []
+        const currentZone = zones.find((z: Zone) => z.publicId === zonePublicId)
         setZone(currentZone)
 
         // Channels
         const channelsRes = await api(`/zones/${zonePublicId}/channels`)
         const channelsData = await channelsRes.json()
-        const currentChannel = channelsData.channels.find((c: Channel) => c.publicId === channelPublicId)
+        const channels = Array.isArray(channelsData?.channels) ? channelsData.channels : []
+        const currentChannel = channels.find((c: Channel) => c.publicId === channelPublicId)
         setChannel(currentChannel)
 
         // Messages
         const msgsRes = await api(`/chats/${zonePublicId}/messages?channelPublicId=${channelPublicId}`)
         const msgsData = await msgsRes.json()
-        const sortedMessages = (msgsData.messages ?? []).sort((a: Message, b: Message) => a.id - b.id)
-        setMessages(sortedMessages)
+        setMessages(sortMessages(msgsData.messages ?? []))
 
         // Members
         const membersRes = await api(`/zones/${zonePublicId}/members`)
         const membersData = await membersRes.json()
-        setMembers(membersData.members ?? [])
         membersData.members?.forEach((m: Member) => {
           userCache.current.set(m.id, m)
         })
@@ -118,6 +146,34 @@ export default function ChannelPage() {
 
     loadData()
   }, [zonePublicId, channelPublicId])
+
+  useEffect(() => {
+    if (!zonePublicId) return
+
+    const handleZoneUpdated = (payload: { zone: Zone }) => {
+      if (payload.zone.publicId !== zonePublicId) return
+      setZone(payload.zone)
+    }
+
+    const handleChannelsUpdated = async (payload: { chatPublicId: string }) => {
+      if (payload.chatPublicId !== zonePublicId) return
+
+      const channelsRes = await api(`/zones/${zonePublicId}/channels`)
+      const channelsData = await channelsRes.json()
+      const channels = Array.isArray(channelsData?.channels) ? channelsData.channels : []
+      const currentChannel = channels.find((item: Channel) => item.publicId === channelPublicId)
+      if (currentChannel) {
+        setChannel(currentChannel)
+      }
+    }
+
+    socket.on("zone:updated", handleZoneUpdated)
+    socket.on("zone:channels-updated", handleChannelsUpdated)
+    return () => {
+      socket.off("zone:updated", handleZoneUpdated)
+      socket.off("zone:channels-updated", handleChannelsUpdated)
+    }
+  }, [channelPublicId, zonePublicId])
 
   // Join/Leave channel room
   useEffect(() => {
@@ -132,24 +188,13 @@ export default function ChannelPage() {
 
   // Listen messages
   useEffect(() => {
-    const handler = async (msg: Message & { chatPublicId: string; channelPublicId?: string }) => {
+    const handler = (msg: Message & { chatPublicId: string; channelPublicId?: string }) => {
       if (msg.chatPublicId !== zonePublicId || msg.channelPublicId !== channelPublicId) return
       
       const cached = userCache.current.get(msg.senderId)
-      const sender = msg.sender || cached || { id: msg.senderId, username: "Loading...", avatar: null }
+      const sender = msg.sender || cached || { id: msg.senderId, username: "User", avatar: null }
 
-      setMessages(prev => prev.some(m => m.id === msg.id) ? prev : [...prev, { ...msg, sender }])
-
-      if (!cached) {
-        try {
-          const res = await api(`/users/${msg.senderId}`)
-          const data = await res.json()
-          userCache.current.set(msg.senderId, data.user)
-          setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, sender: data.user } : m))
-        } catch (err) {
-          console.error("Failed to fetch sender", err)
-        }
-      }
+      setMessages(prev => mergeMessage(prev, { ...msg, sender }))
     }
 
     socket.on("private-message", handler)
@@ -164,58 +209,105 @@ export default function ChannelPage() {
     messagesRef.current.scrollTop = messagesRef.current.scrollHeight
   }, [messages])
 
+  const clearSelectedFile = useCallback(() => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl)
+    }
+
+    setSelectedFile(null)
+    setPreviewUrl(null)
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
+  }, [previewUrl])
+
+  const copyInviteLink = useCallback(async () => {
+    if (!zonePublicId) return
+
+    try {
+      setCreatingInvite(true)
+      const res = await api(`/zones/${zonePublicId}/invites`, {
+        method: "POST",
+        credentials: "include",
+      })
+      const data = await res.json()
+
+      if (!data?.invite?.code) {
+        throw new Error("Invite code not returned")
+      }
+
+      const link = `${window.location.origin}/zone/invite/${data.invite.code}`
+      await navigator.clipboard.writeText(link)
+      setInviteCopied(true)
+      window.setTimeout(() => setInviteCopied(false), 2000)
+    } catch (err) {
+      console.error("Failed to copy invite", err)
+    } finally {
+      setCreatingInvite(false)
+    }
+  }, [zonePublicId])
+
   // Send message
   const send = useCallback(async () => {
     if (!zonePublicId || !channelPublicId) return
-    if (!input.trim() && !selectedFile) return
+    const text = input.trim()
+    if (!text && !selectedFile) return
 
     const tempId = Date.now()
     const tempMsg: Message = {
       id: tempId,
-      text: input || null,
+      text: text || null,
       senderId: currentUserId!,
       fileUrl: previewUrl ?? undefined,
       fileType: selectedFile?.type,
-      sender: userCache.current.get(currentUserId!) || user
+      sender: userCache.current.get(currentUserId!) || user || undefined,
+      createdAt: new Date().toISOString(),
     }
     
-    setMessages(prev => [...prev, tempMsg])
+    setMessages(prev => mergeMessage(prev, tempMsg))
 
-    let fileUrl: string | null = null
-    let fileType: string | null = null
+    try {
+      let fileUrl: string | null = null
+      let fileType: string | null = null
 
-    if (selectedFile) {
-      const form = new FormData()
-      form.append("file", selectedFile)
-      const res = await api(`/zones/${zonePublicId}/upload`, {
-        method: "POST",
-        body: form,
-        credentials: "include"
-      })
-      const data = await res.json()
-      fileUrl = data.fileUrl
-      fileType = selectedFile.type
-    }
-
-    socket.emit(
-      "private-message",
-      { 
-        chatPublicId: zonePublicId, 
-        channelPublicId,
-        text: input || null, 
-        fileUrl, 
-        fileType 
-      },
-      (savedMessage: Message) => {
-        setMessages(prev => prev.map(m => m.id === tempId ? savedMessage : m))
+      if (selectedFile) {
+        const form = new FormData()
+        form.append("file", selectedFile)
+        const res = await api(`/zones/${zonePublicId}/upload`, {
+          method: "POST",
+          body: form,
+          credentials: "include"
+        })
+        const data = await res.json()
+        fileUrl = data.fileUrl
+        fileType = selectedFile.type
       }
-    )
 
-    setInput("")
-    setSelectedFile(null)
-    if (previewUrl) URL.revokeObjectURL(previewUrl)
-    setPreviewUrl(null)
-  }, [input, selectedFile, previewUrl, zonePublicId, channelPublicId, currentUserId, user])
+      socket.emit(
+        "private-message",
+        { 
+          chatPublicId: zonePublicId, 
+          channelPublicId,
+          text: text || null, 
+          fileUrl, 
+          fileType 
+        },
+        (savedMessage: Message) => {
+          setMessages(prev => {
+            const withoutOptimistic = prev.filter(message => message.id !== tempId)
+            return mergeMessage(withoutOptimistic, savedMessage)
+          })
+        }
+      )
+
+      setInput("")
+      clearSelectedFile()
+    } catch (err) {
+      setMessages(prev => prev.filter(message => message.id !== tempId))
+      console.error("Failed to send channel message", err)
+    }
+  }, [channelPublicId, clearSelectedFile, currentUserId, input, previewUrl, selectedFile, user, zonePublicId])
 
   if (!zone || !channel) {
     return (
@@ -252,11 +344,37 @@ export default function ChannelPage() {
           <h1 className="font-bold text-sm tracking-tight">{channel.name}</h1>
         </div>
         <div className="flex items-center gap-4">
-           <Button size="icon" variant="ghost" className="h-8 w-8 text-zinc-400 hover:text-white transition-colors">
+           <Button
+             size="icon"
+             variant="ghost"
+             onClick={copyInviteLink}
+             disabled={creatingInvite}
+             className="h-8 w-8 text-zinc-400 hover:text-white transition-colors"
+             title="Copy invite link"
+           >
+             {inviteCopied ? <Check size={18} /> : <Link2 size={18} />}
+           </Button>
+           <Button
+             size="icon"
+             variant="ghost"
+             onClick={() => setDashboardOpen(true)}
+             className="h-8 w-8 text-zinc-400 hover:text-white transition-colors"
+           >
              <Info size={18} />
            </Button>
         </div>
       </div>
+
+      <ZoneDashboardSheet
+        zonePublicId={zonePublicId}
+        zoneName={zone.name}
+        zoneAvatar={zone.avatar}
+        open={dashboardOpen}
+        onOpenChange={setDashboardOpen}
+        onZoneUpdated={(nextZone) => {
+          setZone((prev) => (prev ? { ...prev, ...nextZone } : prev))
+        }}
+      />
 
       {/* Messages Area */}
       <div ref={messagesRef} className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -272,18 +390,17 @@ export default function ChannelPage() {
           </div>
 
           {messages.map((m, idx) => {
-            const isMe = m.senderId === currentUserId
             const prevMsg = messages[idx - 1]
-            const isGrouped = prevMsg && prevMsg.senderId === m.senderId && 
-                             (new Date(m.id).getTime() - new Date(prevMsg.id).getTime() < 300000)
+            const isGrouped = !!prevMsg && prevMsg.senderId === m.senderId &&
+              (getMessageTimestamp(m) - getMessageTimestamp(prevMsg) < 300000)
 
-            const sender = m.sender || userCache.current.get(m.senderId) || { username: "User", avatar: null }
+            const sender = m.sender || { username: "User", avatar: null }
 
             if (isGrouped) {
               return (
                 <div key={m.id} className="pl-14 pr-4 py-0.5 hover:bg-white/[0.02] transition-colors group relative">
                    <div className="text-[14px] text-zinc-300 leading-[1.375rem]">
-                      {m.isDeleted ? <span className="text-zinc-500 italic">Message deleted</span> : m.text}
+                      {m.isDeleted ? <span className="text-zinc-500 italic">Message deleted</span> : m.text ? <MessageText text={m.text} /> : null}
                    </div>
                    {m.fileUrl && <img src={m.fileUrl} className="mt-2 rounded-lg max-h-80 ring-1 ring-white/10" />}
                 </div>
@@ -301,11 +418,11 @@ export default function ChannelPage() {
                   <div className="flex items-baseline gap-2 mb-0.5">
                     <span className="font-bold text-[15px] text-white hover:underline cursor-pointer">{sender.username}</span>
                     <span className="text-[11px] text-zinc-500">
-                      {new Date(m.id).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {new Date(getMessageTimestamp(m)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
                   <div className="text-[14px] text-zinc-300 leading-[1.375rem] whitespace-pre-wrap break-words">
-                    {m.isDeleted ? <span className="text-zinc-500 italic">Message deleted</span> : m.text}
+                    {m.isDeleted ? <span className="text-zinc-500 italic">Message deleted</span> : m.text ? <MessageText text={m.text} /> : null}
                   </div>
                   {m.fileUrl && <img src={m.fileUrl} className="mt-2 rounded-lg max-h-80 ring-1 ring-white/10" />}
                 </div>
@@ -322,7 +439,7 @@ export default function ChannelPage() {
             <div className="relative w-24 h-24 mb-2 group">
                <img src={previewUrl} className="w-full h-full object-cover rounded-md ring-1 ring-white/10" />
                <button 
-                  onClick={() => {setSelectedFile(null); setPreviewUrl(null)}}
+                  onClick={clearSelectedFile}
                   className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                >
                  <span className="sr-only">Remove</span>
@@ -372,6 +489,9 @@ export default function ChannelPage() {
           onChange={e => {
             const f = e.target.files?.[0]
             if (!f) return
+            if (previewUrl) {
+              URL.revokeObjectURL(previewUrl)
+            }
             setSelectedFile(f)
             setPreviewUrl(URL.createObjectURL(f))
           }}

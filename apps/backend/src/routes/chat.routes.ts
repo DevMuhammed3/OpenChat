@@ -7,6 +7,7 @@ import {
   startChat,
   editMessage,
   deleteMessage,
+  togglePinMessage,
   uploadFile,
 } from "../controllers/chat.controller.js";
 
@@ -29,6 +30,7 @@ router.post(
 )
 
 router.patch("/messages/:id", authMiddleware, editMessage)
+router.patch("/messages/:id/pin", authMiddleware, togglePinMessage)
 
 router.delete("/messages/:id", authMiddleware, deleteMessage)
 

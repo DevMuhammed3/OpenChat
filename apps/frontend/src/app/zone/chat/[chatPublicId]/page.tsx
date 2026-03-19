@@ -1,13 +1,19 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { cn, socket } from '@openchat/lib'
 import {
   Input,
   Button,
   AvatarFallback,
   Avatar,
+  AvatarImage,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  SheetDescription,
   Sheet,
   SheetContent,
   SheetTrigger,
@@ -15,11 +21,12 @@ import {
   Skeleton,
 } from 'packages/ui'
 import { useChatsStore } from '@/app/stores/chat-store'
-import { Info, Loader2, Paperclip, PhoneCall, Send, User, Video, X } from 'lucide-react'
+import { Info, Paperclip, PhoneCall, Pin, Send, ShieldBan, User, UserMinus, Video, X } from 'lucide-react'
 import { Menu, SquarePen, Trash } from 'lucide-react'
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
-import { api } from '@openchat/lib'
+import { api, getAvatarUrl } from '@openchat/lib'
 import ZoneSidebar from '../../_components/ZoneSidebar'
+import MessageText from '../../_components/chat/MessageText'
 // import { useVoiceCall } from "@/hooks/useVoiceCall"
 import { useCallStore } from "@/app/stores/call-store"
 
@@ -28,17 +35,84 @@ type Message = {
   text: string | null
   senderId: number
   isEdited?: boolean
+  isPinned?: boolean
   isDeleted?: boolean
-  fileUrl?: string
-  fileType?: string
+  fileUrl?: string | null
+  fileType?: string | null
+  createdAt?: string
+  pinnedAt?: string | null
+}
+
+type ChatParticipant = {
+  id: number
+  username: string
+  avatar?: string | null
+}
+
+type ChatData = {
+  chatPublicId: string
+  participants: ChatParticipant[]
+  type?: 'DM' | 'ZONE'
+  name?: string | null
+  avatar?: string | null
+}
+
+function getMessageTimestamp(message: Message) {
+  if (message.createdAt) {
+    const parsed = new Date(message.createdAt).getTime()
+    if (!Number.isNaN(parsed)) return parsed
+  }
+
+  return message.id
+}
+
+function sortMessages(messages: Message[]) {
+  return [...messages].sort((a, b) => {
+    const timeDiff = getMessageTimestamp(a) - getMessageTimestamp(b)
+    return timeDiff !== 0 ? timeDiff : a.id - b.id
+  })
+}
+
+function mergeMessage(messages: Message[], message: Message) {
+  const deduped = messages.filter((item) => item.id !== message.id)
+  deduped.push(message)
+  return sortMessages(deduped)
+}
+
+function getDisplayName(participant?: ChatParticipant | null) {
+  return participant?.username || 'User'
+}
+
+function renderAttachment(message: Message) {
+  if (!message.fileUrl) return null
+
+  if (message.fileType?.startsWith("image")) {
+    return (
+      <img
+        src={message.fileUrl}
+        className="mt-2 max-w-xs rounded-lg ring-1 ring-white/10"
+      />
+    )
+  }
+
+  return (
+    <a
+      href={message.fileUrl}
+      target="_blank"
+      rel="noreferrer"
+      className="underline text-blue-400"
+    >
+      Download File
+    </a>
+  )
 }
 
 export default function ChatPage() {
   const { chatPublicId } = useParams<{ chatPublicId: string }>()
-  const [messages, setMessages] = useState<Message[]>([])
+  const router = useRouter()
+  const [messages, setMessages] = useState<Message[] | null>(null)
   const [input, setInput] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [localChat, setLocalChat] = useState<any>(null)
+  const [localChat, setLocalChat] = useState<ChatData | null>(null)
   const [currentUserId, setCurrentUserId] = useState<number | null>(null)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editText, setEditText] = useState('')
@@ -46,9 +120,12 @@ export default function ChatPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [typingUsers, setTypingUsers] = useState<Set<number>>(new Set())
+  const [headerActionBusy, setHeaderActionBusy] = useState(false)
+  const [pinnedPanelOpen, setPinnedPanelOpen] = useState(false)
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const setCalling = useCallStore((s) => s.setCalling)
+  const setChannelCall = useCallStore((s) => s.setChannelCall)
   // const status = useCallStore((s) => s.status)
   // const setCalling = useCallStore((s) => s.setCalling)
   // const clear = useCallStore((s) => s.clear)
@@ -58,7 +135,8 @@ export default function ChatPage() {
   const bottomRef = useRef<HTMLDivElement>(null)
 
   const chats = useChatsStore((s) => s.chats)
-  const [user, setUser] = useState<any>(null)
+  const hideChat = useChatsStore((s) => s.hideChat)
+  const [user, setUser] = useState<ChatParticipant | null>(null)
 
   // const {
   //   startCall,
@@ -71,14 +149,22 @@ export default function ChatPage() {
   // } = useVoiceCall()
   // const incoming = useCallStore((s) => s.incoming)
 
-  const chat = chats.find((c) => c.chatPublicId === chatPublicId)
+  const chat = chats.find((c) => c.chatPublicId === chatPublicId) as ChatData | undefined
   const activeChat = chat ?? localChat
 
   const isGroup = activeChat?.type === "ZONE"
 
   const otherUser = !isGroup && currentUserId
-    ? activeChat?.participants.find((p: any) => p.id !== currentUserId)
+    ? activeChat?.participants.find((participant) => participant.id !== currentUserId)
     : null
+
+  const pinnedMessages = (messages ?? [])
+    .filter((message) => message.isPinned && !message.isDeleted)
+    .sort((a, b) => {
+      const aPinnedAt = a.pinnedAt ? new Date(a.pinnedAt).getTime() : 0
+      const bPinnedAt = b.pinnedAt ? new Date(b.pinnedAt).getTime() : 0
+      return bPinnedAt - aPinnedAt
+    })
 
   useEffect(() => {
     const loadMe = async () => {
@@ -92,16 +178,13 @@ export default function ChatPage() {
     loadMe()
   }, [])
 
-  // load messages
   useEffect(() => {
-    if (!activeChat) return
+    if (!chatPublicId) return
 
-    setLoading(true)
     api(`/chats/${chatPublicId}/messages`, { credentials: 'include' })
       .then((res) => res.json())
-      .then((data) => setMessages(data.messages ?? []))
-      .finally(() => setLoading(false))
-  }, [activeChat])
+      .then((data) => setMessages(sortMessages(data.messages ?? [])))
+  }, [chatPublicId])
 
   useEffect(() => {
     if (!chatPublicId) return
@@ -121,8 +204,10 @@ export default function ChatPage() {
     const store = useChatsStore.getState()
     store.setActiveChat(chatPublicId)
     store.markChatAsRead(chatPublicId)
+    socket.emit('join-room', { chatPublicId })
 
     return () => {
+      socket.emit('leave-room', { chatPublicId })
       store.setActiveChat(null)
     }
   }, [chatPublicId])
@@ -131,9 +216,7 @@ export default function ChatPage() {
     const handler = (msg: Message & { chatPublicId: string }) => {
       if (msg.chatPublicId !== chatPublicId) return
 
-      setMessages((prev) =>
-        prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]
-      )
+      setMessages((prev) => mergeMessage(prev ?? [], msg))
     }
 
     socket.on("private-message", handler)
@@ -160,6 +243,24 @@ export default function ChatPage() {
     }
   }, [chatPublicId])
 
+  useEffect(() => {
+    const handlePinned = (payload: { id: number; isPinned: boolean; pinnedAt: string | null }) => {
+      setMessages((prev) =>
+        (prev ?? []).map((message) =>
+          message.id === payload.id
+            ? { ...message, isPinned: payload.isPinned, pinnedAt: payload.pinnedAt }
+            : message
+        )
+      )
+    }
+
+    socket.on("message:pinned", handlePinned)
+
+    return () => {
+      socket.off("message:pinned", handlePinned)
+    }
+  }, [])
+
   const handleInputChange = (val: string) => {
     setInput(val)
 
@@ -178,6 +279,51 @@ export default function ChatPage() {
     }, 3000)
   }
 
+  const removeCurrentFriend = useCallback(async () => {
+    if (!otherUser || !chatPublicId) return
+
+    try {
+      setHeaderActionBusy(true)
+      const res = await api(`/friends/${otherUser.id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        throw new Error('Failed to remove friend')
+      }
+      hideChat(chatPublicId)
+      router.push('/zone')
+    } finally {
+      setHeaderActionBusy(false)
+    }
+  }, [chatPublicId, hideChat, otherUser, router])
+
+  const blockCurrentFriend = useCallback(async () => {
+    if (!otherUser || !chatPublicId) return
+
+    try {
+      setHeaderActionBusy(true)
+      const res = await api(`/friends/block/${otherUser.id}`, { method: 'POST' })
+      if (!res.ok) {
+        throw new Error('Failed to block user')
+      }
+      hideChat(chatPublicId)
+      router.push('/zone')
+    } finally {
+      setHeaderActionBusy(false)
+    }
+  }, [chatPublicId, hideChat, otherUser, router])
+
+  const togglePinMessage = useCallback(async (messageId: number) => {
+    await api(`/chats/messages/${messageId}/pin`, {
+      method: 'PATCH',
+      credentials: 'include',
+    })
+  }, [])
+
+  const scrollToMessage = useCallback((messageId: number) => {
+    const element = document.getElementById(`message-${messageId}`)
+    if (!element) return
+    element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [])
+
   const handleFileSelect = (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -194,6 +340,19 @@ export default function ChatPage() {
     setPreviewUrl(objectUrl)
 
   }
+
+  const clearSelectedFile = useCallback(() => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl)
+    }
+
+    setSelectedFile(null)
+    setPreviewUrl(null)
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }, [previewUrl])
 
   // const handleFileUpload = async (
   //   e: React.ChangeEvent<HTMLInputElement>
@@ -229,7 +388,7 @@ export default function ChatPage() {
   useEffect(() => {
     const handler = (updatedMessage: Message) => {
       setMessages(prev =>
-        prev.map(m =>
+        (prev ?? []).map(m =>
           m.id === updatedMessage.id ? updatedMessage : m
         )
       )
@@ -245,7 +404,7 @@ export default function ChatPage() {
   useEffect(() => {
     const handler = ({ id }: { id: number }) => {
       setMessages(prev =>
-        prev.map(m =>
+        (prev ?? []).map(m =>
           m.id === id
             ? { ...m, text: null, isDeleted: true }
             : m
@@ -264,25 +423,26 @@ export default function ChatPage() {
     if (!messagesRef.current) return
 
     messagesRef.current.scrollTop = messagesRef.current.scrollHeight
-  }, [messages.length])
+  }, [messages?.length])
 
   const send = useCallback(async () => {
     if (!chatPublicId) return
 
-    if (!input.trim() && !selectedFile) return
+    const text = input.trim()
+
+    if (!text && !selectedFile) return
 
     const tempId = Date.now()
+    const optimisticMessage: Message = {
+      id: tempId,
+      text: text || null,
+      senderId: currentUserId!,
+      fileUrl: previewUrl || undefined,
+      fileType: selectedFile?.type,
+      createdAt: new Date().toISOString(),
+    }
 
-    setMessages(prev => [
-      ...prev,
-      {
-        id: tempId,
-        text: input || null,
-        senderId: currentUserId!,
-        fileUrl: previewUrl || undefined,
-        fileType: selectedFile?.type
-      }
-    ])
+    setMessages((prev) => mergeMessage(prev ?? [], optimisticMessage))
 
     try {
       let fileUrl: string | null = null
@@ -307,33 +467,29 @@ export default function ChatPage() {
         "private-message",
         {
           chatPublicId,
-          text: input || null,
+          text: text || null,
           fileUrl,
           fileType
         },
         (savedMessage: Message) => {
-          setMessages(prev =>
-            prev.map(m =>
-              m.id === tempId ? savedMessage : m
-            )
-          )
+          setMessages((prev) => {
+            const withoutOptimistic = (prev ?? []).filter((message) => message.id !== tempId)
+            return mergeMessage(withoutOptimistic, savedMessage)
+          })
         }
       )
 
       setInput('')
-      setSelectedFile(null)
-      setPreviewUrl(null)
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl)
-      }
+      clearSelectedFile()
 
     } catch (err) {
+      setMessages((prev) => (prev ?? []).filter((message) => message.id !== tempId))
       console.error(err)
     }
 
-  }, [input, selectedFile, chatPublicId, currentUserId, previewUrl])
+  }, [chatPublicId, clearSelectedFile, currentUserId, input, previewUrl, selectedFile])
 
-  if (loading || !activeChat) {
+  if (!messages || !activeChat) {
     return (
       <div className="flex flex-col h-[100svh] w-full bg-background animate-in fade-in duration-500">
         <div className="h-16 border-b flex items-center px-4 gap-3">
@@ -413,6 +569,7 @@ export default function ChatPage() {
                     h-10 w-10
                   "
         >
+          <AvatarImage src={getAvatarUrl(otherUser?.avatar)} />
           <AvatarFallback
             className="
                         text-primary-foreground
@@ -438,6 +595,15 @@ export default function ChatPage() {
           >
             {isGroup ? activeChat?.name : otherUser?.username}
           </p>
+          {pinnedMessages.length > 0 && (
+            <button
+              className="mt-1 flex items-center gap-1 text-[11px] text-amber-300"
+              onClick={() => setPinnedPanelOpen(true)}
+            >
+              <Pin className="h-3 w-3" />
+              {pinnedMessages.length} pinned
+            </button>
+          )}
         </div>
 
 
@@ -447,6 +613,7 @@ export default function ChatPage() {
           onClick={() => {
             if (!otherUser || !chatPublicId) return
 
+            setChannelCall(null)
             socket.emit("join-room", { chatPublicId })
             socket.emit("call:user", {
               toUserId: otherUser.id,
@@ -456,7 +623,7 @@ export default function ChatPage() {
             setCalling(chatPublicId, {
               id: otherUser.id,
               name: otherUser.username,
-              image: otherUser.image,
+              image: otherUser.avatar,
             })
           }}
         >
@@ -472,177 +639,355 @@ export default function ChatPage() {
           <Video className="w-3 h-3 scale-[1.55]" strokeWidth={2} />
         </Button>
 
-        <Button
-          variant="destructive"
-          onClick={() => console.log("Info")}
-        >
-          <Info className="w-3 h-3 scale-[1.35]" strokeWidth={2} />
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              disabled={!otherUser || headerActionBusy}
+            >
+              <Info className="w-3 h-3 scale-[1.35]" strokeWidth={2} />
+            </Button>
+          </DropdownMenuTrigger>
+
+          <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuItem
+              onClick={removeCurrentFriend}
+              className="cursor-pointer"
+            >
+              <UserMinus className="mr-2 h-4 w-4" />
+              Remove Friend
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={blockCurrentFriend}
+              className="cursor-pointer text-red-500 focus:text-red-500"
+            >
+              <ShieldBan className="mr-2 h-4 w-4" />
+              Block User
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
 
       </div>
 
+      <Sheet open={pinnedPanelOpen} onOpenChange={setPinnedPanelOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-md">
+          <SheetTitle>Pinned Messages</SheetTitle>
+          <SheetDescription>
+            Quick access to the most important messages in this chat.
+          </SheetDescription>
+
+          <div className="mt-6 space-y-3">
+            {pinnedMessages.length === 0 && (
+              <p className="text-sm text-muted-foreground">No pinned messages yet.</p>
+            )}
+
+            {pinnedMessages.map((message) => (
+              <button
+                key={message.id}
+                onClick={() => {
+                  setPinnedPanelOpen(false)
+                  window.setTimeout(() => scrollToMessage(message.id), 100)
+                }}
+                className="w-full rounded-2xl border bg-background/60 p-3 text-left transition hover:bg-muted/40"
+              >
+                <div className="mb-2 flex items-center gap-2 text-xs text-amber-400">
+                  <Pin className="h-3.5 w-3.5" />
+                  <span>Pinned message</span>
+                </div>
+                <p className="line-clamp-3 text-sm text-zinc-200">
+                  {message.text || (message.fileUrl ? 'Attachment' : 'Message')}
+                </p>
+              </button>
+            ))}
+          </div>
+        </SheetContent>
+      </Sheet>
+
       <div
         ref={messagesRef}
         dir="ltr"
-        className="flex-1 min-h-0 overflow-y-auto p-2 md:p-4"
+        className="flex-1 min-h-0 overflow-y-auto p-4"
       >
-        <div className="flex flex-col gap-2 min-h-full justify-end">
-          {messages.map((m) => {
+        <div className="flex flex-col min-h-full justify-end">
+          {messages.map((m, idx) => {
             const isMe = m.senderId === currentUserId
+            const sender = isMe ? user : otherUser
+            const prevMsg = messages[idx - 1]
+            const isGrouped = !!prevMsg && prevMsg.senderId === m.senderId &&
+              (getMessageTimestamp(m) - getMessageTimestamp(prevMsg) < 300000)
+
+            if (isGrouped) {
+              return (
+                <div
+                  id={`message-${m.id}`}
+                  key={m.id}
+                  className="pl-14 pr-4 py-0.5 hover:bg-white/[0.02] transition-colors group relative"
+                >
+                  {m.isPinned && !m.isDeleted && (
+                    <div className="mb-1 flex items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-amber-300">
+                      <Pin className="h-3 w-3" />
+                      Pinned
+                    </div>
+                  )}
+                  {editingId === m.id ? (
+                    <div>
+                      <input
+                        value={editText}
+                        autoFocus
+                        onChange={(e) => setEditText(e.target.value)}
+                        onKeyDown={async (e) => {
+                          if (e.key === 'Enter') {
+                            const res = await api(`/chats/messages/${m.id}`, {
+                              method: 'PATCH',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ text: editText }),
+                              credentials: 'include'
+                            })
+
+                            console.log("Edit response:", await res.json())
+                            setEditingId(null)
+                          }
+
+                          if (e.key === 'Escape') {
+                            setEditingId(null)
+                          }
+                        }}
+                        className="bg-transparent outline-none text-sm w-full text-zinc-200"
+                      />
+                      {renderAttachment(m)}
+                    </div>
+                  ) : (
+                    <div
+                      className="text-[14px] text-zinc-300 leading-[1.375rem] whitespace-pre-wrap break-words"
+                      onDoubleClick={() => {
+                        if (!isMe || m.isDeleted) return
+
+                        setEditingId(m.id)
+                        setEditText(m.text ?? '')
+                      }}
+                    >
+                      {m.isDeleted ? (
+                        <span className="text-zinc-500 italic">This message was deleted</span>
+                      ) : (
+                        <>
+                          {m.text && (
+                            <div className={m.fileUrl ? "mb-2" : undefined}>
+                              <MessageText text={m.text} />
+                            </div>
+                          )}
+                          {renderAttachment(m)}
+                          {m.isEdited && (
+                            <span className="text-[10px] opacity-60 ml-1">(edited)</span>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {isMe && !m.isDeleted && (
+                    <div className="absolute -top-5 right-1 flex gap-1 opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-200 z-10">
+                      <button
+                        onClick={() => {
+                          void togglePinMessage(m.id)
+                        }}
+                        className={cn(
+                          "p-1 rounded-md shadow",
+                          m.isPinned ? "bg-amber-500 text-black" : "bg-background hover:bg-muted"
+                        )}
+                      >
+                        <Pin className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        onClick={async () => {
+                          const originalText = m.text
+
+                          setMessages(prev =>
+                            (prev ?? []).map(msg =>
+                              msg.id === m.id
+                                ? { ...msg, text: null, isDeleted: true }
+                                : msg
+                            )
+                          )
+
+                          try {
+                            await api(`/chats/messages/${m.id}`, {
+                              method: 'DELETE',
+                              credentials: 'include'
+                            })
+                          } catch {
+                            setMessages(prev =>
+                              (prev ?? []).map(msg =>
+                                msg.id === m.id
+                                  ? { ...msg, text: originalText, isDeleted: false }
+                                  : msg
+                              )
+                            )
+                          }
+                        }}
+                        className="p-1 rounded-md bg-destructive text-white shadow hover:opacity-90"
+                      >
+                        <Trash className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setEditingId(m.id)
+                          setEditText(m.text ?? '')
+                        }}
+                        className="p-1 rounded-md bg-background shadow hover:bg-muted"
+                      >
+                        <SquarePen className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )
+            }
 
             return (
               <div
+                id={`message-${m.id}`}
                 key={m.id}
-                className={cn(
-                  'relative flex group',
-                  isMe ? 'justify-end' : 'justify-start'
-                )}
+                className="flex gap-4 px-4 py-3 hover:bg-white/[0.02] transition-colors mt-2 group relative"
               >
+                <Avatar className="h-10 w-10 shrink-0 mt-0.5 ring-1 ring-white/5">
+                  <AvatarImage src={getAvatarUrl(sender?.avatar)} />
+                  <AvatarFallback className="bg-primary text-primary-foreground">
+                    {getDisplayName(sender)[0]?.toUpperCase() ?? 'U'}
+                  </AvatarFallback>
+                </Avatar>
 
-                <div
-                  className={cn(
-                    'relative group max-w-[75%] px-4 py-2 rounded-2xl text-sm whitespace-pre-wrap break-words',
-                    isMe
-                      ? 'bg-primary/50 text-primary-foreground rounded-br-sm'
-                      : 'bg-sky-400/15 text-foreground rounded-bl-sm'
-                  )}
-                >
-                  <div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline gap-2 mb-0.5">
+                    <span className="font-bold text-[15px] text-white hover:underline cursor-pointer">
+                      {isMe ? 'You' : getDisplayName(sender)}
+                    </span>
+                    <span className="text-[11px] text-zinc-500">
+                      {new Date(getMessageTimestamp(m)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                    {m.isPinned && !m.isDeleted && (
+                      <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-amber-300">
+                        <Pin className="h-3 w-3" />
+                        Pinned
+                      </span>
+                    )}
+                  </div>
+
+                  {editingId === m.id ? (
                     <div>
-                      {editingId === m.id ? (
-                        <input
-                          value={editText}
-                          autoFocus
-                          onChange={(e) => setEditText(e.target.value)}
-                          onKeyDown={async (e) => {
-                            if (e.key === 'Enter') {
-                              const res = await api(`/chats/messages/${m.id}`, {
-                                method: 'PATCH',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ text: editText }),
-                                credentials: 'include'
-                              })
+                      <input
+                        value={editText}
+                        autoFocus
+                        onChange={(e) => setEditText(e.target.value)}
+                        onKeyDown={async (e) => {
+                          if (e.key === 'Enter') {
+                            const res = await api(`/chats/messages/${m.id}`, {
+                              method: 'PATCH',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ text: editText }),
+                              credentials: 'include'
+                            })
 
-                              console.log("Edit response:", await res.json())
-                              setEditingId(null)
-                            }
+                            console.log("Edit response:", await res.json())
+                            setEditingId(null)
+                          }
 
-                            if (e.key === 'Escape') {
-                              setEditingId(null)
-                            }
-                          }}
-                          className="bg-transparent outline-none text-sm w-full"
-                        />
+                          if (e.key === 'Escape') {
+                            setEditingId(null)
+                          }
+                        }}
+                        className="bg-transparent outline-none text-sm w-full text-zinc-200"
+                      />
+                      {renderAttachment(m)}
+                    </div>
+                  ) : (
+                    <div
+                      className="text-[14px] text-zinc-300 leading-[1.375rem] whitespace-pre-wrap break-words"
+                      onDoubleClick={() => {
+                        if (!isMe || m.isDeleted) return
+
+                        setEditingId(m.id)
+                        setEditText(m.text ?? '')
+                      }}
+                    >
+                      {m.isDeleted ? (
+                        <span className="text-zinc-500 italic">This message was deleted</span>
                       ) : (
-                        <div>
-
-                          {/* Message Text */}
-                          <div
-                            onDoubleClick={() => {
-                              if (m.senderId !== currentUserId || m.isDeleted) return
-
-                              setEditingId(m.id)
-                              setEditText(m.text ?? '')
-                            }}
-                          >
-
-                            {m.isDeleted ? (
-                              <span className="italic opacity-60">
-                                This message was deleted
-                              </span>
-                            ) : (
-                              <>
-
-                                {m.fileUrl ? (
-                                  m.fileType?.startsWith("image") ? (
-                                    <img
-                                      src={m.fileUrl}
-                                      className="max-w-xs rounded-lg"
-                                    />
-                                  ) : (
-                                    <a
-                                      href={m.fileUrl}
-                                      target="_blank"
-                                      className="underline text-blue-500"
-                                    >
-                                      Download File
-                                    </a>
-                                  )
-                                ) : (
-                                  m.text
-                                )}
-
-                                {m.isEdited && (
-                                  <span className="text-[10px] opacity-60 ml-1">
-                                    (edited)
-                                  </span>
-                                )}
-                              </>
-                            )}
-                          </div>
-
-                          {m.senderId === currentUserId && !m.isDeleted && (
-                            <div
-                              className="
-      absolute -top-5 right-1
-      flex gap-1
-      opacity-0 translate-y-1
-      group-hover:opacity-100 group-hover:translate-y-0
-      transition-all duration-200
-      z-10
-    "
-                            >
-                              {/* Delete FIRST */}
-                              <button
-                                onClick={async () => {
-                                  const originalText = m.text
-
-                                  setMessages(prev =>
-                                    prev.map(msg =>
-                                      msg.id === m.id
-                                        ? { ...msg, text: null, isDeleted: true }
-                                        : msg
-                                    )
-                                  )
-
-                                  try {
-                                    await api(`/chats/messages/${m.id}`, {
-                                      method: 'DELETE',
-                                      credentials: 'include'
-                                    })
-                                  } catch {
-                                    setMessages(prev =>
-                                      prev.map(msg =>
-                                        msg.id === m.id
-                                          ? { ...msg, text: originalText, isDeleted: false }
-                                          : msg
-                                      )
-                                    )
-                                  }
-                                }}
-                                className="p-1 rounded-md bg-destructive text-white shadow hover:opacity-90"
-                              >
-                                <Trash className="w-4 h-4" />
-                              </button>
-
-                              {/* Edit SECOND */}
-                              <button
-                                onClick={() => {
-                                  setEditingId(m.id)
-                                  setEditText(m.text ?? '')
-                                }}
-                                className="p-1 rounded-md bg-background shadow hover:bg-muted"
-                              >
-                                <SquarePen className="w-4 h-4" />
-                              </button>
+                        <>
+                          {m.text && (
+                            <div className={m.fileUrl ? "mb-2" : undefined}>
+                              <MessageText text={m.text} />
                             </div>
                           )}
-                        </div>
+                          {renderAttachment(m)}
+                          {m.isEdited && (
+                            <span className="text-[10px] opacity-60 ml-1">(edited)</span>
+                          )}
+                        </>
                       )}
                     </div>
-                  </div>
+                  )}
                 </div>
+
+                {isMe && !m.isDeleted && (
+                  <div className="absolute top-2 right-4 flex gap-1 opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-200 z-10">
+                    <button
+                      onClick={() => {
+                        void togglePinMessage(m.id)
+                      }}
+                      className={cn(
+                        "p-1 rounded-md shadow",
+                        m.isPinned ? "bg-amber-500 text-black" : "bg-background hover:bg-muted"
+                      )}
+                    >
+                      <Pin className="w-4 h-4" />
+                    </button>
+
+                    <button
+                      onClick={async () => {
+                        const originalText = m.text
+
+                        setMessages(prev =>
+                          (prev ?? []).map(msg =>
+                            msg.id === m.id
+                              ? { ...msg, text: null, isDeleted: true }
+                              : msg
+                          )
+                        )
+
+                        try {
+                          await api(`/chats/messages/${m.id}`, {
+                            method: 'DELETE',
+                            credentials: 'include'
+                          })
+                        } catch {
+                          setMessages(prev =>
+                            (prev ?? []).map(msg =>
+                              msg.id === m.id
+                                ? { ...msg, text: originalText, isDeleted: false }
+                                : msg
+                            )
+                          )
+                        }
+                      }}
+                      className="p-1 rounded-md bg-destructive text-white shadow hover:opacity-90"
+                    >
+                      <Trash className="w-4 h-4" />
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setEditingId(m.id)
+                        setEditText(m.text ?? '')
+                      }}
+                      className="p-1 rounded-md bg-background shadow hover:bg-muted"
+                    >
+                      <SquarePen className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
               </div>
             )
           })}
@@ -662,11 +1007,7 @@ export default function ChatPage() {
               />
 
               <button
-                onClick={() => {
-                  if (previewUrl) URL.revokeObjectURL(previewUrl)
-                  setSelectedFile(null)
-                  setPreviewUrl(null)
-                }}
+                onClick={clearSelectedFile}
                 className="absolute top-1 right-1 bg-black/70 text-white text-xs px-2 py-1 rounded"
               >
                 <X />
@@ -677,7 +1018,7 @@ export default function ChatPage() {
 
         <div className="flex items-center gap-2 px-3 py-2 bg-background/50 rounded-2xl border relative">
           {typingUsers.size > 0 && Array.from(typingUsers).map(uid => {
-             const user = activeChat?.participants.find((p: any) => p.id === uid)
+             const user = activeChat?.participants.find((participant) => participant.id === uid)
              if (!user) return null
              return (
                <div key={user.id} className="absolute -top-6 left-4 text-[10px] text-muted-foreground animate-pulse">
