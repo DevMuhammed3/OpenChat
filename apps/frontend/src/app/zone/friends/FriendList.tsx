@@ -2,8 +2,18 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { Avatar, AvatarFallback, ScrollArea, Skeleton } from 'packages/ui'
-import { User, Users } from 'lucide-react'
+import {
+  Avatar,
+  AvatarFallback,
+  Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  ScrollArea,
+  Skeleton,
+} from 'packages/ui'
+import { Info, ShieldBan, UserMinus, Users } from 'lucide-react'
 import { cn, getAvatarUrl } from '@openchat/lib'
 import { api } from '@openchat/lib'
 import { useFriendsStore } from '@/app/stores/friends-store'
@@ -24,9 +34,12 @@ export default function FriendList({ onSelectFriend }: FriendListProps) {
 
   const friends = useFriendsStore((s) => s.friends)
   const setFriends = useFriendsStore((s) => s.setFriends)
+  const removeFriendFromStore = useFriendsStore((s) => s.removeFriend)
+  const addBlockedUser = useFriendsStore((s) => s.addBlockedUser)
   const onlineUsers = useFriendsStore((s) => s.onlineUsers)
 
   const [loading, setLoading] = useState(true)
+  const [busyUserId, setBusyUserId] = useState<number | null>(null)
 
   useEffect(() => {
     if (friends.length > 0) {
@@ -50,6 +63,30 @@ export default function FriendList({ onSelectFriend }: FriendListProps) {
       mounted = false
     }
   }, [friends.length, setFriends])
+
+  const removeFriend = async (friend: Friend) => {
+    try {
+      setBusyUserId(friend.id)
+      const res = await api(`/friends/${friend.id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Failed to remove friend')
+      removeFriendFromStore(friend.id)
+    } finally {
+      setBusyUserId(null)
+    }
+  }
+
+  const blockFriend = async (friend: Friend) => {
+    try {
+      setBusyUserId(friend.id)
+      const res = await api(`/friends/block/${friend.id}`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.message || 'Failed to block user')
+      addBlockedUser(data.user ?? friend)
+      removeFriendFromStore(friend.id)
+    } finally {
+      setBusyUserId(null)
+    }
+  }
 
   return (
     <div
@@ -137,47 +174,84 @@ export default function FriendList({ onSelectFriend }: FriendListProps) {
                 const avatarUrl = getAvatarUrl(friend.avatar)
 
                 return (
-                  <button
+                  <div
                     key={friend.id}
-                    onClick={() => onSelectFriend?.(friend)}
                     className={cn(
-                      'w-full flex items-center gap-3 p-3 rounded-lg transition-colors',
+                      'w-full rounded-lg transition-colors',
                       isActive ? 'bg-muted' : 'hover:bg-muted/50'
                     )}
                   >
-                    <div className="relative">
-                      <Avatar className="h-10 w-10 ring-1 ring-border">
-                        {avatarUrl ? (
-                          <img
-                            src={avatarUrl}
-                            alt={friend.username}
-                            className="h-full w-full object-cover rounded-full"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <AvatarFallback>
-                            {friend.username?.[0]?.toUpperCase()}
-                          </AvatarFallback>
+                    <div className="flex items-center gap-2 p-2">
+                      <button
+                        onClick={() => onSelectFriend?.(friend)}
+                        className="flex flex-1 items-center gap-3 rounded-md p-1 text-left"
+                      >
+                        <div className="relative">
+                          <Avatar className="h-10 w-10 ring-1 ring-border">
+                            {avatarUrl ? (
+                              <img
+                                src={avatarUrl}
+                                alt={friend.username}
+                                className="h-full w-full object-cover rounded-full"
+                                loading="lazy"
+                              />
+                            ) : (
+                              <AvatarFallback>
+                                {friend.username?.[0]?.toUpperCase()}
+                              </AvatarFallback>
+                            )}
+                          </Avatar>
+                          {onlineUsers.has(friend.id) && (
+                            <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-background rounded-full" />
+                          )}
+                        </div>
+
+                        <div className="min-w-0 flex-1 text-left">
+                          <p className="font-medium text-md truncate">
+                            {friend.username}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            @{friend.username}
+                          </p>
+                        </div>
+
+                        {isActive && (
+                          <div className="h-2 w-2 bg-primary rounded-full" />
                         )}
-                      </Avatar>
-                      {onlineUsers.has(friend.id) && (
-                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-background rounded-full" />
-                      )}
-                    </div>
+                      </button>
 
-                    <div className="flex-1 min-w-0 text-left">
-                      <p className="font-medium text-md truncate">
-                        {friend.username}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        @{friend.username}
-                      </p>
-                    </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-muted-foreground"
+                            disabled={busyUserId === friend.id}
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            <Info className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
 
-                    {isActive && (
-                      <div className="h-2 w-2 bg-primary rounded-full" />
-                    )}
-                  </button>
+                        <DropdownMenuContent align="end" className="w-44">
+                          <DropdownMenuItem
+                            onClick={() => removeFriend(friend)}
+                            className="cursor-pointer"
+                          >
+                            <UserMinus className="mr-2 h-4 w-4" />
+                            Remove Friend
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => blockFriend(friend)}
+                            className="cursor-pointer text-red-500 focus:text-red-500"
+                          >
+                            <ShieldBan className="mr-2 h-4 w-4" />
+                            Block User
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
                 )
               })}
             </div>

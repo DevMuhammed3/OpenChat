@@ -6,6 +6,7 @@ import multer from "multer"
 import path from "path"
 import fs from "fs"
 import crypto from "crypto"
+import { encryptMessage, decryptMessage } from "../utils/crypto.js"
 
 const uploadDir = "uploads"
 
@@ -93,10 +94,15 @@ export const getChatMessages = async (req: Request, res: Response) => {
     const safeMessages = messages.map(msg =>
       msg.isDeleted
         ? { ...msg, text: null, fileUrl: null, fileType: null }
-        : msg
+        : { ...msg, text: msg.text ? decryptMessage(msg.text) : null }
     )
 
-    res.json({ messages: safeMessages });
+    const orderedMessages = [...safeMessages].sort((a, b) => {
+      const timeDiff = a.createdAt.getTime() - b.createdAt.getTime()
+      return timeDiff !== 0 ? timeDiff : a.id - b.id
+    })
+
+    res.json({ messages: orderedMessages });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Internal server error" });
@@ -146,7 +152,10 @@ export const getChats = async (req: Request, res: Response) => {
         name: chat.name,
         avatar: chat.avatar ?? null,
         participants: chat.participants.map((p: any) => p.user),
-        lastMessage: chat.messages?.[0] ?? null,
+        lastMessage: chat.messages?.[0] ? {
+          ...chat.messages[0],
+          text: chat.messages[0].text ? decryptMessage(chat.messages[0].text) : null
+        } : null,
       })),
     })
   } catch (err) {
@@ -222,6 +231,19 @@ export const startChat = async (req: Request, res: Response) => {
 
     if (!Number.isInteger(friendId)) {
       return res.status(400).json({ message: "Invalid friendId" });
+    }
+
+    const blockedRelation = await prisma.blockedUser.findFirst({
+      where: {
+        OR: [
+          { blockerId: userId, blockedId: friendId },
+          { blockerId: friendId, blockedId: userId },
+        ],
+      },
+    });
+
+    if (blockedRelation) {
+      return res.status(403).json({ message: "Chat unavailable because one user blocked the other" });
     }
 
     const isFriend = await prisma.friend.findFirst({
@@ -356,10 +378,11 @@ export const editMessage = async (req: Request, res: Response) => {
     const updated = await prisma.message.update({
       where: { id: messageId },
       data: {
-        text,
+        text: encryptMessage(text),
         isEdited: true,
       },
       include: {
+
         sender: {
           select: {
             id: true,
@@ -372,9 +395,9 @@ export const editMessage = async (req: Request, res: Response) => {
 
     io.to(`chat:${message.chat.publicId}`).emit(
       "message:updated",
-      updated
+      { ...updated, text: text }
     );
-    res.json({ message: updated });
+    res.json({ message: { ...updated, text: text } });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Internal server error" });
@@ -446,3 +469,73 @@ export const deleteMessage = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * PATCH /messages/:id/pin
+ */
+export const togglePinMessage = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    const messageId = Number(req.params.id);
+
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    if (!Number.isInteger(messageId)) {
+      return res.status(400).json({ message: "Invalid message id" });
+    }
+
+    const message = await prisma.message.findUnique({
+      where: { id: messageId },
+      include: {
+        chat: {
+          include: {
+            participants: {
+              where: { userId },
+            },
+          },
+        },
+      },
+    });
+
+    if (!message) {
+      return res.status(404).json({ message: "Message not found" });
+    }
+
+    if (message.chat.participants.length === 0) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    if (message.isDeleted) {
+      return res.status(400).json({ message: "Cannot pin deleted message" });
+    }
+
+    const updated = await prisma.message.update({
+      where: { id: messageId },
+      data: {
+        isPinned: !message.isPinned,
+        pinnedAt: message.isPinned ? null : new Date(),
+      },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            username: true,
+            avatar: true,
+          },
+        },
+      },
+    });
+
+    io.to(`chat:${message.chat.publicId}`).emit("message:pinned", {
+      id: updated.id,
+      isPinned: updated.isPinned,
+      pinnedAt: updated.pinnedAt,
+    });
+
+    return res.json({ message: updated });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};

@@ -6,7 +6,8 @@ import { useChannelVoiceCall } from '@/hooks/useChannelVoiceCall'
 
 export default function ChannelCallManager() {
   const channelPublicId = useCallStore(s => s.channelPublicId)
-  const { remoteStreams, joinCall, leaveCall, inCall } = useChannelVoiceCall(channelPublicId)
+  const isMuted = useCallStore(s => s.isMuted)
+  const { remoteStreams, joinCall, leaveCall, setMuted } = useChannelVoiceCall(channelPublicId)
   const audioRefs = useRef<Map<number, HTMLAudioElement>>(new Map())
 
   useEffect(() => {
@@ -16,6 +17,10 @@ export default function ChannelCallManager() {
       leaveCall()
     }
   }, [channelPublicId, joinCall, leaveCall])
+
+  useEffect(() => {
+    setMuted(isMuted)
+  }, [isMuted, setMuted])
 
   useEffect(() => {
     // Update audio elements for remote streams
@@ -44,5 +49,5 @@ export default function ChannelCallManager() {
     })
   }, [remoteStreams])
 
-  return null // This component only handles audio logic
+  return null
 }

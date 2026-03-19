@@ -1,10 +1,10 @@
 "use client"
 
 import { Plus, Home } from "lucide-react"
-import { Button, Input, Skeleton } from "packages/ui"
+import { Avatar, AvatarFallback, AvatarImage, Button, Skeleton } from "packages/ui"
 import { useRouter, useParams } from "next/navigation"
 import { useEffect, useState } from "react"
-import { api } from "@openchat/lib"
+import { api, getAvatarUrl } from "@openchat/lib"
 import { CreateZoneModal } from "./CreateZoneModal"
 
 type Zone = {
@@ -126,10 +126,20 @@ export default function ZonesList() {
                 <div className="absolute -left-2 w-1 h-6 bg-white rounded-full" />
               )}
 
-              {zone.avatar
-                ? <img src={zone.avatar} className="w-6 h-6 rounded-full" />
-                : zone.name?.[0]?.toUpperCase()
-              }
+              {zone.avatar ? (
+                <Avatar className="h-8 w-8 rounded-full">
+                  <AvatarImage
+                    src={getAvatarUrl(zone.avatar)}
+                    alt={zone.name}
+                    className="object-cover"
+                  />
+                  <AvatarFallback className="text-[10px]">
+                    {zone.name?.[0]?.toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              ) : (
+                zone.name?.[0]?.toUpperCase()
+              )}
 
             </Button>
           )
@@ -147,5 +157,4 @@ export default function ZonesList() {
     </div>
   )
 }
-
 

@@ -6,8 +6,29 @@ import { useCallStore } from "@/app/stores/call-store"
 import CallOverlay from "@/app/zone/_components/global/CallOverlay"
 import { useVoiceCall } from "@/hooks/useVoiceCall"
 
+type CallStatusPayload = {
+  status: "idle" | "calling" | "incoming" | "connected"
+  chatPublicId?: string
+  user?: {
+    id: number
+    name: string
+    image?: string | null
+  } | null
+  isCaller?: boolean
+  startTime?: number
+}
+
+type IncomingCallPayload = {
+  chatPublicId: string
+  user: {
+    id: number
+    name: string
+    image?: string | null
+  }
+}
+
 export default function GlobalCallProvider() {
-  const { status, user, chatPublicId, isCaller, setIncoming, setConnected, clear, setCalling } = useCallStore()
+  const { status, chatPublicId, channelPublicId, isCaller, setIncoming, setConnected, clear, setCalling } = useCallStore()
   const {
     startCall,
     acceptCall,
@@ -28,21 +49,27 @@ export default function GlobalCallProvider() {
 
     const timer = setTimeout(handleRecheck, 1000)
 
-    const statusHandler = (payload: any) => {
+    const statusHandler = (payload: CallStatusPayload) => {
         console.log("[GlobalCallProvider] call:status received:", payload)
         if (payload.status === "idle") {
             clear()
             return
         }
 
+        if (!payload.chatPublicId) {
+            return
+        }
+
         // Restore state based on server response
+        if (!payload.user) {
+            return
+        }
+
         if (payload.status === "calling") {
             setCalling(payload.chatPublicId, payload.user)
         } else if (payload.status === "incoming") {
             setIncoming(payload.chatPublicId, payload.user)
         } else if (payload.status === "connected") {
-            // Re-connect logic: Set state to connected and caller flag
-            // Ensure chatPublicId is set so startCall/acceptCall can trigger
             useCallStore.setState({ 
                 status: "connected", 
                 chatPublicId: payload.chatPublicId, 
@@ -67,7 +94,7 @@ export default function GlobalCallProvider() {
   ========================== */
 
   useEffect(() => {
-    const incomingHandler = (payload: any) => {
+    const incomingHandler = (payload: IncomingCallPayload) => {
       const { chatPublicId, user } = payload
       socket.emit("join-room", { chatPublicId })
       setIncoming(chatPublicId, user)
@@ -88,7 +115,7 @@ export default function GlobalCallProvider() {
     socket.on("call:ended", clear)
     socket.on("call:rejoined", rejoinedHandler)
     
-    socket.on("call:partner-disconnected", ({ userId }: any) => {
+    socket.on("call:partner-disconnected", ({ userId }: { userId: number }) => {
         console.log(`Partner ${userId} disconnected. Waiting for them...`)
     })
 
@@ -110,11 +137,19 @@ export default function GlobalCallProvider() {
     if (status === "connected" && chatPublicId && isCaller) {
       startCall(chatPublicId)
     }
-    
-    if (status === "connecting" && chatPublicId && !isCaller) {
+
+    if ((status === "connecting" || status === "connected") && chatPublicId && !isCaller) {
       acceptCall()
     }
   }, [status, chatPublicId, isCaller, startCall, acceptCall])
+
+  useEffect(() => {
+    if (!channelPublicId || status === "idle" || !chatPublicId) return
+
+    socket.emit("call:end", { chatPublicId })
+    endCall()
+    clear()
+  }, [channelPublicId, chatPublicId, clear, endCall, status])
 
   /* =========================
      INTERNAL APP LOGIC (RINGTONES)

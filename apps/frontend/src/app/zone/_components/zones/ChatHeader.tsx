@@ -13,7 +13,7 @@ import {
   SheetTitle,
   Checkbox
 } from "packages/ui"
-import { UserPlus, Info } from "lucide-react"
+import { UserPlus, Info, Link2, Check } from "lucide-react"
 import { getAvatarUrl, api } from "@openchat/lib"
 import { useUserStore } from "@/app/stores/user-store"
 
@@ -46,6 +46,8 @@ export function ChatHeader({ name, avatar, zonePublicId, members }: Props) {
   const [updatedAvatar, setUpdatedAvatar] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
   const [currentAvatar, setCurrentAvatar] = useState(avatar)
+  const [inviteCopied, setInviteCopied] = useState(false)
+  const [creatingInvite, setCreatingInvite] = useState(false)
 
   // -------------------------------
   // Load friends
@@ -121,6 +123,29 @@ export function ChatHeader({ name, avatar, zonePublicId, members }: Props) {
     }
   }
 
+  const copyInviteLink = async () => {
+    try {
+      setCreatingInvite(true)
+      const res = await api(`/zones/${zonePublicId}/invites`, {
+        method: "POST",
+        credentials: "include",
+      })
+      const data = await res.json()
+      if (!data?.invite?.code) {
+        throw new Error("No invite code returned")
+      }
+
+      const link = `${window.location.origin}/zone/invite/${data.invite.code}`
+      await navigator.clipboard.writeText(link)
+      setInviteCopied(true)
+      window.setTimeout(() => setInviteCopied(false), 2000)
+    } catch (err) {
+      console.error("Failed to copy invite link", err)
+    } finally {
+      setCreatingInvite(false)
+    }
+  }
+
   return (
     <>
       {/* Header */}
@@ -134,6 +159,16 @@ export function ChatHeader({ name, avatar, zonePublicId, members }: Props) {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={copyInviteLink}
+            disabled={creatingInvite}
+            title="Copy invite link"
+          >
+            {inviteCopied ? <Check className="h-4 w-4" /> : <Link2 className="h-4 w-4" />}
+          </Button>
+
           <Button size="icon" variant="ghost" onClick={() => setShowAddModal(true)}>
             <UserPlus className="h-4 w-4" />
           </Button>

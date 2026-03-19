@@ -135,4 +135,4 @@ Distributed under the **MIT License**. See `LICENSE` for more information.
 
 ---
 
-**Built with ❤️ by the OpenChat Team.**
+**Built with ❤️ by the OpenChat.**

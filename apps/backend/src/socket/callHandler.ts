@@ -1,5 +1,6 @@
 import { Server, Socket } from "socket.io"
 import { prisma } from "../config/prisma.js"
+import { resolveAssetUrl } from "../utils/resolveAssetUrl.js"
 
 type CallStatus = "ringing" | "active"
 
@@ -80,7 +81,7 @@ export function callHandler(io: Server, socket: AuthenticatedSocket) {
         partnerInfo = p ? {
             id: p.id,
             name: p.username,
-            image: p.avatar ? `${process.env.BASE_URL}/uploads/${p.avatar}` : null
+            image: resolveAssetUrl(p.avatar)
         } : null
     }
 
@@ -129,7 +130,7 @@ export function callHandler(io: Server, socket: AuthenticatedSocket) {
         user: {
           id: caller.id,
           name: caller.username,
-          image: caller.avatar ? `${process.env.BASE_URL}/uploads/${caller.avatar}` : null
+          image: resolveAssetUrl(caller.avatar)
         }
       })
     } catch (err) {
