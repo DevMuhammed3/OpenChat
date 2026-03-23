@@ -12,6 +12,7 @@ dist-ssr/
 build/
 out/
 *.local
+.agent/
 
 # Prisma generated client
 apps/backend/generated/*
