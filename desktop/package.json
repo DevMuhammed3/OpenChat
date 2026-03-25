@@ -1,0 +1,21 @@
+{
+  "name": "@openchat/desktop",
+  "version": "1.0.0",
+  "main": "main.ts",
+  "scripts": {
+    "dev": "npx -p electron electron -r tsx/register .",
+    "build": "tsc",
+    "package": "npm run build && npx electron-builder",
+    "dist": "npm run build && npx electron-builder"
+  },
+  "dependencies": {
+    "electron-is-dev": "^3.0.1",
+    "electron-store": "^10.0.0"
+  },
+  "devDependencies": {
+    "electron": "^34.5.8",
+    "electron-builder": "^25.1.8",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}
