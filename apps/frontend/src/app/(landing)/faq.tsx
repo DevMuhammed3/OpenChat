@@ -43,7 +43,7 @@ const faqs = [
 
 export default function FAQ() {
   return (
-    <section id="faq" className="relative py-32 px-6 overflow-hidden h-[100vh]">
+    <section id="faq" className="relative py-24 px-6 overflow-hidden bg-[#020617]">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-[1px] bg-gradient-to-r from-transparent via-zinc-800 to-transparent" />
 
       <div className="max-w-3xl mx-auto relative z-10">
