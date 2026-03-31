@@ -1,10 +1,10 @@
 "use client"
 
 import { Plus, Home } from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage, Button, Skeleton } from "packages/ui"
+import { Button, Skeleton } from "packages/ui"
 import { useRouter, useParams } from "next/navigation"
 import { useEffect, useState } from "react"
-import { api, getAvatarUrl } from "@openchat/lib"
+import { api, getAvatarUrl, cn } from "@openchat/lib"
 import { CreateZoneModal } from "./CreateZoneModal"
 
 type Zone = {
@@ -71,32 +71,28 @@ export default function ZonesList() {
     router.push(`/zone/zones/${zone.publicId}`)
   }
   return (
-    <div className="w-16 bg-background border-r border-white/5 flex flex-col items-center py-3 gap-3">
-
+    <div className="w-[72px] bg-background border-r border-white/5 flex flex-col items-center py-3 gap-2 shrink-0 overflow-y-auto no-scrollbar">
       <Button
         onClick={() => { router.push("/zone") }}
-
-        className="w-10 h-10 rounded-xl bg-background hover:bg-secondary border border-white/5"
+        className={cn(
+          "w-12 h-12 rounded-[24px] hover:rounded-[16px] transition-all duration-200 flex items-center justify-center overflow-hidden p-0 group relative",
+          !zonePublicId ? "bg-primary text-white" : "bg-muted text-zinc-400 hover:bg-primary hover:text-white"
+        )}
       >
-        <Home size={18} />
+        <div className={cn(
+          "absolute left-0 w-1 bg-white rounded-r-full transition-all duration-200",
+          !zonePublicId ? "h-10" : "h-5 group-hover:h-5 opacity-0 group-hover:opacity-100"
+        )} />
+        <Home size={22} />
       </Button>
 
-      {/* Create Zone Button */}
-
-
-      <CreateZoneModal
-        open={open}
-        onClose={() => setOpen(false)}
-        onCreate={createZone}
-      />
-
-      <div className="w-8 h-[1px] bg-white/10" />
+      <div className="w-8 h-[2px] bg-white/10 rounded-full mx-auto my-1" />
 
       {/* Zones */}
       {loading ? (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2">
           {[...Array(4)].map((_, i) => (
-            <Skeleton key={i} className="w-10 h-10 rounded-xl" />
+            <Skeleton key={i} className="w-12 h-12 rounded-[24px]" />
           ))}
         </div>
       ) : (
@@ -104,57 +100,49 @@ export default function ZonesList() {
           const active = zonePublicId === zone.publicId
 
           return (
-            <Button
-              key={zone.publicId}
-              title={zone.name}
-              onClick={() => router.push(`/zone/zones/${zone.publicId}`)}
-              className={`
-                relative
-                w-10 h-10
-                rounded-xl
-                flex items-center justify-center
-                text-sm font-bold
-                transition
-                ${active
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-background hover:bg-secondary border border-white/5"
-                }
-              `}
-            >
-
-              {active && (
-                <div className="absolute -left-2 w-1 h-6 bg-white rounded-full" />
-              )}
-
-              {zone.avatar ? (
-                <Avatar className="h-8 w-8 rounded-full">
-                  <AvatarImage
+            <div key={zone.publicId} className="relative group flex items-center justify-center w-full">
+              <div className={cn(
+                "absolute left-0 w-1 bg-white rounded-r-full transition-all duration-200",
+                active ? "h-10" : "h-5 opacity-0 group-hover:opacity-100"
+              )} />
+              
+              <Button
+                title={zone.name}
+                onClick={() => router.push(`/zone/zones/${zone.publicId}`)}
+                className={cn(
+                  "w-12 h-12 transition-all duration-200 flex items-center justify-center overflow-hidden p-0",
+                  active ? "rounded-[16px] bg-primary text-white" : "rounded-[24px] hover:rounded-[16px] bg-muted hover:bg-primary text-zinc-400 hover:text-white"
+                )}
+              >
+                {zone.avatar ? (
+                  <img
                     src={getAvatarUrl(zone.avatar)}
                     alt={zone.name}
-                    className="object-cover"
+                    className="w-full h-full object-cover"
                   />
-                  <AvatarFallback className="text-[10px]">
-                    {zone.name?.[0]?.toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-              ) : (
-                zone.name?.[0]?.toUpperCase()
-              )}
-
-            </Button>
+                ) : (
+                  <span className="text-sm font-bold uppercase">{zone.name?.[0]}</span>
+                )}
+              </Button>
+            </div>
           )
         })
       )}
 
-      <div className="w-8 h-[1px] bg-white/10" />
+      <div className="w-8 h-[2px] bg-white/10 rounded-full mx-auto my-1" />
+      
       <Button
         onClick={() => setOpen(true)}
-        className="w-10 h-10 rounded-xl bg-background hover:bg-secondary border border-white/5"
+        className="w-12 h-12 rounded-[24px] hover:rounded-[16px] bg-muted hover:bg-emerald-500 text-emerald-500 hover:text-white transition-all duration-200 flex items-center justify-center group"
       >
-        <Plus size={18} />
+        <Plus size={22} />
       </Button>
 
+      <CreateZoneModal
+        open={open}
+        onClose={() => setOpen(false)}
+        onCreate={createZone}
+      />
     </div>
   )
 }
-
