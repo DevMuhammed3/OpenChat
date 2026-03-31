@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { api, socket, getAvatarUrl } from '@openchat/lib'
 import { useRouter } from 'next/navigation'
-import { useChatsStore } from '@/app/stores/chat-store'
 import { Search, MessageCircle, Plus } from 'lucide-react'
 
 interface Chat {
@@ -15,11 +14,17 @@ interface Chat {
     name?: string
   }[]
   lastMessage?: {
-    content: string
+    content?: string | null
+    text?: string | null
     createdAt: string
-    senderId: number
+    senderId?: number
   }
   unreadCount?: number
+}
+
+type IncomingMessage = {
+  chatPublicId: string
+  message: Chat['lastMessage']
 }
 
 export default function ChatListPage() {
@@ -51,7 +56,7 @@ export default function ChatListPage() {
       setChats(prev => [payload.chat, ...prev])
     })
 
-    socket.on('message:new', (payload: { chatPublicId: string; message: any }) => {
+    socket.on('message:new', (payload: IncomingMessage) => {
       setChats(prev => prev.map(chat => 
         chat.chatPublicId === payload.chatPublicId 
           ? { ...chat, lastMessage: payload.message }
@@ -85,13 +90,22 @@ export default function ChatListPage() {
     return date.toLocaleDateString([], { month: 'short', day: 'numeric' })
   }
 
+  useEffect(() => {
+    filteredChats.slice(0, 8).forEach((chat) => {
+      router.prefetch(`/zone/chat/${chat.chatPublicId}`)
+    })
+  }, [filteredChats, router])
+
   return (
-    <div className="h-full flex flex-col bg-[#0b1220]">
+    <div className="h-full min-h-0 flex flex-col bg-background">
       {/* Header */}
-      <div className="p-4 border-b border-white/5 shrink-0">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-xl font-bold text-white">Messages</h1>
-          <button className="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-white/10 transition-colors">
+      <div className="shrink-0 border-b border-white/5 px-4 py-4">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.22em] text-zinc-500">Inbox</p>
+            <h1 className="mt-1 text-2xl font-bold text-white">Messages</h1>
+          </div>
+          <button className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.04] text-zinc-400 hover:bg-white/[0.08] hover:text-white transition-colors">
             <Plus className="w-5 h-5" />
           </button>
         </div>
@@ -109,61 +123,71 @@ export default function ChatListPage() {
       </div>
 
       {/* Chat List */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-4 py-4">
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           </div>
         ) : filteredChats.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center px-4">
+          <div className="flex flex-col items-center justify-center rounded-[32px] border border-dashed border-white/10 bg-white/[0.03] px-4 py-12 text-center">
             <MessageCircle className="w-12 h-12 text-zinc-600 mb-4" />
             <h3 className="text-lg font-semibold text-white mb-2">No messages yet</h3>
             <p className="text-sm text-zinc-500">Start a conversation with a friend</p>
           </div>
         ) : (
-          <div className="p-4 space-y-2">
+          <div className="space-y-3">
             {filteredChats.map((chat) => {
               const otherUser = chat.participants[0]
+              const preview = chat.lastMessage?.content || chat.lastMessage?.text || 'Start the conversation'
+
               return (
-                <div
+                <button
                   key={chat.chatPublicId}
                   onClick={() => router.push(`/zone/chat/${chat.chatPublicId}`)}
-                  className="flex items-center gap-3 p-3 bg-[#1a1d23] rounded-xl hover:bg-[#22252b] transition-colors cursor-pointer active:scale-[0.98]"
+                  onPointerEnter={() => router.prefetch(`/zone/chat/${chat.chatPublicId}`)}
+                  onTouchStart={() => router.prefetch(`/zone/chat/${chat.chatPublicId}`)}
+                  className="w-full rounded-[28px] border border-white/6 bg-white/[0.03] p-3.5 text-left transition-all hover:bg-white/[0.05] active:scale-[0.99]"
                 >
-                  <div className="relative">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-cyan-500 flex items-center justify-center text-white font-bold overflow-hidden">
-                      {otherUser?.avatar ? (
-                        <img
-                          src={getAvatarUrl(otherUser.avatar)}
-                          alt={otherUser.username}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        otherUser?.username?.[0]?.toUpperCase()
-                      )}
-                    </div>
-                    {chat.unreadCount && chat.unreadCount > 0 && (
-                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-[10px] font-bold text-white flex items-center justify-center">
-                        {chat.unreadCount > 9 ? '9+' : chat.unreadCount}
+                  <div className="flex items-center gap-3">
+                    <div className="relative shrink-0">
+                      <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-[20px] bg-gradient-to-br from-primary to-cyan-500 text-white font-bold">
+                        {otherUser?.avatar ? (
+                          <img
+                            src={getAvatarUrl(otherUser.avatar)}
+                            alt={otherUser.username}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          otherUser?.username?.[0]?.toUpperCase()
+                        )}
                       </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <p className="font-semibold text-white truncate">
-                        {otherUser?.name || otherUser?.username}
-                      </p>
-                      {chat.lastMessage && (
-                        <span className="text-[10px] text-zinc-500">
-                          {formatTime(chat.lastMessage.createdAt)}
-                        </span>
+                      {chat.unreadCount && chat.unreadCount > 0 && (
+                        <div className="absolute -top-1 -right-1 min-w-[22px] h-[22px] px-1.5 bg-red-500 rounded-full text-[10px] font-bold text-white flex items-center justify-center shadow-lg">
+                          {chat.unreadCount > 9 ? '9+' : chat.unreadCount}
+                        </div>
                       )}
                     </div>
-                    <p className="text-xs text-zinc-500 truncate">
-                      {chat.lastMessage?.content || 'No messages yet'}
-                    </p>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="truncate text-[15px] font-bold text-white">
+                          {otherUser?.name || otherUser?.username}
+                        </p>
+                        {chat.lastMessage && (
+                          <span className="shrink-0 text-[11px] font-medium text-zinc-500">
+                            {formatTime(chat.lastMessage.createdAt)}
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-1 flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                        <p className="truncate text-sm text-zinc-400">
+                          {preview}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                </button>
               )
             })}
           </div>

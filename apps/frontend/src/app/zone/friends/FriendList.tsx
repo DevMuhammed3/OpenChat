@@ -226,7 +226,7 @@ export default function FriendList({ onSelectFriend }: FriendListProps) {
                           <Button
                             size="icon"
                             variant="ghost"
-                            className="h-8 w-8 text-muted-foreground"
+                            className="hidden md:block h-8 w-8 text-muted-foreground"
                             disabled={busyUserId === friend.id}
                             onClick={(event) => event.stopPropagation()}
                           >
@@ -257,7 +257,8 @@ export default function FriendList({ onSelectFriend }: FriendListProps) {
               })}
             </div>
           </ScrollArea>
-        )}      </div>
+        )}
+              </div>
     </div>
   )
 }

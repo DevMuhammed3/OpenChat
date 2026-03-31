@@ -89,13 +89,19 @@ export default function HowItWorks() {
                     </div>
                   </div>
 
-                  <div className="absolute top-0 right-0 md:-right-6 text-6xl font-black text-white/5 select-none transition-colors group-hover:text-white/10">
+                  <div className="absolute top-0 right-0 md:-right-6 text-6xl font-black text-white/30 select-none transition-colors group-hover:text-white/10">
                     0{index + 1}
                   </div>
 
-                  <h3 className="text-2xl font-bold text-white mb-4 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-white/60 transition-all">
-                    {step.title}
-                  </h3>
+<h3 className="relative text-2xl font-bold text-white mb-4 overflow-hidden">
+  <span className="relative z-10 transition-colors duration-300 group-hover:text-white/40">
+    {step.title}
+  </span>
+
+  <span className="absolute inset-0 z-0 bg-gradient-to-r from-white to-white/40 bg-clip-text text-transparent opacity-0 group-hover:opacity-50 transition-opacity duration-500">
+    {step.title}
+  </span>
+</h3>
 
                   <p className="text-zinc-400 leading-relaxed font-light px-4">
                     {step.description}

@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useUserStore } from '@/app/stores/user-store'
-import { api } from '@openchat/lib'
+import { useUser } from '@/features/user/queries'
 
 export default function UserProvider({
   children,
@@ -11,33 +11,16 @@ export default function UserProvider({
 }) {
   const setUser = useUserStore((s) => s.setUser)
   const setLoaded = useUserStore((s) => s.setLoaded)
-  const clearUser = useUserStore((s) => s.clearUser)
+  const { data: user, isFetched } = useUser()
 
   useEffect(() => {
-    let mounted = true
-
-    const fetchUser = async () => {
-      try {
-        const res = await api(`/auth/me?t=${Date.now()}`)
-
-        if (!res.ok) throw new Error()
-
-        const data = await res.json()
-
-        if (mounted) setUser(data.user)
-      } catch {
-        if (mounted) clearUser()
-      } finally {
-        if (mounted) setLoaded(true)
-      }
+    if (!isFetched) {
+      return
     }
 
-    fetchUser()
-
-    return () => {
-      mounted = false
-    }
-  }, [setUser, clearUser, setLoaded])
+    setUser(user ?? null)
+    setLoaded(true)
+  }, [isFetched, setLoaded, setUser, user])
 
   return <>{children}</>
 }

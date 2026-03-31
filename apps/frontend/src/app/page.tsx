@@ -28,10 +28,9 @@ export default async function LandingPage() {
         <HowItWorks />
         <Testimonials />
         {/* <Architecture /> */}
-        <FAQ />
+       {/* <FAQ /> */}
         <CTA />
       </main>
-
       <Footer />
     </div>
   )

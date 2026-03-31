@@ -70,9 +70,9 @@ export default function PendingRequests() {
         <Card key={r.id} className="group flex items-center justify-between p-4 shadow-sm border-muted/60 hover:border-muted-foreground/20 transition-all duration-200">
           <div className="flex items-center gap-4">
             <Avatar className="h-11 w-11 border-2 border-background shadow-sm">
-              {r.to.avatar && <AvatarImage src={r.to.avatar} alt={r.to.name} />}
+              {r.to.avatar && <AvatarImage src={r.to.avatar} alt={r.to.name ?? undefined} />}
               <AvatarFallback className="bg-secondary text-secondary-foreground font-semibold text-xs">
-                {r.to.name.substring(0, 2).toUpperCase()}
+                {(r.to.name ?? "?").substring(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
 
@@ -81,7 +81,7 @@ export default function PendingRequests() {
                 {r.to.name}
               </span>
               <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest">
-                Sent {formatDistanceToNow(new Date(r.createdAt), { addSuffix: true })}
+                Sent {r.createdAt ? formatDistanceToNow(new Date(r.createdAt), { addSuffix: true }) : "recently"}
               </span>
             </div>
           </div>

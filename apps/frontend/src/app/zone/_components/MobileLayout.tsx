@@ -1,43 +1,102 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { cn } from '@openchat/lib'
 import Link from 'next/link'
+import { Radiation } from 'lucide-react'
+
+type MobileUser = {
+  avatar?: string | null
+}
 
 interface MobileLayoutProps {
-  user: any
+  user: MobileUser | null
   children: React.ReactNode
 }
+
+const MOBILE_TABS = [
+  { id: 'home', label: 'Home', path: '/zone' },
+  { id: 'messages', label: 'Messages', path: '/zone/chat' },
+  { id: 'zones', label: 'Zones', path: '/zone/zones' },
+  { id: 'profile', label: 'Profile', path: '/zone/profile' },
+] as const
 
 export default function MobileLayout({ user, children }: MobileLayoutProps) {
   const router = useRouter()
   const pathname = usePathname()
-  const [activeTab, setActiveTab] = useState('home')
+  const touchStartRef = useRef<{ x: number; y: number; interactive: boolean } | null>(null)
 
-  useEffect(() => {
-    if (pathname.includes('/chat')) setActiveTab('messages')
-    else if (pathname.includes('/explore')) setActiveTab('explore')
-    else if (pathname.includes('/profile')) setActiveTab('profile')
-    else setActiveTab('home')
+  const immersiveRoute = useMemo(
+    () => /^\/zone\/chat\/[^/]+$/.test(pathname) || /^\/zone\/zones\/[^/]+\/channels\/[^/]+$/.test(pathname),
+    [pathname]
+  )
+
+  const activeTab = useMemo(() => {
+    if (pathname.includes('/chat')) return 'messages'
+    if (pathname.includes('/zones')) return 'zones'
+    if (pathname.includes('/profile')) return 'profile'
+    return 'home'
   }, [pathname])
 
-  const tabs = [
-    { id: 'home', label: 'Home', path: '/zone' },
-    { id: 'messages', label: 'Messages', path: '/zone/chat' },
-    { id: 'explore', label: 'Explore', path: '/zone/explore' },
-    { id: 'profile', label: 'Profile', path: '/zone/profile' },
-  ]
+  useEffect(() => {
+    MOBILE_TABS.forEach((tab) => {
+      if (tab.path !== pathname) {
+        router.prefetch(tab.path)
+      }
+    })
+  }, [pathname, router])
 
-  const handleTabClick = (tabId: string, path: string) => {
-    setActiveTab(tabId)
+  const handleTabClick = (_tabId: string, path: string) => {
+    router.prefetch(path)
     router.push(path)
   }
 
+  const handleTouchStart = (event: React.TouchEvent<HTMLElement>) => {
+    if (immersiveRoute) return
+
+    const target = event.target as HTMLElement | null
+    const interactive = !!target?.closest('button, a, input, textarea, [role="button"], [data-no-swipe="true"]')
+    const touch = event.touches[0]
+
+    touchStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      interactive,
+    }
+  }
+
+  const handleTouchEnd = (event: React.TouchEvent<HTMLElement>) => {
+    if (immersiveRoute || !touchStartRef.current || touchStartRef.current.interactive) {
+      touchStartRef.current = null
+      return
+    }
+
+    const touch = event.changedTouches[0]
+    const deltaX = touch.clientX - touchStartRef.current.x
+    const deltaY = touch.clientY - touchStartRef.current.y
+
+    touchStartRef.current = null
+
+    if (Math.abs(deltaX) < 72 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.2) {
+      return
+    }
+
+    const currentIndex = MOBILE_TABS.findIndex((tab) => tab.id === activeTab)
+    if (currentIndex === -1) return
+
+    const nextIndex = deltaX < 0 ? currentIndex + 1 : currentIndex - 1
+    const nextTab = MOBILE_TABS[nextIndex]
+    if (!nextTab) return
+
+    handleTabClick(nextTab.id, nextTab.path)
+  }
+
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full min-h-0 flex-col bg-background md:min-h-full">
       {/* Mobile Header */}
-      <header className="md:hidden flex items-center justify-between h-14 px-4 bg-[#0b1220] border-b border-white/5 z-40 shrink-0">
+      {!immersiveRoute && (
+        <header className="md:hidden flex items-center justify-between h-14 px-4 bg-[#0b1220] border-b border-white/5 z-40 shrink-0 safe-top">
         <Link href="/zone" className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
             <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -54,15 +113,24 @@ export default function MobileLayout({ user, children }: MobileLayoutProps) {
           </svg>
         </button>
       </header>
+      )}
 
-      <main className="flex-1 overflow-y-auto overflow-x-hidden md:pb-0 pb-16">
+      <main
+        className={cn(
+          'flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain',
+          immersiveRoute ? 'pb-0' : 'pb-[calc(5.25rem+env(safe-area-inset-bottom))]'
+        )}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         {children}
       </main>
       
       {/* Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0b1220]/95 backdrop-blur-xl border-t border-white/10 safe-area-bottom">
+      {!immersiveRoute && (
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0b1220]/95 backdrop-blur-xl border-t border-white/10 safe-bottom-nav">
         <div className="flex items-center justify-around h-16 px-2">
-          {tabs.map((tab) => {
+          {MOBILE_TABS.map((tab) => {
             const isActive = activeTab === tab.id
             
             return (
@@ -89,11 +157,12 @@ export default function MobileLayout({ user, children }: MobileLayoutProps) {
           })}
         </div>
       </nav>
+      )}
     </div>
   )
 }
 
-function TabIcon({ tabId, isActive, user }: { tabId: string; isActive: boolean; user: any }) {
+function TabIcon({ tabId, isActive, user }: { tabId: string; isActive: boolean; user: MobileUser | null }) {
   switch (tabId) {
     case 'home':
       return (
@@ -108,13 +177,8 @@ function TabIcon({ tabId, isActive, user }: { tabId: string; isActive: boolean; 
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         </svg>
       )
-    case 'explore':
-      return (
-        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="11" cy="11" r="8" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
-      )
+    case 'zones':
+      return <Radiation className="w-6 h-6" />
     case 'profile':
       return user?.avatar ? (
         <img

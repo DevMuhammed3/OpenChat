@@ -1,17 +1,25 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useParams, usePathname, useRouter } from 'next/navigation'
-import { Hash, Volume2, Plus, Users, ChevronDown } from 'lucide-react'
+import { ChevronDown, Hash, Plus, Users, Volume2 } from 'lucide-react'
 import { Button, ScrollArea, Skeleton } from 'packages/ui'
-import { cn, api, socket } from '@openchat/lib'
+import { cn, socket } from '@openchat/lib'
 import ChatList from '../chat/ChatList'
 import UserBar from './UserBar'
 import { CreateChannelModal } from './zones/CreateChannelModal'
-import { type ChannelVoiceParticipant, useCallStore } from '@/app/stores/call-store'
+import { useCallStore } from '@/app/stores/call-store'
 import VoiceParticipants from './voice/VoiceParticipants'
 import ActiveSessionBar from './ActiveSessionBar'
 import { startVoiceSession } from '@/app/lib/session-runtime'
+import { useCreateChannelMutation } from '@/features/channels/mutations'
+import { useZoneNavigation } from '@/features/channels/navigation'
+import { channelKeys, useChannels, useZoneVoicePresence } from '@/features/channels/queries'
+import type { ChannelVoiceParticipant, ZoneVoicePresence } from '@/features/channels/types'
+import { useCoarsePointer, usePrefetchOnVisible } from '@/features/prefetch/usePrefetchOnVisible'
+import { useUser } from '@/features/user/queries'
+import { useZone } from '@/features/zones/queries'
 
 type SidebarUser = {
   id: number
@@ -19,16 +27,14 @@ type SidebarUser = {
   avatar?: string | null
 }
 
-type Zone = {
-  publicId: string
-  name: string
-  avatar?: string | null
-}
-
-type Channel = {
-  publicId: string
-  name: string
-  type: 'TEXT' | 'VOICE'
+function upsertVoicePresenceEntry(
+  current: ZoneVoicePresence[],
+  channelPublicId: string,
+  participants: ChannelVoiceParticipant[],
+) {
+  const nextPresence = current.filter((entry) => entry.channelPublicId !== channelPublicId)
+  nextPresence.push({ channelPublicId, participants })
+  return nextPresence
 }
 
 export default function ZoneSidebar({
@@ -39,39 +45,46 @@ export default function ZoneSidebar({
   const pathname = usePathname()
   const router = useRouter()
   const params = useParams<{ zonePublicId?: string; channelPublicId?: string }>()
+  const queryClient = useQueryClient()
+  const isCoarsePointer = useCoarsePointer()
+  const { data: currentUserQuery } = useUser()
+  const currentUser = user ?? currentUserQuery ?? null
+  const { data: zone } = useZone(params?.zonePublicId)
+  const { data: channels = [], isLoading: channelsLoading } = useChannels(params?.zonePublicId)
+  const { data: voicePresence = [] } = useZoneVoicePresence(params?.zonePublicId, Boolean(params?.zonePublicId))
+  const createChannelMutation = useCreateChannelMutation(params.zonePublicId ?? '')
+  const { openChannel, prefetchChannel } = useZoneNavigation()
 
-  const zonePublicId = params?.zonePublicId
-  const [channels, setChannels] = useState<Channel[]>([])
-  const [zone, setZone] = useState<Zone | null>(null)
-  const [voicePresence, setVoicePresence] = useState<Record<string, ChannelVoiceParticipant[]>>({})
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [modalType, setModalType] = useState<'TEXT' | 'VOICE'>('TEXT')
 
-  const session = useCallStore(s => s.session)
-  const activeChannelPublicId = useCallStore(s => s.channelPublicId)
-  const channelParticipants = useCallStore(s => s.channelParticipants)
-  const upsertChannelParticipant = useCallStore(s => s.upsertChannelParticipant)
-  const isMuted = useCallStore(s => s.isMuted)
-  const isSpeaker = useCallStore(s => s.isSpeaker)
+  const session = useCallStore((state) => state.session)
+  const activeChannelPublicId = useCallStore((state) => state.channelPublicId)
+  const channelParticipants = useCallStore((state) => state.channelParticipants)
+  const upsertChannelParticipant = useCallStore((state) => state.upsertChannelParticipant)
+  const isMuted = useCallStore((state) => state.isMuted)
+  const isSpeaker = useCallStore((state) => state.isSpeaker)
 
+  const zonePublicId = params?.zonePublicId
   const isHome = pathname.startsWith('/zone') && !zonePublicId
   const previousActiveChannelRef = useRef<string | null>(null)
-  const activeVoiceParticipants = useMemo(
-    () => (activeChannelPublicId ? (voicePresence[activeChannelPublicId] ?? channelParticipants) : []),
-    [activeChannelPublicId, channelParticipants, voicePresence],
-  )
-  const fetchChannels = useCallback(() => {
-    if (!zonePublicId) {
-      setChannels([])
-      return
-    }
 
-    api(`/zones/${zonePublicId}/channels`)
-      .then(res => res.json())
-      .then(data => {
-        setChannels(data.channels ?? [])
-      })
-  }, [zonePublicId])
+  const voicePresenceByChannel = useMemo(
+    () =>
+      Object.fromEntries(
+        voicePresence.map((entry) => [entry.channelPublicId, entry.participants ?? []]),
+      ) as Record<string, ChannelVoiceParticipant[]>,
+    [voicePresence],
+  )
+
+  const activeVoiceParticipants = useMemo(
+    () => (activeChannelPublicId ? (voicePresenceByChannel[activeChannelPublicId] ?? channelParticipants) : []),
+    [activeChannelPublicId, channelParticipants, voicePresenceByChannel],
+  )
+  const activeVoiceChannel = useMemo(
+    () => channels.find((channel) => channel.publicId === activeChannelPublicId) ?? null,
+    [activeChannelPublicId, channels],
+  )
 
   useEffect(() => {
     if (zonePublicId && typeof window !== 'undefined') {
@@ -80,40 +93,7 @@ export default function ZoneSidebar({
   }, [zonePublicId])
 
   useEffect(() => {
-    if (!user) return
-
-    const previousChannelId = previousActiveChannelRef.current
-    if (previousChannelId && previousChannelId !== activeChannelPublicId) {
-      setVoicePresence((prev) => ({
-        ...prev,
-        [previousChannelId]: (prev[previousChannelId] ?? []).filter((participant) => participant.userId !== user.id),
-      }))
-    }
-
-    previousActiveChannelRef.current = activeChannelPublicId
-  }, [activeChannelPublicId, user])
-
-  useEffect(() => {
-    if (zonePublicId) {
-      // Load zone details and channels
-      api(`/zones`).then(res => res.json()).then(data => {
-        const current = data.zones?.find((z: Zone) => z.publicId === zonePublicId)
-        setZone(current)
-      })
-
-      api(`/zones/${zonePublicId}/channels`).then(res => res.json()).then(data => {
-        setChannels(data.channels ?? [])
-      })
-    }
-  }, [zonePublicId])
-
-  useEffect(() => {
     if (!zonePublicId) return
-
-    const handleChannelsUpdated = async (payload: { chatPublicId: string }) => {
-      if (payload.chatPublicId !== zonePublicId) return
-      fetchChannels()
-    }
 
     const handleVoicePresence = (payload: {
       chatPublicId: string
@@ -122,79 +102,52 @@ export default function ZoneSidebar({
     }) => {
       if (payload.chatPublicId !== zonePublicId) return
 
-      setVoicePresence((prev) => ({
-        ...prev,
-        [payload.channelPublicId]: payload.participants ?? [],
-      }))
+      queryClient.setQueryData<ZoneVoicePresence[]>(
+        channelKeys.voicePresence(zonePublicId),
+        (current = []) => upsertVoicePresenceEntry(current, payload.channelPublicId, payload.participants ?? []),
+      )
     }
 
-    const handleZoneUpdated = (payload: { zone: Zone }) => {
-      if (payload.zone.publicId !== zonePublicId) return
-      setZone(payload.zone)
-    }
-
-    socket.on('zone:channels-updated', handleChannelsUpdated)
     socket.on('zone:voice-presence', handleVoicePresence)
-    socket.on('zone:updated', handleZoneUpdated)
 
     return () => {
-      socket.off('zone:channels-updated', handleChannelsUpdated)
       socket.off('zone:voice-presence', handleVoicePresence)
-      socket.off('zone:updated', handleZoneUpdated)
     }
-  }, [fetchChannels, zonePublicId])
+  }, [queryClient, zonePublicId])
 
   useEffect(() => {
-    if (!zonePublicId) return
+    if (!currentUser || !zonePublicId) return
 
-    let cancelled = false
-
-    const loadVoicePresence = async () => {
-      try {
-        const res = await api(`/zones/${zonePublicId}/voice-presence`)
-        const data = await res.json()
-        if (cancelled) return
-
-        const nextPresence = Object.fromEntries(
-          (data.channels ?? []).map((channel: { channelPublicId: string; participants: ChannelVoiceParticipant[] }) => [
-            channel.channelPublicId,
-            channel.participants ?? [],
-          ]),
-        )
-
-        setVoicePresence(nextPresence)
-      } catch (err) {
-        if (!cancelled) {
-          console.error("Failed to load voice presence", err)
-        }
-      }
+    const previousChannelId = previousActiveChannelRef.current
+    if (previousChannelId && previousChannelId !== activeChannelPublicId) {
+      queryClient.setQueryData<ZoneVoicePresence[]>(
+        channelKeys.voicePresence(zonePublicId),
+        (current = []) =>
+          upsertVoicePresenceEntry(
+            current,
+            previousChannelId,
+            (voicePresenceByChannel[previousChannelId] ?? []).filter(
+              (participant) => participant.userId !== currentUser.id,
+            ),
+          ),
+      )
     }
 
-    void loadVoicePresence()
-
-    return () => {
-      cancelled = true
-    }
-  }, [zonePublicId])
+    previousActiveChannelRef.current = activeChannelPublicId
+  }, [activeChannelPublicId, currentUser, queryClient, voicePresenceByChannel, zonePublicId])
 
   const handleCreateChannel = async (name: string, type: 'TEXT' | 'VOICE') => {
-    try {
-      const res = await api(`/zones/${zonePublicId}/channels`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, type })
-      })
-      if (res.ok) {
-        fetchChannels()
-      }
-    } catch (err) {
-      console.error("Failed to create channel", err)
+    if (!zonePublicId) return
+
+    const channel = await createChannelMutation.mutateAsync({ name, type })
+
+    if (channel.type === 'TEXT') {
+      await openChannel(zonePublicId, channel.publicId)
     }
   }
 
   return (
     <div className="w-64 h-full bg-background border-r border-white/5 flex flex-col shrink-0">
-      {/* Header */}
       <div className="h-12 px-4 border-b border-white/5 flex items-center shadow-sm hover:bg-white/[0.02] cursor-pointer transition-colors group">
         <h2 className="font-bold text-white text-[15px] truncate flex-1 leading-tight">
           {zonePublicId ? (zone?.name || <Skeleton className="h-4 w-24 bg-white/5" />) : 'Direct Messages'}
@@ -225,13 +178,12 @@ export default function ZoneSidebar({
             </div>
 
             <div className="flex-1 overflow-y-auto px-2 pb-4 chat-list-scrollbar">
-              <ChatList currentUserId={user?.id} />
+              <ChatList currentUserId={currentUser?.id} />
             </div>
           </>
         ) : (
           <ScrollArea className="flex-1 px-2">
             <div className="space-y-[2px]">
-              {/* Text Channels */}
               <div className="mb-4">
                 <div className="px-2 py-1 flex items-center justify-between group">
                   <p className="text-[12px] font-bold text-zinc-500 uppercase tracking-wide leading-3">
@@ -243,26 +195,33 @@ export default function ZoneSidebar({
                   />
                 </div>
                 <div className="space-y-[2px] mt-1">
-                  {channels.filter(c => c.type === 'TEXT').map(channel => (
-                    <Button
+                  {channelsLoading && (
+                    <div className="space-y-2 px-2">
+                      <Skeleton className="h-8 w-full bg-white/5" />
+                      <Skeleton className="h-8 w-full bg-white/5" />
+                    </div>
+                  )}
+
+                  {channels.filter((channel) => channel.type === 'TEXT').map((channel) => (
+                    <TextChannelItem
                       key={channel.publicId}
-                      variant="ghost"
-                      onClick={() => router.push(`/zone/zones/${zonePublicId}/channels/${channel.publicId}`)}
-                      className={cn(
-                        'w-full justify-start gap-1.5 px-2 py-1.5 h-auto rounded-md text-[15px] font-medium transition-colors group',
-                        params.channelPublicId === channel.publicId
-                          ? 'bg-white/10 text-white'
-                          : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'
-                      )}
-                    >
-                      <Hash className="h-5 w-5 text-zinc-500 group-hover:text-zinc-400" />
-                      <span className="truncate">{channel.name}</span>
-                    </Button>
+                      active={params.channelPublicId === channel.publicId}
+                      channelName={channel.name}
+                      channelPublicId={channel.publicId}
+                      isCoarsePointer={isCoarsePointer}
+                      onOpen={() => {
+                        if (!zonePublicId) return
+                        void openChannel(zonePublicId, channel.publicId)
+                      }}
+                      onPrefetch={() => {
+                        if (!zonePublicId) return
+                        return prefetchChannel(zonePublicId, channel.publicId)
+                      }}
+                    />
                   ))}
                 </div>
               </div>
 
-              {/* Voice Channels */}
               <div className="mb-4">
                 <div className="px-2 py-1 flex items-center justify-between group">
                   <p className="text-[12px] font-bold text-zinc-500 uppercase tracking-wide leading-3">
@@ -274,45 +233,38 @@ export default function ZoneSidebar({
                   />
                 </div>
                 <div className="space-y-[2px] mt-1">
-                  {channels.filter(c => c.type === 'VOICE').map(channel => {
-                    const participants = voicePresence[channel.publicId] ?? []
+                  {channels.filter((channel) => channel.type === 'VOICE').map((channel) => {
+                    const participants = voicePresenceByChannel[channel.publicId] ?? []
 
                     return (
                       <div key={channel.publicId} className="space-y-0.5">
                         <Button
                           variant="ghost"
                           onClick={() => {
-                            if (user) {
-                              setVoicePresence((prev) => {
-                                const nextParticipants = prev[channel.publicId] ?? []
-                                if (nextParticipants.some((participant) => participant.userId === user.id)) {
-                                  return prev
-                                }
-
-                                return {
-                                  ...prev,
-                                  [channel.publicId]: [
-                                    ...nextParticipants,
-                                    {
-                                      userId: user.id,
-                                      socketId: 'local',
-                                      username: user.username,
-                                      avatar: user.avatar ?? null,
-                                      isMuted,
-                                      isSpeaker,
-                                    },
-                                  ],
-                                }
-                              })
-
-                              upsertChannelParticipant({
-                                userId: user.id,
+                            if (currentUser && zonePublicId) {
+                              const localParticipant: ChannelVoiceParticipant = {
+                                userId: currentUser.id,
                                 socketId: 'local',
-                                username: user.username,
-                                avatar: user.avatar ?? null,
+                                username: currentUser.username,
+                                avatar: currentUser.avatar ?? null,
                                 isMuted,
                                 isSpeaker,
-                              })
+                              }
+
+                              queryClient.setQueryData<ZoneVoicePresence[]>(
+                                channelKeys.voicePresence(zonePublicId),
+                                (current = []) => {
+                                  const nextParticipants = participants.some(
+                                    (participant) => participant.userId === currentUser.id,
+                                  )
+                                    ? participants
+                                    : [...participants, localParticipant]
+
+                                  return upsertVoicePresenceEntry(current, channel.publicId, nextParticipants)
+                                },
+                              )
+
+                              upsertChannelParticipant(localParticipant)
                             }
 
                             void startVoiceSession(channel.publicId)
@@ -338,24 +290,69 @@ export default function ZoneSidebar({
             </div>
           </ScrollArea>
         )}
+
+        {session && (
+          <ActiveSessionBar
+            activeVoiceLabel={activeVoiceChannel?.name}
+            participantCount={activeVoiceParticipants.length}
+          />
+        )}
+        <UserBar user={currentUser} />
       </div>
 
-      {session && (
-        <ActiveSessionBar
-          activeVoiceLabel={channels.find(c => c.publicId === activeChannelPublicId)?.name || 'Voice channel'}
-          participantCount={activeVoiceParticipants.length}
-        />
-      )}
-
-      {/* User Bar */}
-      <UserBar user={user} />
-
       <CreateChannelModal
+        key={modalType}
         open={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onCreate={handleCreateChannel}
         initialType={modalType}
       />
     </div>
+  )
+}
+
+function TextChannelItem({
+  active,
+  channelName,
+  channelPublicId,
+  isCoarsePointer,
+  onOpen,
+  onPrefetch,
+}: {
+  active: boolean
+  channelName: string
+  channelPublicId: string
+  isCoarsePointer: boolean
+  onOpen: () => void
+  onPrefetch: () => Promise<unknown> | undefined
+}) {
+  const prefetchRef = usePrefetchOnVisible<HTMLButtonElement>(() => onPrefetch(), {
+    enabled: isCoarsePointer,
+  })
+
+  return (
+    <Button
+      ref={prefetchRef}
+      key={channelPublicId}
+      variant="ghost"
+      onClick={onOpen}
+      onPointerEnter={() => {
+        if (!isCoarsePointer) {
+          void onPrefetch()
+        }
+      }}
+      onTouchStart={() => {
+        void onPrefetch()
+      }}
+      className={cn(
+        'w-full justify-start gap-1.5 px-2 py-1.5 h-auto rounded-md text-[15px] font-medium transition-colors group',
+        active
+          ? 'bg-white/10 text-white'
+          : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'
+      )}
+    >
+      <Hash className="h-5 w-5 text-zinc-500 group-hover:text-zinc-400" />
+      <span className="truncate">{channelName}</span>
+    </Button>
   )
 }

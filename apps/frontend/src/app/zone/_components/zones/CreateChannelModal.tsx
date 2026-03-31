@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Button, Input, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from 'packages/ui'
 import { Hash, Volume2 } from 'lucide-react'
-import { cn, api } from '@openchat/lib'
+import { cn } from '@openchat/lib'
 
 export function CreateChannelModal({ 
   open, 

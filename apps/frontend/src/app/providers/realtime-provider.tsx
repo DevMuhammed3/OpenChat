@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { socket } from '@openchat/lib'
-import { api } from '@openchat/lib'
 import {
   type BlockedUser,
   type Friend,
@@ -10,8 +10,14 @@ import {
   type PendingFriendRequest,
   useFriendsStore,
 } from '@/app/stores/friends-store'
-import { useUserStore } from '@/app/stores/user-store'
 import { useChatsStore } from '@/app/stores/chat-store'
+import { mergeMessage, messageKeys } from '@/features/chat/queries'
+import type { ChannelMessage } from '@/features/chat/types'
+import { channelKeys } from '@/features/channels/queries'
+import { useUser } from '@/features/user/queries'
+import { zoneKeys } from '@/features/zones/queries'
+import type { ZoneMember, ZoneSummary } from '@/features/zones/types'
+import { apiClient } from '@/lib/api/client'
 
 type BootstrapIncomingRequest = {
   id: number
@@ -21,7 +27,8 @@ type BootstrapIncomingRequest = {
 }
 
 export function RealtimeProvider({ children }: { children: React.ReactNode }) {
-  const user = useUserStore(s => s.user)
+  const queryClient = useQueryClient()
+  const { data: user } = useUser()
 
   const addRequest = useFriendsStore(s => s.addRequest)
   const addFriend = useFriendsStore(s => s.addFriend)
@@ -81,7 +88,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       setBlockedUsers(blocked)
     }
 
-    const handlePrivateMessage = (msg: {
+    const handlePrivateMessage = (msg: ChannelMessage & {
       chatPublicId: string
       channelPublicId?: string
       text?: string | null
@@ -99,6 +106,13 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
             createdAt: msg.createdAt || new Date().toISOString()
           }
         })
+      }
+
+      if (msg.channelPublicId) {
+        queryClient.setQueryData<ChannelMessage[]>(
+          messageKeys.list(msg.chatPublicId, msg.channelPublicId),
+          (current = []) => mergeMessage(current, msg),
+        )
       }
     }
 
@@ -118,6 +132,32 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       setBulkOnline(userIds)
     }
 
+    const handleZoneUpdated = ({ zone }: { zone: ZoneSummary }) => {
+      queryClient.setQueryData<ZoneSummary[]>(zoneKeys.list(), (current = []) => {
+        const hasZone = current.some((item) => item.publicId === zone.publicId)
+
+        if (!hasZone) {
+          return current
+        }
+
+        return current.map((item) => (item.publicId === zone.publicId ? { ...item, ...zone } : item))
+      })
+    }
+
+    const handleZoneMembersUpdated = ({
+      chatPublicId,
+      members,
+    }: {
+      chatPublicId: string
+      members: ZoneMember[]
+    }) => {
+      queryClient.setQueryData(zoneKeys.members(chatPublicId), members)
+    }
+
+    const handleZoneChannelsUpdated = ({ chatPublicId }: { chatPublicId: string }) => {
+      queryClient.invalidateQueries({ queryKey: channelKeys.list(chatPublicId) })
+    }
+
     socket.on('friend:request', handleFriendRequest)
     socket.on('friend:accepted', handleFriendAccepted)
     socket.on('friend:rejected', handleFriendRejected)
@@ -133,6 +173,9 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     socket.on('user:online', handleUserOnline)
     socket.on('user:offline', handleUserOffline)
     socket.on('friends:online', handleFriendsOnline)
+    socket.on('zone:updated', handleZoneUpdated)
+    socket.on('zone:members-updated', handleZoneMembersUpdated)
+    socket.on('zone:channels-updated', handleZoneChannelsUpdated)
 
     return () => {
       socket.off('friend:request', handleFriendRequest)
@@ -150,6 +193,9 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       socket.off('user:online', handleUserOnline)
       socket.off('user:offline', handleUserOffline)
       socket.off('friends:online', handleFriendsOnline)
+      socket.off('zone:updated', handleZoneUpdated)
+      socket.off('zone:members-updated', handleZoneMembersUpdated)
+      socket.off('zone:channels-updated', handleZoneChannelsUpdated)
     }
   }, [
     addBlockedUser,
@@ -166,6 +212,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     setOnline,
     setPendingRequests,
     setRequests,
+    queryClient,
   ])
 
   useEffect(() => {
@@ -187,28 +234,34 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     const bootstrap = async () => {
       try {
         const [friendsRes, requestsRes, pendingRes, blockedRes] = await Promise.all([
-          api('/friends/list'),
-          api('/friends/requests'),
-          api('/friends/pending'),
-          api('/friends/blocked'),
+          apiClient.get<{ friends: Friend[] }>('/friends/list'),
+          apiClient.get<{ requests: FriendRequest[] }>('/friends/requests'),
+          apiClient.get<{ requests: PendingFriendRequest[] }>('/friends/pending'),
+          apiClient.get<{ blocked: BlockedUser[] }>('/friends/blocked'),
         ])
 
-        const [friendsData, requestsData, pendingData, blockedData] = await Promise.all([
-          friendsRes.json().catch(() => ({ friends: [] })),
-          requestsRes.json().catch(() => ({ requests: [] })),
-          pendingRes.json().catch(() => ({ requests: [] })),
-          blockedRes.json().catch(() => ({ blocked: [] })),
-        ])
+        const friendsData = friendsRes ?? { friends: [] }
+        const requestsData = requestsRes ?? { requests: [] }
+        const pendingData = pendingRes ?? { requests: [] }
+        const blockedData = blockedRes ?? { blocked: [] }
 
         if (cancelled) return
 
         setFriends(friendsData.friends ?? [])
         setRequests(
-          (requestsData.requests ?? []).map((request: BootstrapIncomingRequest) => ({
-            id: request.id,
-            from: request.from ?? request.sender,
-            createdAt: request.createdAt,
-          })),
+          (requestsData.requests ?? []).flatMap((request: BootstrapIncomingRequest) => {
+            const from = request.from ?? request.sender
+
+            if (!from) {
+              return []
+            }
+
+            return [{
+              id: request.id,
+              from,
+              createdAt: request.createdAt,
+            }]
+          }),
         )
         setPendingRequests(pendingData.requests ?? [])
         setBlockedUsers(blockedData.blocked ?? [])

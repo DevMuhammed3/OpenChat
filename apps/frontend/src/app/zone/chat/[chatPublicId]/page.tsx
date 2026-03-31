@@ -13,24 +13,22 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  SheetDescription,
   Sheet,
   SheetContent,
-  SheetTrigger,
+  SheetDescription,
   SheetTitle,
   Skeleton,
 } from 'packages/ui'
 import { useChatsStore } from '@/app/stores/chat-store'
-import { Info, Paperclip, PhoneCall, Pin, Send, ShieldBan, User, UserMinus, Video, X, Smile, Sticker as StickerIcon, Gift, Menu, SquarePen, Trash, Search } from 'lucide-react'
-import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
+import { ArrowLeft, Info, Paperclip, PhoneCall, Pin, Send, ShieldBan, User, UserMinus, Video, X, Smile, Sticker as StickerIcon, Gift, SquarePen, Trash, Search } from 'lucide-react'
 import { api, getAvatarUrl } from '@openchat/lib'
-import ZoneSidebar from '../../_components/ZoneSidebar'
 import MessageText from '../../_components/chat/MessageText'
 import GifPicker from '../../_components/chat/GifPicker'
 import StickerPicker from '../../_components/chat/StickerPicker'
 // import { useVoiceCall } from "@/hooks/useVoiceCall"
 import { useCallStore } from "@/app/stores/call-store"
 import { startOutgoingCallSession } from "@/app/lib/session-runtime"
+import { useUserStore } from '@/app/stores/user-store'
 
 type Message = {
   id: number
@@ -135,7 +133,7 @@ export default function ChatPage() {
 
   const chats = useChatsStore((s) => s.chats)
   const hideChat = useChatsStore((s) => s.hideChat)
-  const [user, setUser] = useState<ChatParticipant | null>(null)
+  const currentUser = useUserStore((s) => s.user)
   const speakingUsers = useCallStore(s => s.speakingUsers)
 
   // const {
@@ -167,25 +165,9 @@ export default function ChatPage() {
     })
 
   useEffect(() => {
-    const loadMe = async () => {
-      try {
-        const res = await api('/auth/me', { credentials: 'include' })
-        if (!res.ok) {
-          console.error('Not authenticated')
-          return
-        }
-        const data = await res.json()
-        if (data.user) {
-          setCurrentUserId(data.user.id)
-          setUser(data.user)
-        }
-      } catch (err) {
-        console.error('Failed to load user:', err)
-      }
-    }
-
-    loadMe()
-  }, [])
+    if (!currentUser) return
+    setCurrentUserId(currentUser.id)
+  }, [currentUser])
 
   useEffect(() => {
     if (!chatPublicId) return
@@ -524,14 +506,14 @@ export default function ChatPage() {
   if (!messages || !activeChat) {
     if (!loading) {
       return (
-        <div className="flex flex-col h-[100svh] w-full bg-background items-center justify-center">
+        <div className="flex h-full min-h-0 w-full flex-col items-center justify-center bg-background">
           <p className="text-zinc-400 mb-2">Unable to load chat</p>
           <p className="text-zinc-500 text-sm">Make sure you're logged in and the chat exists</p>
         </div>
       )
     }
     return (
-      <div className="flex flex-col h-[100svh] w-full bg-background animate-in fade-in duration-500">
+      <div className="flex h-full min-h-0 w-full flex-col bg-background animate-in fade-in duration-500">
         <div className="h-16 border-b flex items-center px-4 gap-3">
           <Skeleton className="h-10 w-10 rounded-full" />
           <Skeleton className="h-4 w-32" />
@@ -554,12 +536,12 @@ export default function ChatPage() {
     <div
       className="
             flex flex-col
-            h-[100svh] w-full
+            h-full min-h-0 w-full
           "
     >
       <div
         className="
-                sticky top-0 z-10 flex items-center
+                sticky top-0 z-10 flex items-center shrink-0
                 px-4 py-4
                 bg-background
                 border-b
@@ -571,37 +553,13 @@ export default function ChatPage() {
                     md:hidden
                   "
         >
-          <Sheet>
-            <SheetTrigger asChild>
-              <button
-                className="
-                                py-2
-                                hover:bg-muted
-                                rounded-md
-                              "
-              >
-                <Menu
-                  className="
-                                    h-5 w-5
-                                  "
-                />
-              </button>
-            </SheetTrigger>
-
-            <SheetContent
-              side="left"
-              className="
-                            w-80
-                            p-0
-                          "
-            >
-              <VisuallyHidden>
-                <SheetTitle>Sidebar</SheetTitle>
-              </VisuallyHidden>
-
-              <ZoneSidebar user={user} />
-            </SheetContent>
-          </Sheet>
+          <button
+            onClick={() => router.push('/zone/chat')}
+            className="rounded-md p-2 text-zinc-400 transition-colors hover:bg-muted hover:text-white"
+            aria-label="Back to messages"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
         </div>
 
         <div className="relative">
@@ -749,12 +707,12 @@ export default function ChatPage() {
       <div
         ref={messagesRef}
         dir="ltr"
-        className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 w-full"
+        className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 w-full overscroll-y-contain"
       >
         <div className="flex flex-col min-h-full justify-end">
           {messages.map((m, idx) => {
             const isMe = m.senderId === currentUserId
-            const sender = isMe ? user : otherUser
+            const sender = isMe ? currentUser : otherUser
             const prevMsg = messages[idx - 1]
             const isGrouped = !!prevMsg && prevMsg.senderId === m.senderId &&
               (getMessageTimestamp(m) - getMessageTimestamp(prevMsg) < 300000)
@@ -764,7 +722,7 @@ export default function ChatPage() {
                 <div
                   id={`message-${m.id}`}
                   key={m.id}
-                  className="pl-14 pr-4 py-1 hover:bg-white/[0.02] transition-colors group relative"
+                  className="pl-[72px] pr-4 py-1 hover:bg-white/[0.02] transition-colors group relative"
                 >
                   {m.isPinned && !m.isDeleted && (
                     <div className="mb-1 flex items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-amber-300">
@@ -1038,8 +996,10 @@ export default function ChatPage() {
         </div>
       </div>
 
-
-      <div className="relative shrink-0 m-1 p-2">
+      <div
+        className="relative shrink-0 border-t border-white/5 bg-background/95 px-2 pt-2 safe-bottom backdrop-blur"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.5rem)' }}
+      >
         {previewUrl && (
           <div className="px-4 mb-2">
             <div className="absolute bottom-20 left-2 w-fit bg-background rounded-2xl p-2 shadow-md">
@@ -1057,7 +1017,6 @@ export default function ChatPage() {
             </div>
           </div>
         )}
-
         <div className="flex items-center gap-1.5 px-3 py-2 bg-background/50 rounded-2xl border border-white/5 relative">
           {typingUsers.size > 0 && Array.from(typingUsers).map(uid => {
             const user = activeChat?.participants.find((participant) => participant.id === uid)
@@ -1093,7 +1052,7 @@ export default function ChatPage() {
             className="border-0 bg-transparent focus-visible:ring-0 text-white placeholder:text-zinc-500 min-w-0"
           />
 
-          <div className="flex items-center gap-0.5 shrink-0">
+          <div className="hidden sm:flex items-center gap-0.5 shrink-0">
              <Button size="icon" variant="ghost" className="h-9 w-9 text-zinc-400 hover:text-zinc-200" title="Gift Nitro">
                 <Gift className="h-5 w-5" />
              </Button>

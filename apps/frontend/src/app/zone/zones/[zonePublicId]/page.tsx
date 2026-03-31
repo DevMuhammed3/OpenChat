@@ -1,76 +1,38 @@
 'use client'
 
-import { useEffect, useState } from "react"
-import { useParams } from "next/navigation"
-import { api } from "@openchat/lib"
+import { useEffect } from "react"
+import { useParams, useRouter } from "next/navigation"
 import { Hash, Volume2 } from "lucide-react"
-
-type Channel = {
-  publicId: string
-  name: string
-  type: "TEXT" | "VOICE"
-}
-
-type Zone = {
-  publicId: string
-  name: string
-}
+import { buildChannelRoute } from "@/features/channels/navigation"
+import { getPrimaryTextChannel, useChannels } from "@/features/channels/queries"
+import { useZone } from "@/features/zones/queries"
 
 export default function ZonePage() {
   const { zonePublicId } = useParams<{ zonePublicId: string }>()
-  const [zone, setZone] = useState<Zone | null>(null)
-  const [channels, setChannels] = useState<Channel[]>([])
-  const [loading, setLoading] = useState(true)
+  const router = useRouter()
+  const { data: zone, isLoading: zoneLoading } = useZone(zonePublicId)
+  const { data: channels = [], isLoading: channelsLoading } = useChannels(zonePublicId)
 
   useEffect(() => {
-    if (!zonePublicId) return
+    const primaryChannel = getPrimaryTextChannel(channels)
 
-    let cancelled = false
-
-    const loadZone = async () => {
-      try {
-        const [zonesRes, channelsRes] = await Promise.all([
-          api("/zones"),
-          api(`/zones/${zonePublicId}/channels`),
-        ])
-
-        const [zonesData, channelsData] = await Promise.all([
-          zonesRes.json().catch(() => ({ zones: [] })),
-          channelsRes.json().catch(() => ({ channels: [] })),
-        ])
-
-        if (cancelled) return
-
-        setZone((zonesData.zones ?? []).find((entry: Zone) => entry.publicId === zonePublicId) ?? null)
-        setChannels(channelsData.channels ?? [])
-      } catch (err) {
-        if (!cancelled) {
-          console.error("Failed to load zone view", err)
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false)
-        }
-      }
+    if (!primaryChannel) {
+      return
     }
 
-    loadZone()
+    router.replace(buildChannelRoute(zonePublicId, primaryChannel.publicId))
+  }, [channels, router, zonePublicId])
 
-    return () => {
-      cancelled = true
-    }
-  }, [zonePublicId])
-
-  if (loading) {
+  if (zoneLoading || channelsLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#0b1220]">
+      <div className="flex h-full min-h-0 items-center justify-center bg-background">
         <div className="animate-pulse font-medium text-zinc-500">Loading zone...</div>
       </div>
     )
   }
 
   return (
-    <div className="flex h-[100svh] items-center justify-center bg-[#0b1220] p-6">
+    <div className="flex h-full min-h-0 items-center justify-center bg-background p-6">
       <div className="w-full max-w-2xl rounded-3xl border border-white/10 bg-white/[0.03] p-8 shadow-2xl">
         <p className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-zinc-500">Zone Overview</p>
         <h1 className="mb-3 text-3xl font-bold text-white">{zone?.name ?? "Zone"}</h1>

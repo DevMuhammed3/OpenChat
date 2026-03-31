@@ -2,16 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Avatar, AvatarFallback, ScrollArea, Skeleton } from 'packages/ui'
-import { User, X } from 'lucide-react'
+import { Avatar, AvatarFallback, Skeleton } from 'packages/ui'
+import { X } from 'lucide-react'
 import { cn, getAvatarUrl, api } from '@openchat/lib'
 import { useChatsStore } from '@/app/stores/chat-store'
-
-type User = {
-  id: number
-  username: string
-  avatar?: string | null
-}
 
 // type ChatItem = {
 //   chatPublicId: string
@@ -34,13 +28,12 @@ export default function ChatList({ currentUserId }: { currentUserId?: number | n
   const chatsLoaded = useChatsStore((s) => s.chatsLoaded)
   const hideChat = useChatsStore((s) => s.hideChat)
 
-  const [loading, setLoading] = useState(true)
+  const [isBootstrapping, setIsBootstrapping] = useState(!chatsLoaded)
   const unreadMap = useChatsStore((s) => s.unread)
 
 
   useEffect(() => {
     if (chatsLoaded) {
-      setLoading(false)
       return
     }
 
@@ -56,13 +49,25 @@ export default function ChatList({ currentUserId }: { currentUserId?: number | n
         if (data.chats) {
           setChats(data.chats)
         }
-        setLoading(false)
+        setIsBootstrapping(false)
       })
       .catch((err) => {
         console.error('Failed to load chats:', err)
-        setLoading(false)
+        setIsBootstrapping(false)
       })
   }, [chatsLoaded, setChats])
+
+  const loading = !chatsLoaded && isBootstrapping
+
+  const visibleChats = chats.filter(
+    (chat) => !hiddenChats.includes(chat.chatPublicId)
+  )
+
+  useEffect(() => {
+    visibleChats.slice(0, 8).forEach((chat) => {
+      router.prefetch(`/zone/chat/${chat.chatPublicId}`)
+    })
+  }, [router, visibleChats])
 
   if (loading) {
     return (
@@ -79,10 +84,6 @@ export default function ChatList({ currentUserId }: { currentUserId?: number | n
       </div>
     )
   }
-
-  const visibleChats = chats.filter(
-    (chat) => !hiddenChats.includes(chat.chatPublicId)
-  )
 
   if (visibleChats.length === 0) {
     return (
@@ -112,6 +113,8 @@ export default function ChatList({ currentUserId }: { currentUserId?: number | n
             onClick={() =>
               router.push(`/zone/chat/${chat.chatPublicId}`)
             }
+            onPointerEnter={() => router.prefetch(`/zone/chat/${chat.chatPublicId}`)}
+            onTouchStart={() => router.prefetch(`/zone/chat/${chat.chatPublicId}`)}
             className={cn(
               'group w-full flex items-center gap-3 px-2 py-1.5 rounded-md text-left transition-colors relative',
               isActive ? 'bg-white/10 text-white' : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'
@@ -165,4 +168,3 @@ export default function ChatList({ currentUserId }: { currentUserId?: number | n
     </div>
   )
 }
-

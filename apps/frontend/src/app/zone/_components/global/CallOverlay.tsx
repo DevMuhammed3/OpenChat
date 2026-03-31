@@ -172,7 +172,7 @@ function CallOverlayComponent({ onAccept, onReject, onEnd }: Props) {
             </div>
 
             <div className="mb-6 flex items-center gap-4">
-              <Avatar className={`h-16 w-16 border-2 border-primary/20 ${status !== "connected" ? "animate-pulse" : ""}`}>
+              <Avatar className={`h-16 w-16 border-2 border-primary/20 ${isRinging ? "animate-pulse" : ""}`}>
                 <AvatarImage src={user.image ?? undefined} />
                 <AvatarFallback className="bg-primary/10 font-bold text-primary">
                   {user.name?.[0]?.toUpperCase()}

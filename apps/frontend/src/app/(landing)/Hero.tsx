@@ -10,7 +10,7 @@ export default function Hero() {
   const user = useUserStore(s => s.user)
 
   return (
-    <section className="relative min-h-[90vh] flex items-center justify-center pt-40 pb-12 overflow-hidden bg-background">
+    <section className="relative min-h-[100vh] flex items-center justify-center pt-40 pb-12 overflow-hidden bg-background">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(120,80,255,0.15),transparent)]" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_70%_60%,rgba(0,200,255,0.08),transparent)]" />
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full bg-[radial-gradient(circle_at_50%_40%,rgba(120,80,255,0.05),transparent_60%)]" />
@@ -99,11 +99,11 @@ export default function Hero() {
                   </div>
                 </div>
               </div>
-              <img
+              {/* <img
                 src="/images/dashboard.png"
                 alt="OpenChat Dashboard Preview"
                 className="w-full h-auto object-cover transform transition-transform duration-700 group-hover:scale-[1.02]"
-              />
+              /> */}
             </div>
           </motion.div>
         </div>
