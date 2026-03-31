@@ -21,14 +21,16 @@ import {
   Skeleton,
 } from 'packages/ui'
 import { useChatsStore } from '@/app/stores/chat-store'
-import { Info, Paperclip, PhoneCall, Pin, Send, ShieldBan, User, UserMinus, Video, X } from 'lucide-react'
-import { Menu, SquarePen, Trash } from 'lucide-react'
+import { Info, Paperclip, PhoneCall, Pin, Send, ShieldBan, User, UserMinus, Video, X, Smile, Sticker as StickerIcon, Gift, Menu, SquarePen, Trash, Search } from 'lucide-react'
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { api, getAvatarUrl } from '@openchat/lib'
 import ZoneSidebar from '../../_components/ZoneSidebar'
 import MessageText from '../../_components/chat/MessageText'
+import GifPicker from '../../_components/chat/GifPicker'
+import StickerPicker from '../../_components/chat/StickerPicker'
 // import { useVoiceCall } from "@/hooks/useVoiceCall"
 import { useCallStore } from "@/app/stores/call-store"
+import { startOutgoingCallSession } from "@/app/lib/session-runtime"
 
 type Message = {
   id: number
@@ -113,6 +115,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[] | null>(null)
   const [input, setInput] = useState('')
   const [localChat, setLocalChat] = useState<ChatData | null>(null)
+  const [loading, setLoading] = useState(true)
   const [currentUserId, setCurrentUserId] = useState<number | null>(null)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editText, setEditText] = useState('')
@@ -122,13 +125,9 @@ export default function ChatPage() {
   const [typingUsers, setTypingUsers] = useState<Set<number>>(new Set())
   const [headerActionBusy, setHeaderActionBusy] = useState(false)
   const [pinnedPanelOpen, setPinnedPanelOpen] = useState(false)
+  const [showGifs, setShowGifs] = useState(false)
+  const [showStickers, setShowStickers] = useState(false)
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-
-  const setCalling = useCallStore((s) => s.setCalling)
-  const setChannelCall = useCallStore((s) => s.setChannelCall)
-  // const status = useCallStore((s) => s.status)
-  // const setCalling = useCallStore((s) => s.setCalling)
-  // const clear = useCallStore((s) => s.clear)
 
   // const endRef = useRef<HTMLDivElement>(null)
   const messagesRef = useRef<HTMLDivElement>(null)
@@ -137,6 +136,7 @@ export default function ChatPage() {
   const chats = useChatsStore((s) => s.chats)
   const hideChat = useChatsStore((s) => s.hideChat)
   const [user, setUser] = useState<ChatParticipant | null>(null)
+  const speakingUsers = useCallStore(s => s.speakingUsers)
 
   // const {
   //   startCall,
@@ -168,11 +168,20 @@ export default function ChatPage() {
 
   useEffect(() => {
     const loadMe = async () => {
-      const res = await api('/auth/me', { credentials: 'include' })
-      const data = await res.json()
-
-      setCurrentUserId(data.user.id)
-      setUser(data.user)
+      try {
+        const res = await api('/auth/me', { credentials: 'include' })
+        if (!res.ok) {
+          console.error('Not authenticated')
+          return
+        }
+        const data = await res.json()
+        if (data.user) {
+          setCurrentUserId(data.user.id)
+          setUser(data.user)
+        }
+      } catch (err) {
+        console.error('Failed to load user:', err)
+      }
     }
 
     loadMe()
@@ -182,19 +191,42 @@ export default function ChatPage() {
     if (!chatPublicId) return
 
     api(`/chats/${chatPublicId}/messages`, { credentials: 'include' })
-      .then((res) => res.json())
-      .then((data) => setMessages(sortMessages(data.messages ?? [])))
+      .then((res) => {
+        if (!res.ok) {
+          console.error('Failed to load messages:', res.status)
+          return { messages: [] }
+        }
+        return res.json()
+      })
+      .then((data) => {
+        if (data.messages) {
+          setMessages(sortMessages(data.messages))
+        }
+      })
+      .catch((err) => console.error('Failed to load messages:', err))
+      .finally(() => setLoading(false))
   }, [chatPublicId])
 
   useEffect(() => {
     if (!chatPublicId) return
 
     api(`/chats/${chatPublicId}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setLocalChat(data.chat)
-        useChatsStore.getState().addChat(data.chat)
+      .then((res) => {
+        if (!res.ok) {
+          console.error('Failed to load chat:', res.status)
+          return { chat: null }
+        }
+        return res.json()
       })
+      .then((data) => {
+        if (data.chat) {
+          setLocalChat(data.chat)
+          useChatsStore.getState().addChat(data.chat)
+        } else {
+          console.error('Chat not found:', data.message)
+        }
+      })
+      .catch((err) => console.error('Failed to load chat:', err))
   }, [chatPublicId])
 
 
@@ -490,21 +522,29 @@ export default function ChatPage() {
   }, [chatPublicId, clearSelectedFile, currentUserId, input, previewUrl, selectedFile])
 
   if (!messages || !activeChat) {
+    if (!loading) {
+      return (
+        <div className="flex flex-col h-[100svh] w-full bg-background items-center justify-center">
+          <p className="text-zinc-400 mb-2">Unable to load chat</p>
+          <p className="text-zinc-500 text-sm">Make sure you're logged in and the chat exists</p>
+        </div>
+      )
+    }
     return (
       <div className="flex flex-col h-[100svh] w-full bg-background animate-in fade-in duration-500">
         <div className="h-16 border-b flex items-center px-4 gap-3">
-           <Skeleton className="h-10 w-10 rounded-full" />
-           <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-10 w-10 rounded-full" />
+          <Skeleton className="h-4 w-32" />
         </div>
         <div className="flex-1 p-4 space-y-4 overflow-hidden">
           {[...Array(8)].map((_, i) => (
-             <div key={i} className={cn("flex", i % 2 === 0 ? "justify-end" : "justify-start")}>
-                <Skeleton className={cn("h-12 w-48 rounded-2xl", i % 2 === 0 ? "rounded-br-sm" : "rounded-bl-sm")} />
-             </div>
+            <div key={i} className={cn("flex", i % 2 === 0 ? "justify-end" : "justify-start")}>
+              <Skeleton className={cn("h-12 w-48 rounded-2xl", i % 2 === 0 ? "rounded-br-sm" : "rounded-bl-sm")} />
+            </div>
           ))}
         </div>
         <div className="p-4">
-           <Skeleton className="h-12 w-full rounded-2xl" />
+          <Skeleton className="h-12 w-full rounded-2xl" />
         </div>
       </div>
     )
@@ -564,24 +604,29 @@ export default function ChatPage() {
           </Sheet>
         </div>
 
-        <Avatar
-          className="
+        <div className="relative">
+          <Avatar
+            className="
                     h-10 w-10
                   "
-        >
-          <AvatarImage src={getAvatarUrl(otherUser?.avatar)} />
-          <AvatarFallback
-            className="
+          >
+            <AvatarImage src={getAvatarUrl(otherUser?.avatar)} />
+            <AvatarFallback
+              className="
                         text-primary-foreground
                       "
-          >
-            <User
-              className="
+            >
+              <User
+                className="
                             h-5 w-5
                           "
-            />
-          </AvatarFallback>
-        </Avatar>
+              />
+            </AvatarFallback>
+          </Avatar>
+          {otherUser && speakingUsers.has(otherUser.id) && (
+            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-[#313338] animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+          )}
+        </div>
 
         <div
           className="
@@ -613,17 +658,14 @@ export default function ChatPage() {
           onClick={() => {
             if (!otherUser || !chatPublicId) return
 
-            setChannelCall(null)
-            socket.emit("join-room", { chatPublicId })
-            socket.emit("call:user", {
+            void startOutgoingCallSession({
+              chatPublicId,
               toUserId: otherUser.id,
-              chatPublicId
-            })
-
-            setCalling(chatPublicId, {
-              id: otherUser.id,
-              name: otherUser.username,
-              image: otherUser.avatar,
+              user: {
+                id: otherUser.id,
+                name: otherUser.username,
+                image: otherUser.avatar,
+              },
             })
           }}
         >
@@ -707,7 +749,7 @@ export default function ChatPage() {
       <div
         ref={messagesRef}
         dir="ltr"
-        className="flex-1 min-h-0 overflow-y-auto p-4"
+        className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 w-full"
       >
         <div className="flex flex-col min-h-full justify-end">
           {messages.map((m, idx) => {
@@ -722,7 +764,7 @@ export default function ChatPage() {
                 <div
                   id={`message-${m.id}`}
                   key={m.id}
-                  className="pl-14 pr-4 py-0.5 hover:bg-white/[0.02] transition-colors group relative"
+                  className="pl-14 pr-4 py-1 hover:bg-white/[0.02] transition-colors group relative"
                 >
                   {m.isPinned && !m.isDeleted && (
                     <div className="mb-1 flex items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-amber-300">
@@ -759,7 +801,7 @@ export default function ChatPage() {
                     </div>
                   ) : (
                     <div
-                      className="text-[14px] text-zinc-300 leading-[1.375rem] whitespace-pre-wrap break-words"
+                      className="text-[14px] text-zinc-300 leading-[1.375rem] whitespace-pre-wrap break-words break-all min-w-0 overflow-hidden"
                       onDoubleClick={() => {
                         if (!isMe || m.isDeleted) return
 
@@ -850,7 +892,7 @@ export default function ChatPage() {
               <div
                 id={`message-${m.id}`}
                 key={m.id}
-                className="flex gap-4 px-4 py-3 hover:bg-white/[0.02] transition-colors mt-2 group relative"
+                className="flex gap-4 px-4 py-3 hover:bg-white/[0.02] transition-colors mt-2 group relative max-w-full overflow-hidden"
               >
                 <Avatar className="h-10 w-10 shrink-0 mt-0.5 ring-1 ring-white/5">
                   <AvatarImage src={getAvatarUrl(sender?.avatar)} />
@@ -904,7 +946,7 @@ export default function ChatPage() {
                     </div>
                   ) : (
                     <div
-                      className="text-[14px] text-zinc-300 leading-[1.375rem] whitespace-pre-wrap break-words"
+                      className="text-[14px] text-zinc-300 leading-[1.375rem] whitespace-pre-wrap break-words break-all min-w-0 overflow-hidden"
                       onDoubleClick={() => {
                         if (!isMe || m.isDeleted) return
 
@@ -1016,16 +1058,26 @@ export default function ChatPage() {
           </div>
         )}
 
-        <div className="flex items-center gap-2 px-3 py-2 bg-background/50 rounded-2xl border relative">
+        <div className="flex items-center gap-1.5 px-3 py-2 bg-background/50 rounded-2xl border border-white/5 relative">
           {typingUsers.size > 0 && Array.from(typingUsers).map(uid => {
-             const user = activeChat?.participants.find((participant) => participant.id === uid)
-             if (!user) return null
-             return (
-               <div key={user.id} className="absolute -top-6 left-4 text-[10px] text-muted-foreground animate-pulse">
-                 {user.username} is typing...
-               </div>
-             )
+            const user = activeChat?.participants.find((participant) => participant.id === uid)
+            if (!user) return null
+            return (
+              <div key={user.id} className="absolute -top-7 left-4 text-[11px] font-medium text-zinc-400 animate-in slide-in-from-bottom-1 duration-200">
+                {user.username} is typing...
+              </div>
+            )
           })}
+
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => fileInputRef.current?.click()}
+            className="text-zinc-400 hover:text-zinc-200 shrink-0 h-9 w-9"
+          >
+            <Paperclip className="h-5 w-5" />
+          </Button>
+
           <Input
             value={input}
             onChange={(e) => handleInputChange(e.target.value)}
@@ -1038,8 +1090,74 @@ export default function ChatPage() {
             placeholder={
               otherUser ? `Message @${otherUser.username}` : 'Type a message...'
             }
-            className="border-0 bg-transparent focus-visible:ring-0"
+            className="border-0 bg-transparent focus-visible:ring-0 text-white placeholder:text-zinc-500 min-w-0"
           />
+
+          <div className="flex items-center gap-0.5 shrink-0">
+             <Button size="icon" variant="ghost" className="h-9 w-9 text-zinc-400 hover:text-zinc-200" title="Gift Nitro">
+                <Gift className="h-5 w-5" />
+             </Button>
+
+             <div className="relative">
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  className={cn("h-9 w-9 transition-colors", showGifs ? "text-primary" : "text-zinc-400 hover:text-zinc-200")} 
+                  onClick={() => { setShowGifs(!showGifs); setShowStickers(false); }}
+                  title="Send GIF"
+                >
+                   <Search className="h-5 w-5" strokeWidth={2.5} />
+                </Button>
+                {showGifs && (
+                  <GifPicker 
+                    onClose={() => setShowGifs(false)} 
+                    onSelect={(url) => {
+                      setInput(url)
+                      setShowGifs(false)
+                    }} 
+                  />
+                )}
+             </div>
+
+             <Button size="icon" variant="ghost" className="h-9 w-9 text-zinc-400 hover:text-zinc-200" title="Pick an Emoji">
+                <Smile className="h-5 w-5" />
+             </Button>
+
+             <div className="relative">
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  className={cn("h-9 w-9 transition-colors", showStickers ? "text-primary" : "text-zinc-400 hover:text-zinc-200")} 
+                  onClick={() => { setShowStickers(!showStickers); setShowGifs(false); }}
+                  title="Custom Stickers"
+                >
+                   <StickerIcon className="h-5 w-5" />
+                </Button>
+                {showStickers && (
+                  <StickerPicker 
+                    onClose={() => setShowStickers(false)} 
+                    onSelect={(url) => {
+                       socket.emit("private-message", {
+                         chatPublicId,
+                         text: null,
+                         fileUrl: url,
+                         fileType: "image/gif"
+                       })
+                       setShowStickers(false)
+                    }} 
+                  />
+                )}
+             </div>
+          </div>
+
+          <Button
+            size="icon"
+            disabled={!input.trim() && !selectedFile}
+            onClick={send}
+            className="bg-primary hover:bg-primary/90 text-white rounded-xl h-9 w-9 flex-shrink-0 ml-1"
+          >
+            <Send className="h-4 w-4" />
+          </Button>
 
           <input
             type="file"
@@ -1048,24 +1166,6 @@ export default function ChatPage() {
             accept="image/*"
             onChange={handleFileSelect}
           />
-
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={() => fileInputRef.current?.click()}
-            className='px-6'
-          >
-            <Paperclip />
-          </Button>
-
-          <Button
-            size="icon"
-            disabled={!input.trim() && !selectedFile}
-            onClick={send}
-          >
-            <Send className="h-4 w-4" />
-          </Button>
-
         </div>
       </div>
     </div >

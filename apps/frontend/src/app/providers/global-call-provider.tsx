@@ -5,6 +5,7 @@ import { socket } from "@openchat/lib"
 import { useCallStore } from "@/app/stores/call-store"
 import CallOverlay from "@/app/zone/_components/global/CallOverlay"
 import { useVoiceCall } from "@/hooks/useVoiceCall"
+import { endCallSession } from "@/app/lib/session-runtime"
 
 type CallStatusPayload = {
   status: "idle" | "calling" | "incoming" | "connected"
@@ -28,13 +29,19 @@ type IncomingCallPayload = {
 }
 
 export default function GlobalCallProvider() {
-  const { status, chatPublicId, channelPublicId, isCaller, setIncoming, setConnected, clear, setCalling } = useCallStore()
+  const status = useCallStore((s) => s.status)
+  const chatPublicId = useCallStore((s) => s.chatPublicId)
+  const channelPublicId = useCallStore((s) => s.channelPublicId)
+  const isCaller = useCallStore((s) => s.isCaller)
+  const setIncoming = useCallStore((s) => s.setIncoming)
+  const setConnected = useCallStore((s) => s.setConnected)
+  const clear = useCallStore((s) => s.clear)
+  const setCalling = useCallStore((s) => s.setCalling)
   const {
     startCall,
     acceptCall,
     endCall,
     remoteAudioRef,
-    toggleMute
   } = useVoiceCall()
 
   /* =========================
@@ -74,7 +81,8 @@ export default function GlobalCallProvider() {
                 status: "connected", 
                 chatPublicId: payload.chatPublicId, 
                 user: payload.user,
-                isCaller: payload.isCaller
+                isCaller: payload.isCaller,
+                startedAt: payload.startTime ?? Date.now(),
             })
         }
     }
@@ -110,24 +118,42 @@ export default function GlobalCallProvider() {
     }
 
     socket.on("incoming:call", incomingHandler)
-    socket.on("call:accepted", setConnected)
+    const acceptedHandler = ({ startTime }: { chatPublicId: string; startTime?: number }) => {
+      setConnected(startTime)
+    }
+
+    socket.on("call:accepted", acceptedHandler)
     socket.on("call:rejected", clear)
     socket.on("call:ended", clear)
     socket.on("call:rejoined", rejoinedHandler)
     
-    socket.on("call:partner-disconnected", ({ userId }: { userId: number }) => {
+    const partnerDisconnectedHandler = ({ userId }: { userId: number }) => {
         console.log(`Partner ${userId} disconnected. Waiting for them...`)
-    })
+    }
+
+    socket.on("call:partner-disconnected", partnerDisconnectedHandler)
 
     return () => {
       socket.off("incoming:call", incomingHandler)
-      socket.off("call:accepted", setConnected)
+      socket.off("call:accepted", acceptedHandler)
       socket.off("call:rejected", clear)
       socket.off("call:ended", clear)
       socket.off("call:rejoined", rejoinedHandler)
-      socket.off("call:partner-disconnected")
+      socket.off("call:partner-disconnected", partnerDisconnectedHandler)
     }
   }, [setIncoming, setConnected, clear, startCall])
+
+  useEffect(() => {
+    const handleDisconnect = () => {
+      endCall({ notifyServer: false, clearState: true })
+    }
+
+    socket.on("disconnect", handleDisconnect)
+
+    return () => {
+      socket.off("disconnect", handleDisconnect)
+    }
+  }, [endCall])
 
   /* =========================
      VOICE CALL HANDSHAKE
@@ -146,10 +172,8 @@ export default function GlobalCallProvider() {
   useEffect(() => {
     if (!channelPublicId || status === "idle" || !chatPublicId) return
 
-    socket.emit("call:end", { chatPublicId })
-    endCall()
-    clear()
-  }, [channelPublicId, chatPublicId, clear, endCall, status])
+    void endCallSession({ notifyServer: true })
+  }, [channelPublicId, chatPublicId, status])
 
   /* =========================
      INTERNAL APP LOGIC (RINGTONES)
@@ -183,8 +207,6 @@ export default function GlobalCallProvider() {
     }
   }, [status])
 
-  if (status === "idle") return null
-
   return (
     <>
       <audio ref={remoteAudioRef} autoPlay />
@@ -213,17 +235,11 @@ export default function GlobalCallProvider() {
           if (state.chatPublicId) {
             socket.emit("call:reject", { chatPublicId: state.chatPublicId })
           }
-          clear()
+          endCall({ notifyServer: false, clearState: true })
         }}
         onEnd={() => {
-          const state = useCallStore.getState()
-          if (state.chatPublicId) {
-            socket.emit("call:end", { chatPublicId: state.chatPublicId })
-          }
-          endCall()
-          clear()
+          void endCallSession({ notifyServer: true })
         }}
-        toggleMute={toggleMute}
       />
     </>
   )

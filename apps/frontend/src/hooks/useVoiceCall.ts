@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef } from "react"
 import { Room, RoomEvent, Track, type RemoteTrack } from "livekit-client"
-import { api } from "@openchat/lib"
+import { api, socket } from "@openchat/lib"
 import { useCallStore } from "@/app/stores/call-store"
+import { registerCallController } from "@/app/lib/session-runtime"
 
 export function useVoiceCall() {
   const roomRef = useRef<Room | null>(null)
@@ -26,6 +27,9 @@ export function useVoiceCall() {
     detachRemoteAudio()
 
     if (room) {
+      room.localParticipant.trackPublications.forEach((publication) => {
+        publication.track?.stop()
+      })
       room.disconnect()
     }
   }, [detachRemoteAudio])
@@ -105,9 +109,17 @@ export function useVoiceCall() {
     }
   }, [connectToChatRoom, disconnectRoom])
 
-  const endCall = useCallback(() => {
+  const endCall = useCallback((options?: { notifyServer?: boolean; clearState?: boolean }) => {
+    const chatPublicId = getActiveChatId()
+    if (options?.notifyServer !== false && chatPublicId) {
+      socket.emit("call:end", { chatPublicId })
+    }
+
     disconnectRoom()
-  }, [disconnectRoom])
+    if (options?.clearState !== false) {
+      clearCall()
+    }
+  }, [clearCall, disconnectRoom])
 
   const toggleMute = useCallback(async (muted: boolean) => {
     const room = roomRef.current
@@ -127,6 +139,15 @@ export function useVoiceCall() {
     },
     [clearCall, disconnectRoom],
   )
+
+  useEffect(() => {
+    return registerCallController({
+      startCall,
+      acceptCall,
+      endCall,
+      toggleMute,
+    })
+  }, [acceptCall, endCall, startCall, toggleMute])
 
   return {
     startCall,
