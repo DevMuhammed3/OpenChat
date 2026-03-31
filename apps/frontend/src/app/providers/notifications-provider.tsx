@@ -20,7 +20,6 @@ export function NotificationsProvider({
 
       if (!store.chats.some(c => c.chatPublicId === msg.chatPublicId)) return
 
-      store.incrementUnread(msg.chatPublicId)
       playMessageSound()
     }
 

@@ -80,6 +80,7 @@ export default function ChannelPage() {
   const [inviteCopied, setInviteCopied] = useState(false)
   const [creatingInvite, setCreatingInvite] = useState(false)
   const [dashboardOpen, setDashboardOpen] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   const messagesRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -87,6 +88,7 @@ export default function ChannelPage() {
 
   const setActiveChat = useChatsStore(s => s.setActiveChat)
   const setActiveChannel = useChatsStore(s => s.setActiveChannel)
+  const clearUnread = useChatsStore(s => s.clearUnread)
 
   useEffect(() => {
     const loadMe = async () => {
@@ -100,12 +102,13 @@ export default function ChannelPage() {
     
     setActiveChat(zonePublicId)
     setActiveChannel(channelPublicId)
+    clearUnread(zonePublicId, channelPublicId)
     
     return () => {
       setActiveChat(null)
       setActiveChannel(null)
     }
-  }, [zonePublicId, channelPublicId, setActiveChat, setActiveChannel])
+  }, [zonePublicId, channelPublicId, setActiveChat, setActiveChannel, clearUnread])
 
   // Load zone, channel, messages, members
   useEffect(() => {
@@ -141,6 +144,8 @@ export default function ChannelPage() {
 
       } catch (err) {
         console.error("Failed to load channel data", err)
+      } finally {
+        setLoading(false)
       }
     }
 
@@ -206,8 +211,17 @@ export default function ChannelPage() {
   // Auto scroll
   useEffect(() => {
     if (!messagesRef.current) return
-    messagesRef.current.scrollTop = messagesRef.current.scrollHeight
-  }, [messages])
+
+    const container = messagesRef.current
+    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight
+
+    if (distanceFromBottom < 160) {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: loading ? "auto" : "smooth",
+      })
+    }
+  }, [loading, messages])
 
   const clearSelectedFile = useCallback(() => {
     if (previewUrl) {
@@ -309,7 +323,7 @@ export default function ChannelPage() {
     }
   }, [channelPublicId, clearSelectedFile, currentUserId, input, previewUrl, selectedFile, user, zonePublicId])
 
-  if (!zone || !channel) {
+  if (loading || !zone || !channel) {
     return (
       <div className="flex flex-col h-[100svh] bg-[#0b1220]">
         <div className="h-12 border-b border-white/5 flex items-center px-4 gap-2">

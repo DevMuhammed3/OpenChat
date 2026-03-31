@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { prisma } from "../config/prisma.js";
 import { io } from "../index.js";
+import { emitFriendStateToUsers } from "../services/friendRealtime.js";
 
 async function getBlockRelation(userId: number, otherUserId: number) {
   return prisma.blockedUser.findFirst({
@@ -11,28 +12,6 @@ async function getBlockRelation(userId: number, otherUserId: number) {
       ],
     },
   });
-}
-
-async function emitFriendLists(userIds: number[]) {
-  const uniqueUserIds = [...new Set(userIds)];
-
-  await Promise.all(
-    uniqueUserIds.map(async (userId) => {
-      const friends = await prisma.friend.findMany({
-        where: {
-          OR: [{ user1Id: userId }, { user2Id: userId }],
-        },
-        include: {
-          user1: { select: { id: true, username: true, name: true, avatar: true } },
-          user2: { select: { id: true, username: true, name: true, avatar: true } },
-        },
-      });
-
-      io.to(`user:${userId}`).emit("friends:list", {
-        friends: friends.map((friend) => (friend.user1.id === userId ? friend.user2 : friend.user1)),
-      });
-    }),
-  );
 }
 
 export const friendController = {
@@ -208,6 +187,8 @@ export const friendController = {
       }
     );
 
+    await emitFriendStateToUsers(io, [senderId, receiverId]);
+
     res.json({ message: "Friend request sent" });
   },
 
@@ -328,6 +309,7 @@ export const friendController = {
     io.to(`user:${receiverId}`).emit("friend:accepted", {
       friend: senderUser,
     })
+    await emitFriendStateToUsers(io, [senderId, receiverId]);
     res.json({ message: "Friend added" });
   },
 
@@ -359,6 +341,8 @@ export const friendController = {
     io.to(`user:${reqData.senderId}`).emit("friend:rejected", {
       requestId,
     });
+
+    await emitFriendStateToUsers(io, [reqData.senderId, reqData.receiverId]);
 
     res.json({ message: "Friend request rejected" });
   },
@@ -392,7 +376,7 @@ export const friendController = {
       where: { id: friendship.id },
     });
 
-    await emitFriendLists([userId, otherUserId]);
+    await emitFriendStateToUsers(io, [userId, otherUserId]);
     io.to(`user:${userId}`).emit("friend:removed", { userId: otherUserId });
     io.to(`user:${otherUserId}`).emit("friend:removed", { userId });
 
@@ -456,7 +440,7 @@ export const friendController = {
       },
     });
 
-    await emitFriendLists([blockerId, blockedId]);
+    await emitFriendStateToUsers(io, [blockerId, blockedId]);
     io.to(`user:${blockerId}`).emit("friend:blocked", { user: blockedUser });
     io.to(`user:${blockedId}`).emit("friend:removed", { userId: blockerId });
 
@@ -483,6 +467,7 @@ export const friendController = {
     });
 
     io.to(`user:${blockerId}`).emit("friend:unblocked", { userId: blockedId });
+    await emitFriendStateToUsers(io, [blockerId]);
     res.json({ message: "User unblocked" });
   }
 

@@ -3,7 +3,12 @@ import { persist } from 'zustand/middleware'
 
 export type Chat = {
   chatPublicId: string
-  participants: any[]
+  participants: Array<{
+    id: number
+    username: string
+    avatar?: string | null
+    name?: string | null
+  }>
   type?: 'DM' | 'ZONE'
   name?: string | null
   avatar?: string | null
@@ -165,15 +170,18 @@ export const useChatsStore = create<ChatsState>()(
           hiddenChats: [],
           chatsLoaded: false,
           activeChatPublicId: null,
+          activeChannelPublicId: null,
           unread: {},
+          channelUnread: {},
         }),
     }),
     {
       name: 'openchat-chats',
       partialize: (state) => ({
         hiddenChats: state.hiddenChats,
+        unread: state.unread,
+        channelUnread: state.channelUnread,
       }),
     }
   )
 )
-
