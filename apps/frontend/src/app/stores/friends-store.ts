@@ -18,25 +18,37 @@ export type FriendRequest = {
   createdAt?: string
 }
 
+export type PendingFriendRequest = {
+  id: number
+  to: User
+  createdAt?: string
+}
+
 type FriendsState = {
   friends: Friend[]
   blockedUsers: BlockedUser[]
   requests: FriendRequest[]
+  pendingRequests: PendingFriendRequest[]
 
   friendsLoaded: boolean
   blockedUsersLoaded: boolean
   requestsLoaded: boolean
+  pendingRequestsLoaded: boolean
 
   setFriends: (friends: Friend[]) => void
   setBlockedUsers: (users: BlockedUser[]) => void
   setRequests: (requests: FriendRequest[]) => void
+  setPendingRequests: (requests: PendingFriendRequest[]) => void
 
   addFriend: (friend: Friend) => void
   removeFriend: (userId: number) => void
   addBlockedUser: (user: BlockedUser) => void
   removeBlockedUser: (userId: number) => void
   addRequest: (request: FriendRequest) => void
+  addPendingRequest: (request: PendingFriendRequest) => void
   removeRequest: (requestId: number) => void
+  removePendingRequest: (requestId: number) => void
+  removePendingRequestForUser: (userId: number) => void
 
   onlineUsers: Set<number>
   setOnline: (userId: number) => void
@@ -50,10 +62,12 @@ export const useFriendsStore = create<FriendsState>((set) => ({
   friends: [],
   blockedUsers: [],
   requests: [],
+  pendingRequests: [],
 
   friendsLoaded: false,
   blockedUsersLoaded: false,
   requestsLoaded: false,
+  pendingRequestsLoaded: false,
 
   setFriends: (friends) =>
     set({ friends, friendsLoaded: true }),
@@ -63,6 +77,9 @@ export const useFriendsStore = create<FriendsState>((set) => ({
 
   setRequests: (requests) =>
     set({ requests, requestsLoaded: true }),
+
+  setPendingRequests: (pendingRequests) =>
+    set({ pendingRequests, pendingRequestsLoaded: true }),
 
   addFriend: (friend) =>
     set((state) =>
@@ -107,9 +124,29 @@ export const useFriendsStore = create<FriendsState>((set) => ({
         : { requests: [...state.requests, request] }
     ),
 
+  addPendingRequest: (request) =>
+    set((state) =>
+      state.pendingRequests.some((r) => r.id === request.id)
+        ? state
+        : {
+            pendingRequests: [...state.pendingRequests, request],
+            pendingRequestsLoaded: true,
+          }
+    ),
+
   removeRequest: (requestId) =>
     set((state) => ({
       requests: state.requests.filter((r) => r.id !== requestId),
+    })),
+
+  removePendingRequest: (requestId) =>
+    set((state) => ({
+      pendingRequests: state.pendingRequests.filter((r) => r.id !== requestId),
+    })),
+
+  removePendingRequestForUser: (userId) =>
+    set((state) => ({
+      pendingRequests: state.pendingRequests.filter((r) => r.to.id !== userId),
     })),
 
   onlineUsers: new Set<number>(),
@@ -133,9 +170,11 @@ export const useFriendsStore = create<FriendsState>((set) => ({
       friends: [],
       blockedUsers: [],
       requests: [],
+      pendingRequests: [],
       friendsLoaded: false,
       blockedUsersLoaded: false,
       requestsLoaded: false,
+      pendingRequestsLoaded: false,
       onlineUsers: new Set<number>(),
     }),
 }))

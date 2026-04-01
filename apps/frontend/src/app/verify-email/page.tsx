@@ -3,9 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@openchat/lib";
+import { useQueryClient } from "@tanstack/react-query";
+import { userKeys } from "@/features/user/queries";
+import type { AppUser } from "@/features/user/types";
 
 export default function VerifyEmail() {
   const router = useRouter();
+  const queryClient = useQueryClient()
 
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -29,8 +33,12 @@ export default function VerifyEmail() {
       setMessage(" Email verified successfully");
 
       setTimeout(() => {
+        queryClient.setQueryData<AppUser | null>(userKeys.current(), (current) => {
+          if (!current) return current
+          return { ...current, emailVerified: true }
+        })
+        queryClient.invalidateQueries({ queryKey: userKeys.current() })
         router.push("/zone");
-        router.refresh();
       }, 1500);
     } else {
       setMessage(data.message || "Invalid code");
@@ -121,4 +129,3 @@ export default function VerifyEmail() {
     </div>
   );
 }
-

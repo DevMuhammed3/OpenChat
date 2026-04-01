@@ -1,23 +1,26 @@
 "use client";
 
 import { motion, Variants } from "framer-motion";
-import { UserPlus, MessageCircle, Podcast } from "lucide-react";
+import { UserPlus, MessageSquare, ShieldCheck, ArrowRight } from "lucide-react";
 
 const steps = [
   {
-    title: "Create Your Account",
-    description: "No phone number needed. Sign up with email in seconds — free forever.",
+    title: "Quick Signup",
+    description: "Create an account in less than 30 seconds. No phone number or credit card required.",
     icon: UserPlus,
+    color: "from-purple-500 to-indigo-500"
   },
   {
-    title: "Start Chatting",
-    description: "Message anyone privately, or jump into group conversations instantly.",
-    icon: MessageCircle,
+    title: "Instant Connection",
+    description: "Join channels or start private chats with lightning-fast real-time synchronization.",
+    icon: MessageSquare,
+    color: "from-cyan-500 to-blue-500"
   },
   {
-    title: "Build Your Community",
-    description: "Create your own space with channels and groups — like Discord, but simpler.",
-    icon: Podcast,
+    title: "Stay Secure",
+    description: "Communicate with peace of mind. Your data is encrypted and you own your identity.",
+    icon: ShieldCheck,
+    color: "from-emerald-500 to-teal-500"
   },
 ]
 
@@ -26,18 +29,19 @@ const container: Variants = {
   show: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.05,
+      staggerChildren: 0.2,
     },
   },
 };
 
 const item: Variants = {
-  hidden: { opacity: 0, y: 16 },
+  hidden: { opacity: 0, scale: 0.9, y: 20 },
   show: {
     opacity: 1,
+    scale: 1,
     y: 0,
     transition: {
-      duration: 0.2,
+      duration: 0.5,
       ease: "easeOut",
     },
   },
@@ -45,60 +49,76 @@ const item: Variants = {
 
 export default function HowItWorks() {
   return (
-    <motion.section
-      id="how-it-works"
-      variants={container}
-      initial="hidden"
-      whileInView="show"
-      viewport={{ once: true, margin: "-80px" }}
-      className="py-24 px-4"
-    >
-      <div className="max-w-5xl mx-auto">
-        <h2 className="text-4xl font-extrabold text-center mb-12">
-          How It Works
-        </h2>
+    <section id="how-it-works" className="py-24 relative">
+      <div className="container mx-auto px-6">
+        <div className="flex flex-col items-center mb-16">
+          <motion.h2 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-3xl md:text-5xl font-bold text-white mb-6 text-center"
+          >
+            Communication in <span className="text-gradient">3 simple steps</span>
+          </motion.h2>
+          <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-full" />
+        </div>
 
+        <motion.div
+          variants={container}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true }}
+          className="grid grid-cols-1 md:grid-cols-3 gap-12 relative"
+        >
+          {/* Connecting Line (Desktop) */}
+          <div className="hidden md:block absolute top-1/2 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-y-1/2 z-0" />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {steps.map((step, index) => {
             const Icon = step.icon;
 
             return (
-
               <motion.div
-                key={step.title}
+                key={index}
                 variants={item}
-                className="
-    relative rounded-2xl
-    border border-white/10
-    bg-background
-    p-6
-    text-center
-  "
+                className="relative z-10 group"
               >
+                <div className="flex flex-col items-center text-center">
+                  <div className={`w-20 h-20 rounded-3xl bg-gradient-to-br ${step.color} p-0.5 mb-8 rotate-3 group-hover:rotate-0 transition-transform duration-500 shadow-lg shadow-white/5`}>
+                    <div className="w-full h-full bg-[#0b1220] rounded-[22px] flex items-center justify-center text-white">
+                      <Icon size={32} />
+                    </div>
+                  </div>
 
-                <span className="absolute -top-3 -left-3 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-bold">
-                  {index + 1}
-                </span>
+                  <div className="absolute top-0 right-0 md:-right-6 text-6xl font-black text-white/30 select-none transition-colors group-hover:text-white/10">
+                    0{index + 1}
+                  </div>
 
-                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                  <Icon className="h-6 w-6 text-primary" />
+<h3 className="relative text-2xl font-bold text-white mb-4 overflow-hidden">
+  <span className="relative z-10 transition-colors duration-300 group-hover:text-white/40">
+    {step.title}
+  </span>
+
+  <span className="absolute inset-0 z-0 bg-gradient-to-r from-white to-white/40 bg-clip-text text-transparent opacity-0 group-hover:opacity-50 transition-opacity duration-500">
+    {step.title}
+  </span>
+</h3>
+
+                  <p className="text-zinc-400 leading-relaxed font-light px-4">
+                    {step.description}
+                  </p>
+                  
+                  {index < steps.length - 1 && (
+                    <div className="md:hidden my-8">
+                       <ArrowRight className="rotate-90 text-zinc-800" size={32} />
+                    </div>
+                  )}
                 </div>
-
-                <h3 className="text-xl font-semibold mb-2">
-                  {step.title}
-                </h3>
-
-                <p className="text-sm text-muted-foreground">
-                  {step.description}
-                </p>
               </motion.div>
             );
           })}
-
-        </div >
-      </div >
-    </motion.section >
+        </motion.div>
+      </div>
+    </section>
   );
 }
 

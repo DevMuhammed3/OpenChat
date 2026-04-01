@@ -1,4 +1,6 @@
 import { cookies } from "next/headers";
+import { ApiError, apiClient } from "@/lib/api/client";
+import type { AppUser } from "@/features/user/types";
 
 export async function getCurrentUser() {
   const cookieStore = await cookies();
@@ -10,21 +12,19 @@ export async function getCurrentUser() {
   if (!cookieHeader) return null;
 
   try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/auth/me`,
-      {
-        headers: {
-          Cookie: cookieHeader,
-        },
-        cache: "no-store",
-      }
-    );
+    const { user } = await apiClient.get<{ user: AppUser | null }>("/auth/me", {
+      headers: {
+        Cookie: cookieHeader,
+      },
+      cache: "no-store",
+    })
 
-    if (!res.ok) return null;
-
-    const { user } = await res.json();
     return user ?? null;
-  } catch {
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) {
+      return null
+    }
+
     return null;
   }
 }

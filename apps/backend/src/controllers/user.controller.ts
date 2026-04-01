@@ -1,5 +1,7 @@
 import { Request, Response } from 'express'
 import { UserService } from '../services/user.service.js'
+import { updateProfileBodySchema } from "../validations/user.validation.js"
+import { respondWithZodError } from "../utils/zodError.js"
 
 export const updateProfile = async (req: Request, res: Response) => {
   try {
@@ -8,7 +10,12 @@ export const updateProfile = async (req: Request, res: Response) => {
       return res.status(401).json({ message: 'Not authenticated' })
     }
 
-    const { name, username, bio } = req.body
+    const parsed = updateProfileBodySchema.safeParse(req.body)
+    if (!parsed.success) {
+      return respondWithZodError(res, parsed.error)
+    }
+
+    const { name, username, bio } = parsed.data
 
     const user = await UserService.updateProfile(userId, {
       name,
@@ -17,8 +24,9 @@ export const updateProfile = async (req: Request, res: Response) => {
     })
 
     res.json({ user })
-  } catch (err: any) {
-    res.status(400).json({ message: err.message })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Invalid request"
+    res.status(400).json({ message })
   }
 }
 
@@ -36,8 +44,9 @@ export const updateAvatar = async (req: Request, res: Response) => {
     const user = await UserService.updateAvatar(userId, req.file.filename)
 
     res.json({ user })
-  } catch (err: any) {
-    res.status(400).json({ message: err.message })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Invalid request"
+    res.status(400).json({ message })
   }
 }
 
@@ -51,7 +60,8 @@ export const removeAvatar = async (req: Request, res: Response) => {
     const user = await UserService.removeAvatar(userId)
 
     res.json({ user })
-  } catch (err: any) {
-    res.status(400).json({ message: err.message })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Invalid request"
+    res.status(400).json({ message })
   }
 }

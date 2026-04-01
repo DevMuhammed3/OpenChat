@@ -1,6 +1,14 @@
 import { Request, Response } from "express";
 import { prisma } from "../config/prisma.js";
 import { io } from "../index.js";
+import { emitFriendStateToUsers } from "../services/friendRealtime.js";
+import {
+  friendRequestBodySchema,
+  friendRequestIdParamsSchema,
+  friendSearchQuerySchema,
+  friendUserIdParamsSchema,
+} from "../validations/friend.validation.js";
+import { respondWithZodError } from "../utils/zodError.js";
 
 async function getBlockRelation(userId: number, otherUserId: number) {
   return prisma.blockedUser.findFirst({
@@ -11,28 +19,6 @@ async function getBlockRelation(userId: number, otherUserId: number) {
       ],
     },
   });
-}
-
-async function emitFriendLists(userIds: number[]) {
-  const uniqueUserIds = [...new Set(userIds)];
-
-  await Promise.all(
-    uniqueUserIds.map(async (userId) => {
-      const friends = await prisma.friend.findMany({
-        where: {
-          OR: [{ user1Id: userId }, { user2Id: userId }],
-        },
-        include: {
-          user1: { select: { id: true, username: true, name: true, avatar: true } },
-          user2: { select: { id: true, username: true, name: true, avatar: true } },
-        },
-      });
-
-      io.to(`user:${userId}`).emit("friends:list", {
-        friends: friends.map((friend) => (friend.user1.id === userId ? friend.user2 : friend.user1)),
-      });
-    }),
-  );
 }
 
 export const friendController = {
@@ -90,11 +76,12 @@ export const friendController = {
 
 
   async searchUser(req: Request, res: Response) {
-    const username = req.query.username as string;
-
-    if (!username) {
-      return res.status(400).json({ message: "Username is required" });
+    const parsed = friendSearchQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      return respondWithZodError(res, parsed.error);
     }
+
+    const { username } = parsed.data;
 
     const user = await prisma.user.findUnique({
       where: { username },
@@ -116,11 +103,12 @@ export const friendController = {
     }
 
     const senderId = req.user.id;
-    const { username } = req.body;
-
-    if (!username) {
-      return res.status(400).json({ message: "Username is required" });
+    const parsed = friendRequestBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      return respondWithZodError(res, parsed.error);
     }
+
+    const { username } = parsed.data;
 
     if (/^\d+$/.test(username)) {
       return res.status(400).json({
@@ -208,6 +196,8 @@ export const friendController = {
       }
     );
 
+    await emitFriendStateToUsers(io, [senderId, receiverId]);
+
     res.json({ message: "Friend request sent" });
   },
 
@@ -261,7 +251,12 @@ export const friendController = {
     }
 
     const currentUserId = req.user.id;
-    const requestId = Number(req.params.id);
+    const parsed = friendRequestIdParamsSchema.safeParse(req.params);
+    if (!parsed.success) {
+      return respondWithZodError(res, parsed.error);
+    }
+
+    const { id: requestId } = parsed.data;
 
     const reqData = await prisma.friendRequest.findUnique({
       where: { id: requestId },
@@ -328,6 +323,7 @@ export const friendController = {
     io.to(`user:${receiverId}`).emit("friend:accepted", {
       friend: senderUser,
     })
+    await emitFriendStateToUsers(io, [senderId, receiverId]);
     res.json({ message: "Friend added" });
   },
 
@@ -338,7 +334,12 @@ export const friendController = {
     }
 
     const currentUserId = req.user.id;
-    const requestId = Number(req.params.id);
+    const parsed = friendRequestIdParamsSchema.safeParse(req.params);
+    if (!parsed.success) {
+      return respondWithZodError(res, parsed.error);
+    }
+
+    const { id: requestId } = parsed.data;
 
     const reqData = await prisma.friendRequest.findUnique({
       where: { id: requestId },
@@ -360,6 +361,8 @@ export const friendController = {
       requestId,
     });
 
+    await emitFriendStateToUsers(io, [reqData.senderId, reqData.receiverId]);
+
     res.json({ message: "Friend request rejected" });
   },
 
@@ -369,11 +372,12 @@ export const friendController = {
     }
 
     const userId = req.user.id;
-    const otherUserId = Number(req.params.userId);
-
-    if (!Number.isInteger(otherUserId)) {
-      return res.status(400).json({ message: "Invalid user id" });
+    const parsed = friendUserIdParamsSchema.safeParse(req.params);
+    if (!parsed.success) {
+      return respondWithZodError(res, parsed.error);
     }
+
+    const { userId: otherUserId } = parsed.data;
 
     const friendship = await prisma.friend.findFirst({
       where: {
@@ -392,7 +396,7 @@ export const friendController = {
       where: { id: friendship.id },
     });
 
-    await emitFriendLists([userId, otherUserId]);
+    await emitFriendStateToUsers(io, [userId, otherUserId]);
     io.to(`user:${userId}`).emit("friend:removed", { userId: otherUserId });
     io.to(`user:${otherUserId}`).emit("friend:removed", { userId });
 
@@ -405,11 +409,12 @@ export const friendController = {
     }
 
     const blockerId = req.user.id;
-    const blockedId = Number(req.params.userId);
-
-    if (!Number.isInteger(blockedId)) {
-      return res.status(400).json({ message: "Invalid user id" });
+    const parsed = friendUserIdParamsSchema.safeParse(req.params);
+    if (!parsed.success) {
+      return respondWithZodError(res, parsed.error);
     }
+
+    const { userId: blockedId } = parsed.data;
 
     if (blockerId === blockedId) {
       return res.status(400).json({ message: "You cannot block yourself" });
@@ -456,7 +461,7 @@ export const friendController = {
       },
     });
 
-    await emitFriendLists([blockerId, blockedId]);
+    await emitFriendStateToUsers(io, [blockerId, blockedId]);
     io.to(`user:${blockerId}`).emit("friend:blocked", { user: blockedUser });
     io.to(`user:${blockedId}`).emit("friend:removed", { userId: blockerId });
 
@@ -469,11 +474,12 @@ export const friendController = {
     }
 
     const blockerId = req.user.id;
-    const blockedId = Number(req.params.userId);
-
-    if (!Number.isInteger(blockedId)) {
-      return res.status(400).json({ message: "Invalid user id" });
+    const parsed = friendUserIdParamsSchema.safeParse(req.params);
+    if (!parsed.success) {
+      return respondWithZodError(res, parsed.error);
     }
+
+    const { userId: blockedId } = parsed.data;
 
     await prisma.blockedUser.deleteMany({
       where: {
@@ -483,6 +489,7 @@ export const friendController = {
     });
 
     io.to(`user:${blockerId}`).emit("friend:unblocked", { userId: blockedId });
+    await emitFriendStateToUsers(io, [blockerId]);
     res.json({ message: "User unblocked" });
   }
 

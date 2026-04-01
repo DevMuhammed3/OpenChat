@@ -8,6 +8,14 @@ import { socketAuth } from './socket/auth.js'
 import { prisma } from './config/prisma.js'
 import { callHandler } from "./socket/callHandler.js"
 import { channelCallHandler } from "./socket/channelCallHandler.js"
+import {
+  refreshConnection,
+  registerConnection,
+  resetPresenceState,
+  startPresenceCleanup,
+  unregisterConnection,
+} from "./socket/presence.js"
+import { emitFriendState } from "./services/friendRealtime.js"
 
 const port = process.env.PORT || 4000
 
@@ -27,44 +35,18 @@ export const io = new Server(server, {
 
 io.use(socketAuth)
 
+await resetPresenceState()
+const presenceCleanup = startPresenceCleanup(io)
+
 io.on('connection', async (socket) => {
   const userId = socket.data.userId
   if (!userId) return
 
   console.log(`Socket connected: ${socket.id} (user ${userId})`)
 
-
   socket.join(`user:${userId}`)
-
-  // Update online status and notify friends
-  await prisma.user.update({
-    where: { id: userId },
-    data: { isOnline: true },
-  })
-
-  const friendsList = await prisma.friend.findMany({
-    where: {
-      OR: [{ user1Id: userId }, { user2Id: userId }],
-    },
-  })
-
-  const friendIds = friendsList.map((f) =>
-    f.user1Id === userId ? f.user2Id : f.user1Id
-  )
-
-  friendIds.forEach((id) => {
-    io.to(`user:${id}`).emit("user:online", { userId })
-  })
-
-  // Send current online friends to the user
-  const onlineFriends = await prisma.user.findMany({
-    where: {
-      id: { in: friendIds },
-      isOnline: true,
-    },
-    select: { id: true },
-  })
-  socket.emit("friends:online", onlineFriends.map(f => f.id))
+  await registerConnection(io, userId, socket.id)
+  await emitFriendState(io, userId)
 
   const chats = await prisma.chat.findMany({
     where: {
@@ -85,20 +67,24 @@ io.on('connection', async (socket) => {
   callHandler(io, socket)
   channelCallHandler(io, socket)
 
+  socket.onAny(() => {
+    refreshConnection(userId, socket.id)
+  })
+
+  socket.on("presence:heartbeat", () => {
+    refreshConnection(userId, socket.id)
+  })
+
   socket.on('disconnect', async () => {
     console.log(`Socket disconnected: ${socket.id} (user ${userId})`)
-
-    await prisma.user.update({
-      where: { id: userId },
-      data: { isOnline: false },
-    })
-
-    friendIds.forEach((id) => {
-      io.to(`user:${id}`).emit("user:offline", { userId })
-    })
+    await unregisterConnection(io, userId, socket.id)
   })
 })
 
 server.listen(port, () => {
   console.log('Socket + API running on http://localhost:' + port)
+})
+
+process.on("exit", () => {
+  clearInterval(presenceCleanup)
 })

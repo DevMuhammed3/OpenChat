@@ -33,6 +33,7 @@ export default function FriendList({ onSelectFriend }: FriendListProps) {
   const { username } = useParams<{ username?: string }>()
 
   const friends = useFriendsStore((s) => s.friends)
+  const friendsLoaded = useFriendsStore((s) => s.friendsLoaded)
   const setFriends = useFriendsStore((s) => s.setFriends)
   const removeFriendFromStore = useFriendsStore((s) => s.removeFriend)
   const addBlockedUser = useFriendsStore((s) => s.addBlockedUser)
@@ -42,7 +43,7 @@ export default function FriendList({ onSelectFriend }: FriendListProps) {
   const [busyUserId, setBusyUserId] = useState<number | null>(null)
 
   useEffect(() => {
-    if (friends.length > 0) {
+    if (friendsLoaded) {
       setLoading(false)
       return
     }
@@ -62,7 +63,7 @@ export default function FriendList({ onSelectFriend }: FriendListProps) {
     return () => {
       mounted = false
     }
-  }, [friends.length, setFriends])
+  }, [friendsLoaded, setFriends])
 
   const removeFriend = async (friend: Friend) => {
     try {
@@ -225,7 +226,7 @@ export default function FriendList({ onSelectFriend }: FriendListProps) {
                           <Button
                             size="icon"
                             variant="ghost"
-                            className="h-8 w-8 text-muted-foreground"
+                            className="hidden md:block h-8 w-8 text-muted-foreground"
                             disabled={busyUserId === friend.id}
                             onClick={(event) => event.stopPropagation()}
                           >
@@ -256,7 +257,8 @@ export default function FriendList({ onSelectFriend }: FriendListProps) {
               })}
             </div>
           </ScrollArea>
-        )}      </div>
+        )}
+              </div>
     </div>
   )
 }

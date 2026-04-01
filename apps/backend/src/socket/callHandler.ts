@@ -100,7 +100,13 @@ export function callHandler(io: Server, socket: AuthenticatedSocket) {
   socket.on("call:user", async ({ toUserId, chatPublicId }: { toUserId: number; chatPublicId: string }) => {
     try {
       if (!toUserId || toUserId === userId) return
-      if (userToCall.has(userId) || userToCall.has(toUserId)) return
+
+      const existingCallId = userToCall.get(userId)
+      if (existingCallId && existingCallId !== chatPublicId) {
+        endCall(existingCallId, "switched")
+      }
+
+      if (userToCall.has(toUserId)) return
 
       const caller = await prisma.user.findUnique({
         where: { id: userId },
@@ -147,7 +153,7 @@ export function callHandler(io: Server, socket: AuthenticatedSocket) {
 
     call.status = "active"
     call.startTime = Date.now()
-    socket.to(`chat:${chatPublicId}`).emit("call:accepted", { chatPublicId })
+    socket.to(`chat:${chatPublicId}`).emit("call:accepted", { chatPublicId, startTime: call.startTime })
   })
 
   socket.on("call:reject", ({ chatPublicId }: { chatPublicId: string }) => {

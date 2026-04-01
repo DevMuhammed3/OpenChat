@@ -12,7 +12,7 @@ export class UserService {
       bio?: string
     }
   ) {
-    const updateData: any = {}
+    const updateData: { name?: string; username?: string; bio?: string } = {}
 
     if (data.name !== undefined) {
       const name = data.name.trim()
@@ -71,7 +71,9 @@ export class UserService {
       const oldPath = path.join('uploads', user.avatar)
       try {
         await fs.promises.unlink(oldPath)
-      } catch { }
+      } catch {
+        // Best-effort cleanup.
+      }
     }
 
     return prisma.user.update({
@@ -102,7 +104,9 @@ export class UserService {
       const oldPath = path.join('uploads', user.avatar)
       try {
         await fs.promises.unlink(oldPath)
-      } catch { }
+      } catch {
+        // Best-effort cleanup.
+      }
     }
 
     return prisma.user.update({

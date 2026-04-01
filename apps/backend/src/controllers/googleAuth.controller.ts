@@ -3,12 +3,19 @@ import { prisma } from "../config/prisma.js";
 import { generateToken } from "../utils/generateToken.js";
 import { Request, Response } from "express";
 import { getCookieOptions } from "../utils/cookie.js";
+import { googleLoginBodySchema } from "../validations/auth.validation.js";
+import { respondWithZodError } from "../utils/zodError.js";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 export const googleLogin = async (req: Request, res: Response) => {
   try {
-    const { code } = req.body;
+    const parsed = googleLoginBodySchema.safeParse(req.body)
+    if (!parsed.success) {
+      return respondWithZodError(res, parsed.error)
+    }
+
+    const { code } = parsed.data;
 
     const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",

@@ -1,389 +1,115 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Info } from 'lucide-react'
+import { ArrowRight, Zap, Users, Shield } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from 'packages/ui'
-import { useEffect, useState } from 'react'
 import { useUserStore } from '@/app/stores/user-store'
 
-/*  TEXT TYPING  */
-const words = ['Powerful', 'Simple', 'Private']
-
-
-type Message = {
-  id: number
-  from: 'me' | 'other'
-  text?: string
-  link?: {
-    label: string
-    href: string
-  }
-}
-
-type ChatMessageProps = {
-  from: 'me' | 'other'
-  text?: string
-  link?: {
-    label: string
-    href: string
-  }
-}
-
-type TypingIndicatorProps = {
-  from: 'me' | 'other'
-}
-
-const TYPING_SPEED = 80
-const DELETING_SPEED = 50
-const HOLD_AFTER_TYPE = 1200
-
 export default function Hero() {
-  const [wordIndex, setWordIndex] = useState(0)
-  const [charIndex, setCharIndex] = useState(0)
-  const [isDeleting, setIsDeleting] = useState(false)
-
-  const [visibleMessages, setVisibleMessages] = useState<Message[]>([])
-  const [typing, setTyping] = useState<null | 'me' | 'other'>(null)
-
-  const SCRIPT: Message[] = [
-    { id: 1, from: 'me', text: 'I want Discord but simpler 😩' },
-    { id: 2, from: 'other', text: "That's exactly what this is." },
-    { id: 3, from: 'me', text: 'And private? No phone number?' },
-    { id: 4, from: 'other', text: 'Open source. No ads. No tracking.' },
-    { id: 5, from: 'me', text: 'Just sign up and go 🚀' },
-    { id: 6, from: 'other', text: 'Join', link: { label: 'OpenChat', href: '/auth' } },
-  ]
-
-
-  useEffect(() => {
-    let index = 0
-    let cancelled = false
-
-    const play = () => {
-      if (cancelled || index >= SCRIPT.length) return
-
-      const next = SCRIPT[index]
-      setTyping(next.from)
-
-      setTimeout(() => {
-        if (cancelled) return
-
-        setVisibleMessages((prev) => [...prev, next])
-        setTyping(null)
-        index++
-
-        setTimeout(play, 900)
-      }, 600)
-    }
-
-    play()
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-
-  useEffect(() => {
-    const currentWord = words[wordIndex]
-    let timeout: NodeJS.Timeout
-
-    if (!isDeleting) {
-      if (charIndex < currentWord.length) {
-        timeout = setTimeout(
-          () => setCharIndex((c) => c + 1),
-          TYPING_SPEED
-        )
-      } else {
-        timeout = setTimeout(() => setIsDeleting(true), HOLD_AFTER_TYPE)
-      }
-    } else {
-      if (charIndex > 0) {
-        timeout = setTimeout(
-          () => setCharIndex((c) => c - 1),
-          DELETING_SPEED
-        )
-      } else {
-        setIsDeleting(false)
-        setWordIndex((i) => (i + 1) % words.length)
-      }
-    }
-
-    return () => clearTimeout(timeout)
-  }, [charIndex, isDeleting, wordIndex])
+  const user = useUserStore(s => s.user)
 
   return (
-    <section
-      className="
-            flex items-center justify-center
-            min-h-[100vh]
-            lg:min-h-screen
-            pt-32 px-6
-          "
-    >
-      {/* Glow Background */}
-      <div className="absolute inset-0 -z-10 overflow-hidden">
-        <div className="
-    absolute 
-    top-1/3 right-1/4
-    w-[250px] h-[260px]
-    md:w-[400px] md:h-[400px]
-    bg-purple-600/20
-    blur-[120px] md:blur-[150px]
-    rounded-full
-  " />
+    <section className="relative min-h-[100vh] flex items-center justify-center pt-40 pb-12 overflow-hidden bg-background">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(120,80,255,0.15),transparent)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_70%_60%,rgba(0,200,255,0.08),transparent)]" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full bg-[radial-gradient(circle_at_50%_40%,rgba(120,80,255,0.05),transparent_60%)]" />
 
-        <div className="
-    hidden md:block
-    absolute 
-    bottom-1/4 left-1/4
-    w-[500px] h-[500px]
-bg-gradient-to-r from-cyan-500/30 to-transparent
-    blur-[160px]
-    rounded-full
-  " />
-      </div>
-      <div
-        className="
-                flex flex-col lg:flex-row items-center
-                max-w-6xl w-full
-                gap-20
-              "
-      >
-        {/*  TEXT  */}
-        <div
-          className="
-                    flex-1
-                    text-center lg:text-left
-                  "
-        >
-          <h1
-            className="
-                        mb-4
-                        text-2xl
-                        lg:text-4xl font-bold leading-tight
-                      "
-          >
-            Chat that's{' '}
-            <span
-              className="
-                            text-purple-500
-                          "
-            >
-              {words[wordIndex].slice(0, charIndex)}
-              <span
-                className="
-                                animate-pulse
-                              "
-              >
-                |
-              </span>
-            </span>
-          </h1>
+      <div className="container mx-auto px-6 relative z-10">
+        <div className="flex flex-col items-center text-center max-w-5xl mx-auto">
 
-          <p
-            className="
-                        max-w-xl
-                        mb-8
-                        text-muted-foreground
-                      "
-          >
-            Channels, groups, and private chats — all in one app. Open source, no ads, no phone number needed
-          </p>
-
-          <Button asChild size="lg" className="px-8 h-12 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 border-0">
-            <Link href={useUserStore.getState().user ? "/dashboard" : "/auth"}>
-              {useUserStore.getState().user ? "Go to Dashboard" : "Get Started"}
-            </Link>
-          </Button>
-        </div>
-
-        {/*  PHONE  */}
-        <div
-          className="
-          hidden
-          flex-1 lg:flex justify-center
-                  "
-        >
           <motion.div
-            animate={{ y: [0, -8, 0] }}
-            transition={{
-              duration: 6,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
-            className="
-                        relative
-                        w-[320px] h-[640px]
-                        p-2
-                        bg-gradient
-                        rounded-[3rem] 
-                      bg-zinc-900/80
-                        border border-white/10
-                        shadow-[inset_0_0_40px_rgba(0,0,0,0.6)]
-            "
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
           >
-            {/*  iPhone 14 Pro Dynamic Island  */}
-            <div
-              className="
-                            absolute top-2 left-1/2 z-20
-                            -translate-x-1/2
-                          "
-            >
-              <div
-                className="
-                                relative flex items-center
-                                h-7 w-[110px]
-                                mt-4 p-2
-                                bg-black
-                                rounded-full
-                                shadow-[inset_0_2px_4px_rgba(255,255,255,0.06),inset_0_-4px_8px_rgba(0,0,0,0.9)]
-                              "
-              >
-                {/* Camera (right circle) */}
-                <div
-                  className="
-                                    absolute right-3
-                                    h-2.5 w-2.5
-                                    bg-zinc-900
-                                    rounded-full ring-2 ring-zinc-700
-                                  "
-                />
-
-                {/* Speaker / sensor bar */}
-                <div
-                  className="
-                                    absolute left-6
-                                    h-1.5 w-12
-                                    bg-zinc-800
-                                    rounded-full
-                                  "
-                />
-              </div>
+            <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-zinc-400 text-xs font-semibold mb-8 backdrop-blur-xl">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span>Now in Public Beta — Free for everyone</span>
             </div>
 
-            {/*  SCREEN  */}
+            <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold tracking-tight mb-8 leading-[1.1] text-white">
+              Real-time chat & voice,{' '}
+              <span className="high-perf-gradient">
+                built for communities.
+              </span>
+            </h1>
 
-            <div
-              className="
-                            absolute inset-3 flex flex-col
-                            p-4 pt-14
-                            text-sm text-white
-                            rounded-[2rem] border border-white/10
-                            backdrop-blur-xl
-bg-gradient-to-br from-[#061326]/60 via-[#130626]/50 to-[#070430]/50
-    shadow-[inset_0_0_30px_rgba(0,0,0,0.6)]
-                          "
-            >
+            <p className="text-base md:text-lg text-zinc-400 max-w-2xl mx-auto mb-12 leading-relaxed">
+              Crystal-clear voice calls, instant messaging, and powerful community tools.
+              Open source, self-hostable, and designed for the modern web.
+            </p>
 
-              {/* Chat Header */}
-              <div className="flex items-center justify-between pb-3 border-b border-white/5 mb-2">
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <img
-                      src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
-                      alt="Avatar"
-                      className="w-8 h-8 rounded-full bg-purple-500/20 border border-white/10"
-                    />
-                    <div className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 rounded-full border-2 border-black" />
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold text-white leading-none">Alex Rivera</p>
-                    <p className="text-[9px] text-emerald-500/80 font-medium mt-1">Online</p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
+              <Button asChild size="lg" className="h-12 px-8 text-sm font-semibold rounded-xl bg-white text-zinc-900 hover:bg-zinc-100 transition-all shadow-2xl shadow-primary/10 border-0">
+                <Link href={user ? "/zone" : "/auth"}>
+                  Start Free — No Credit Card
+                  <ArrowRight className="ml-2" size={18} />
+                </Link>
+              </Button>
+
+              <Button asChild variant="outline" size="lg" className="h-12 px-8 text-sm font-semibold rounded-xl border-white/20 bg-white/5 text-white hover:bg-white/10 transition-all backdrop-blur-sm">
+                <Link href="https://github.com/DevMuhammed3/OpenChat" target="_blank">
+                  <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                  </svg>
+                  View on GitHub
+                </Link>
+              </Button>
+            </div>
+
+            <div className="flex items-center justify-center gap-8 text-zinc-500 text-xs font-medium">
+              <div className="flex items-center gap-2">
+                <Users size={14} className="text-primary" />
+                <span>9,999+ Active Users</span>
+              </div>
+              <div className="w-px h-4 bg-white/20" />
+              <div className="flex items-center gap-2">
+                <Shield size={14} className="text-emerald-500" />
+                <span>Self-Hosted & Private</span>
+              </div>
+              <div className="w-px h-4 bg-white/20" />
+              <div className="flex items-center gap-2">
+                <Zap size={14} className="text-amber-500" />
+                <span>Crystal Clear Voice</span>
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 60, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 1, delay: 0.3, ease: "easeOut" }}
+            className="w-full max-w-5xl mt-16 group relative"
+          >
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/30 to-cyan-500/30 rounded-[32px] blur opacity-30 group-hover:opacity-50 transition duration-1000 group-hover:duration-200" />
+            <div className="relative rounded-[32px] border border-white/10 bg-[#0b1121] overflow-hidden shadow-2xl">
+              <div className="flex items-center gap-2 px-6 py-4 border-b border-white/5 bg-white/[0.02]">
+                <div className="flex gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-red-500/40" />
+                  <div className="w-3 h-3 rounded-full bg-yellow-500/40" />
+                  <div className="w-3 h-3 rounded-full bg-green-500/40" />
+                </div>
+                <div className="flex-1 mx-4">
+                  <div className="h-6 rounded-lg bg-white/5 w-64 mx-auto flex items-center justify-center border border-white/5">
+                    <span className="text-[10px] text-zinc-500 font-mono tracking-wider">app.openchat.com/zone/general</span>
                   </div>
                 </div>
-
-                <button className="p-1 hover:bg-white/5 rounded-full transition-colors">
-                  <Info className="text-white/30 hover:text-white/60" size={16} />
-                </button>
               </div>
-
-              <div className="flex-1 flex flex-col justify-end gap-2">
-                {visibleMessages.map((msg) => (
-                  <motion.div
-                    key={msg.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                  >
-                    <ChatMessage
-                      from={msg.from}
-                      text={msg.text}
-                      link={msg.link}
-                    />
-                  </motion.div>
-                ))}
-
-                {typing && <TypingIndicator from={typing} />}
-              </div>
-
-              {/* Input */}
-              <div
-                className="
-                                mt-3 px-4 py-2
-                                text-xs text-white/40
-                                bg-white/10
-                                rounded-full
-                              "
-              >
-                Message…
-              </div>
+              {/* <img
+                src="/images/dashboard.png"
+                alt="OpenChat Dashboard Preview"
+                className="w-full h-auto object-cover transform transition-transform duration-700 group-hover:scale-[1.02]"
+              /> */}
             </div>
           </motion.div>
         </div>
       </div>
+
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
     </section>
   )
 }
-
-function ChatMessage({ from, text, link }: ChatMessageProps) {
-  const isMe = from === 'me'
-
-  return (
-    <div className={`flex items-end gap-2 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
-      {!isMe && (
-        <img
-          src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
-          className="w-6 h-6 rounded-full bg-zinc-800 mb-1"
-          alt="User"
-        />
-      )}
-
-      <div
-        className={`
-          min-w-fit max-w-[80%] px-3 py-2 rounded-2xl text-[12px] leading-snug
-          ${isMe
-            ? 'bg-purple-600 text-white rounded-br-none shadow-lg shadow-purple-900/20'
-            : 'bg-zinc-800/80 text-zinc-100 rounded-bl-none'}
-        `}
-      >
-        {text && <span>{text}</span>}
-        {link && (
-          <Link href={link.href} className="px-1 mt-1 font-bold text-purple-400 underline decoration-2">
-            {link.label}
-          </Link>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function TypingIndicator({ from }: TypingIndicatorProps) {
-  const isMe = from === 'me'
-
-  return (
-    <div
-      className={`
-        max-w-[20%] px-3 py-2 rounded-xl
-        flex gap-1 items-center
-        ${isMe
-          ? 'ml-auto bg-purple-400'
-          : 'bg-zinc-800'}
-      `}
-    >
-      <span className="w-1.5 h-1.5 bg-white/60 rounded-full animate-bounce" />
-      <span className="w-1.5 h-1.5 bg-white/60 rounded-full animate-bounce delay-100" />
-      <span className="w-1.5 h-1.5 bg-white/60 rounded-full animate-bounce delay-200" />
-    </div>
-  )
-}
-

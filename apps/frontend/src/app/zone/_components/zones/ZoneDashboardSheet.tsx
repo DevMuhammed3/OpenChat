@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Avatar,
   AvatarFallback,
@@ -13,26 +13,19 @@ import {
   SheetHeader,
   SheetTitle,
 } from 'packages/ui'
-import { api, getAvatarUrl, socket } from '@openchat/lib'
-import { useUserStore } from '@/app/stores/user-store'
-
-type Member = {
-  id: number
-  username: string
-  avatar?: string | null
-  role: 'OWNER' | 'ADMIN' | 'MEMBER'
-}
+import { getAvatarUrl, socket } from '@openchat/lib'
+import { useStartDirectMessageMutation } from '@/features/chat/mutations'
+import { useCreateChannelMutation } from '@/features/channels/mutations'
+import { useChannels } from '@/features/channels/queries'
+import { useCreateZoneInviteMutation, useRemoveZoneMemberMutation, useUpdateZoneMemberRoleMutation, useUpdateZoneMutation } from '@/features/zones/mutations'
+import { useZoneMembers } from '@/features/zones/queries'
+import { apiClient } from '@/lib/api/client'
+import { useUser } from '@/features/user/queries'
 
 type Friend = {
   id: number
   username: string
   avatar?: string | null
-}
-
-type Channel = {
-  publicId: string
-  name: string
-  type: 'TEXT' | 'VOICE'
 }
 
 export default function ZoneDashboardSheet({
@@ -50,9 +43,16 @@ export default function ZoneDashboardSheet({
   onOpenChange: (open: boolean) => void
   onZoneUpdated?: (zone: { name: string; avatar: string | null }) => void
 }) {
-  const currentUser = useUserStore((state) => state.user)
-  const [members, setMembers] = useState<Member[]>([])
-  const [channels, setChannels] = useState<Channel[]>([])
+  const { data: currentUser } = useUser()
+  const { data: members = [] } = useZoneMembers(zonePublicId, open)
+  const { data: channels = [] } = useChannels(zonePublicId, open)
+  const updateZoneMutation = useUpdateZoneMutation(zonePublicId)
+  const removeMemberMutation = useRemoveZoneMemberMutation(zonePublicId)
+  const updateRoleMutation = useUpdateZoneMemberRoleMutation(zonePublicId)
+  const createChannelMutation = useCreateChannelMutation(zonePublicId)
+  const createInviteMutation = useCreateZoneInviteMutation(zonePublicId)
+  const startDirectMessageMutation = useStartDirectMessageMutation()
+
   const [friends, setFriends] = useState<Friend[]>([])
   const [inviteSearch, setInviteSearch] = useState('')
   const [newChannelName, setNewChannelName] = useState('')
@@ -60,7 +60,6 @@ export default function ZoneDashboardSheet({
   const [draftZoneName, setDraftZoneName] = useState(zoneName)
   const [draftZoneAvatar, setDraftZoneAvatar] = useState<string | null>(zoneAvatar ?? null)
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
-  const [savingZone, setSavingZone] = useState(false)
   const [sendingInviteFor, setSendingInviteFor] = useState<number | 'general' | null>(null)
   const [sentInviteFor, setSentInviteFor] = useState<number | 'general' | null>(null)
 
@@ -72,75 +71,31 @@ export default function ZoneDashboardSheet({
     setDraftZoneAvatar(zoneAvatar ?? null)
   }, [zoneAvatar])
 
-  const loadMembers = useCallback(async () => {
-    const res = await api(`/zones/${zonePublicId}/members`)
-    const data = await res.json()
-    setMembers(data.members ?? [])
-  }, [zonePublicId])
-
-  const loadChannels = useCallback(async () => {
-    const res = await api(`/zones/${zonePublicId}/channels`)
-    const data = await res.json()
-    setChannels(data.channels ?? [])
-  }, [zonePublicId])
-
-  const loadFriends = useCallback(async () => {
-    const res = await api('/friends/list')
-    const data = await res.json()
-    setFriends(data.friends ?? [])
-  }, [])
-
   useEffect(() => {
     if (!open) return
 
-    const timer = window.setTimeout(() => {
-      void loadMembers()
-      void loadChannels()
-      void loadFriends()
-    }, 0)
+    let cancelled = false
 
-    return () => {
-      window.clearTimeout(timer)
-    }
-  }, [loadChannels, loadFriends, loadMembers, open])
+    const loadFriends = async () => {
+      try {
+        const data = await apiClient.get<{ friends: Friend[] }>('/friends/list')
 
-  useEffect(() => {
-    if (!zonePublicId) return
-
-    const handleMembersUpdated = (payload: { chatPublicId: string; members: Member[] }) => {
-      if (payload.chatPublicId !== zonePublicId) return
-      setMembers(payload.members)
-    }
-
-    const handleChannelsUpdated = (payload: { chatPublicId: string }) => {
-      if (payload.chatPublicId !== zonePublicId) return
-      void loadChannels()
-    }
-
-    const handleZoneUpdated = (payload: {
-      zone: {
-        publicId: string
-        name: string
-        avatar: string | null
+        if (!cancelled) {
+          setFriends(data.friends ?? [])
+        }
+      } catch {
+        if (!cancelled) {
+          setFriends([])
+        }
       }
-    }) => {
-      if (payload.zone.publicId !== zonePublicId) return
-      setDraftZoneName(payload.zone.name)
-      setDraftZoneAvatar(payload.zone.avatar)
-      setAvatarFile(null)
-      onZoneUpdated?.({ name: payload.zone.name, avatar: payload.zone.avatar })
     }
 
-    socket.on('zone:members-updated', handleMembersUpdated)
-    socket.on('zone:channels-updated', handleChannelsUpdated)
-    socket.on('zone:updated', handleZoneUpdated)
+    void loadFriends()
 
     return () => {
-      socket.off('zone:members-updated', handleMembersUpdated)
-      socket.off('zone:channels-updated', handleChannelsUpdated)
-      socket.off('zone:updated', handleZoneUpdated)
+      cancelled = true
     }
-  }, [loadChannels, onZoneUpdated, zonePublicId])
+  }, [open])
 
   const myMembership = useMemo(
     () => members.find((member) => member.id === currentUser?.id) ?? null,
@@ -167,77 +122,20 @@ export default function ZoneDashboardSheet({
     const nextName = draftZoneName.trim()
     if (!canManageZoneInfo || (!nextName && !avatarFile)) return
 
-    const formData = new FormData()
-    if (nextName) {
-      formData.append('name', nextName)
-    }
-    if (avatarFile) {
-      formData.append('avatar', avatarFile)
-    }
-
-    setSavingZone(true)
-
-    try {
-      const res = await api(`/zones/${zonePublicId}`, {
-        method: 'PATCH',
-        body: formData,
-        credentials: 'include',
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        throw new Error(data.message || 'Failed to update zone')
-      }
-
-      setDraftZoneName(data.zone.name)
-      setDraftZoneAvatar(data.zone.avatar)
-      setAvatarFile(null)
-      onZoneUpdated?.({ name: data.zone.name, avatar: data.zone.avatar })
-    } finally {
-      setSavingZone(false)
-    }
-  }
-
-  const removeMember = async (userId: number) => {
-    await api(`/zones/${zonePublicId}/members/${userId}`, {
-      method: 'DELETE',
-      credentials: 'include',
-    })
-  }
-
-  const updateRole = async (userId: number, role: 'ADMIN' | 'MEMBER') => {
-    await api(`/zones/${zonePublicId}/members/${userId}/role`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ role }),
-      credentials: 'include',
-    })
-  }
-
-  const createChannel = async () => {
-    if (!newChannelName.trim()) return
-
-    await api(`/zones/${zonePublicId}/channels`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newChannelName, type: newChannelType }),
-      credentials: 'include',
+    const zone = await updateZoneMutation.mutateAsync({
+      name: nextName,
+      avatar: avatarFile,
     })
 
-    setNewChannelName('')
+    setDraftZoneName(zone.name)
+    setDraftZoneAvatar(zone.avatar ?? null)
+    setAvatarFile(null)
+    onZoneUpdated?.({ name: zone.name, avatar: zone.avatar ?? null })
   }
 
   const createInviteLink = async () => {
-    const res = await api(`/zones/${zonePublicId}/invites`, {
-      method: 'POST',
-      credentials: 'include',
-    })
-    const data = await res.json()
-
-    if (!res.ok || !data?.invite?.code) {
-      throw new Error(data.message || 'Failed to create invite')
-    }
-
-    return `${window.location.origin}/zone/invite/${data.invite.code}`
+    const invite = await createInviteMutation.mutateAsync()
+    return `${window.location.origin}/zone/invite/${invite.code}`
   }
 
   const copyInviteLink = async (target: 'general') => {
@@ -260,21 +158,11 @@ export default function ZoneDashboardSheet({
 
     try {
       const link = await createInviteLink()
-      const chatRes = await api('/chats/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ friendId: friend.id }),
-        credentials: 'include',
-      })
-      const chatData = await chatRes.json()
+      const chatPublicId = await startDirectMessageMutation.mutateAsync(friend.id)
 
-      if (!chatRes.ok || !chatData?.chatPublicId) {
-        throw new Error(chatData.message || 'Failed to open direct message')
-      }
-
-      socket.emit('join-room', { chatPublicId: chatData.chatPublicId })
+      socket.emit('join-room', { chatPublicId })
       socket.emit('private-message', {
-        chatPublicId: chatData.chatPublicId,
+        chatPublicId,
         text: `Join my zone: ${link}`,
       })
 
@@ -337,7 +225,7 @@ export default function ZoneDashboardSheet({
                 </div>
 
                 <div className="mt-3 flex justify-end">
-                  <Button onClick={updateZoneInfo} disabled={savingZone}>
+                  <Button onClick={() => { void updateZoneInfo() }} disabled={updateZoneMutation.isPending}>
                     Save zone
                   </Button>
                 </div>
@@ -378,7 +266,17 @@ export default function ZoneDashboardSheet({
                     <option value="TEXT">Text</option>
                     <option value="VOICE">Voice</option>
                   </select>
-                  <Button onClick={createChannel}>Create</Button>
+                  <Button
+                    onClick={() => {
+                      void createChannelMutation.mutateAsync({
+                        name: newChannelName,
+                        type: newChannelType,
+                      }).then(() => setNewChannelName(''))
+                    }}
+                    disabled={!newChannelName.trim() || createChannelMutation.isPending}
+                  >
+                    Create
+                  </Button>
                 </div>
               </div>
             )}
@@ -420,7 +318,12 @@ export default function ZoneDashboardSheet({
                     {canEditRole ? (
                       <select
                         value={member.role}
-                        onChange={(event) => updateRole(member.id, event.target.value as 'ADMIN' | 'MEMBER')}
+                        onChange={(event) => {
+                          void updateRoleMutation.mutateAsync({
+                            userId: member.id,
+                            role: event.target.value as 'ADMIN' | 'MEMBER',
+                          })
+                        }}
                         className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white"
                       >
                         <option value="ADMIN">ADMIN</option>
@@ -436,7 +339,9 @@ export default function ZoneDashboardSheet({
                       <Button
                         variant="destructive"
                         size="sm"
-                        onClick={() => removeMember(member.id)}
+                        onClick={() => {
+                          void removeMemberMutation.mutateAsync(member.id)
+                        }}
                       >
                         Remove
                       </Button>
@@ -462,7 +367,9 @@ export default function ZoneDashboardSheet({
                   </div>
                   <Button
                     size="sm"
-                    onClick={() => copyInviteLink('general')}
+                    onClick={() => {
+                      void copyInviteLink('general')
+                    }}
                     disabled={sendingInviteFor === 'general'}
                   >
                     {sentInviteFor === 'general' ? 'Copied' : 'Copy Link'}
@@ -488,7 +395,9 @@ export default function ZoneDashboardSheet({
                       <span className="flex-1 truncate text-sm font-medium text-zinc-100">{friend.username}</span>
                       <Button
                         size="sm"
-                        onClick={() => sendInviteToFriend(friend)}
+                        onClick={() => {
+                          void sendInviteToFriend(friend)
+                        }}
                         disabled={sendingInviteFor === friend.id}
                       >
                         {sentInviteFor === friend.id ? 'Sent' : 'Send Invite'}

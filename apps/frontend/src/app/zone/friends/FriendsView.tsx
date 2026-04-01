@@ -71,11 +71,11 @@ export default function FriendsView() {
 
             const data = await res.json()
 
-            useChatsStore.getState().addChat({
+            useChatsStore.getState().upsertChat({
               chatPublicId: data.chatPublicId,
               participants: [friend],
               lastMessage: null,
-            })
+            }, { bump: true })
 
             router.push(`/zone/chat/${data.chatPublicId}`)
           }}

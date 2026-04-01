@@ -3,47 +3,33 @@ import { api } from "@openchat/lib"
 import { useEffect, useState } from "react"
 import { Avatar, AvatarFallback, AvatarImage, Button, Card, Skeleton } from "packages/ui"
 import { formatDistanceToNow } from "date-fns"
-
-type User = {
-  id: string
-  username: string
-  name: string
-  avatar: string | null
-}
-
-type PendingRequest = {
-  id: number
-  to: User
-  createdAt: string
-}
+import { useFriendsStore } from "@/app/stores/friends-store"
 
 export default function PendingRequests() {
-  const [pending, setPending] = useState<PendingRequest[]>([])
-  const [loading, setLoading] = useState(true)
+  const pending = useFriendsStore((s) => s.pendingRequests)
+  const pendingLoaded = useFriendsStore((s) => s.pendingRequestsLoaded)
+  const setPendingRequests = useFriendsStore((s) => s.setPendingRequests)
+  const removePendingRequest = useFriendsStore((s) => s.removePendingRequest)
   const [processingIds, setProcessingIds] = useState<number[]>([])
 
   useEffect(() => {
-    fetchPending()
-  }, [])
+    if (pendingLoaded) return
 
-  const fetchPending = async () => {
-    try {
-      setLoading(true)
-      const res = await api("/friends/pending")
-      const data = await res.json()
-      setPending(data.requests)
-    } catch (error) {
-      console.error("Failed to fetch:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
+    api("/friends/pending")
+      .then((res) => res.json())
+      .then((data) => {
+        setPendingRequests(data.requests ?? [])
+      })
+      .catch((error) => {
+        console.error("Failed to fetch pending requests:", error)
+      })
+  }, [pendingLoaded, setPendingRequests])
 
   const cancelRequest = async (id: number) => {
     setProcessingIds(prev => [...prev, id])
     try {
       await api(`/friends/reject/${id}`, { method: "DELETE" })
-      setPending(prev => prev.filter(r => r.id !== id))
+      removePendingRequest(id)
     } catch (error) {
       console.error("Failed to cancel:", error)
     } finally {
@@ -51,7 +37,7 @@ export default function PendingRequests() {
     }
   }
 
-  if (loading) {
+  if (!pendingLoaded) {
     return (
       <div className="grid gap-3">
         {[1, 2, 3].map((i) => (
@@ -84,9 +70,9 @@ export default function PendingRequests() {
         <Card key={r.id} className="group flex items-center justify-between p-4 shadow-sm border-muted/60 hover:border-muted-foreground/20 transition-all duration-200">
           <div className="flex items-center gap-4">
             <Avatar className="h-11 w-11 border-2 border-background shadow-sm">
-              {r.to.avatar && <AvatarImage src={r.to.avatar} alt={r.to.name} />}
+              {r.to.avatar && <AvatarImage src={r.to.avatar} alt={r.to.name ?? undefined} />}
               <AvatarFallback className="bg-secondary text-secondary-foreground font-semibold text-xs">
-                {r.to.name.substring(0, 2).toUpperCase()}
+                {(r.to.name ?? "?").substring(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
 
@@ -95,7 +81,7 @@ export default function PendingRequests() {
                 {r.to.name}
               </span>
               <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest">
-                Sent {formatDistanceToNow(new Date(r.createdAt), { addSuffix: true })}
+                Sent {r.createdAt ? formatDistanceToNow(new Date(r.createdAt), { addSuffix: true }) : "recently"}
               </span>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import { Server, Socket } from "socket.io"
 import { prisma } from "../config/prisma.js"
 import { encryptMessage } from "../utils/crypto.js"
+import { chatTypingSchema, joinRoomSchema, leaveRoomSchema, privateMessageSchema } from "../validations/socket.validation.js"
 
 async function isUserInChat(userId: number, chatPublicId: string) {
   const chat = await prisma.chat.findUnique({
@@ -22,7 +23,10 @@ export function privateChatHandler(io: Server, socket: Socket) {
   if (!userId) return
 
   socket.on("join-room", async ({ chatPublicId, channelPublicId }: { chatPublicId: string; channelPublicId?: string }) => {
-    if (!chatPublicId) return
+    const parsed = joinRoomSchema.safeParse({ chatPublicId, channelPublicId })
+    if (!parsed.success) return
+    chatPublicId = parsed.data.chatPublicId
+    channelPublicId = parsed.data.channelPublicId
 
     const allowed = await isUserInChat(userId, chatPublicId)
     if (!allowed) return
@@ -34,7 +38,10 @@ export function privateChatHandler(io: Server, socket: Socket) {
   })
 
   socket.on("leave-room", ({ chatPublicId, channelPublicId }: { chatPublicId: string; channelPublicId?: string }) => {
-    if (!chatPublicId) return
+    const parsed = leaveRoomSchema.safeParse({ chatPublicId, channelPublicId })
+    if (!parsed.success) return
+    chatPublicId = parsed.data.chatPublicId
+    channelPublicId = parsed.data.channelPublicId
     socket.leave(`chat:${chatPublicId}`)
     if (channelPublicId) {
       socket.leave(`channel:${channelPublicId}`)
@@ -57,9 +64,25 @@ export function privateChatHandler(io: Server, socket: Socket) {
         fileUrl?: string | null
         fileType?: string | null
       },
-      callback?: (message: any) => void
+      callback?: (message: unknown) => void
     ) => {
-      if (!text?.trim() && !fileUrl) return
+      const parsed = privateMessageSchema.safeParse({
+        chatPublicId,
+        channelPublicId,
+        text,
+        fileUrl,
+        fileType,
+      })
+      if (!parsed.success) {
+        // Don't throw, just refuse the message. Client callbacks should time out / handle missing ack.
+        return
+      }
+
+      chatPublicId = parsed.data.chatPublicId
+      channelPublicId = parsed.data.channelPublicId ?? undefined
+      text = parsed.data.text ?? undefined
+      fileUrl = parsed.data.fileUrl ?? undefined
+      fileType = parsed.data.fileType ?? undefined
 
       const allowed = await isUserInChat(userId, chatPublicId)
       if (!allowed) return
@@ -152,6 +175,11 @@ export function privateChatHandler(io: Server, socket: Socket) {
 
 
   socket.on("chat:typing", async ({ chatPublicId, isTyping }: { chatPublicId: string, isTyping: boolean }) => {
+    const parsed = chatTypingSchema.safeParse({ chatPublicId, isTyping })
+    if (!parsed.success) return
+
+    chatPublicId = parsed.data.chatPublicId
+    isTyping = parsed.data.isTyping
     const allowed = await isUserInChat(userId, chatPublicId)
     if (!allowed) return
 

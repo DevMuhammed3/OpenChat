@@ -1,6 +1,8 @@
 import { Request, Response } from "express"
 import { AccessToken } from "livekit-server-sdk"
 import { prisma } from "../config/prisma.js"
+import { livekitTokenQuerySchema } from "../validations/webrtc.validation.js"
+import { respondWithZodError } from "../utils/zodError.js"
 
 export function getIceServers(req: Request, res: Response) {
   res.json({
@@ -18,18 +20,15 @@ export function getIceServers(req: Request, res: Response) {
 export async function getLiveKitToken(req: Request, res: Response) {
   try {
     const userId = req.user?.id
-    const { roomType, roomId } = req.query
+    const parsed = livekitTokenQuerySchema.safeParse(req.query)
+    if (!parsed.success) {
+      return respondWithZodError(res, parsed.error)
+    }
+
+    const { roomType, roomId } = parsed.data
 
     if (!userId) {
       return res.status(401).json({ message: "Not authenticated" })
-    }
-
-    if (roomType !== "dm" && roomType !== "channel") {
-      return res.status(400).json({ message: "Invalid room type" })
-    }
-
-    if (typeof roomId !== "string" || !roomId.trim()) {
-      return res.status(400).json({ message: "roomId is required" })
     }
 
     const user = await prisma.user.findUnique({

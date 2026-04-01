@@ -7,12 +7,13 @@ import { useChannelVoiceCall } from '@/hooks/useChannelVoiceCall'
 export default function ChannelCallManager() {
   const channelPublicId = useCallStore(s => s.channelPublicId)
   const isMuted = useCallStore(s => s.isMuted)
-  const { remoteStreams, joinCall, leaveCall, setMuted } = useChannelVoiceCall(channelPublicId)
+  const isSpeaker = useCallStore(s => s.isSpeaker)
+  const { remoteStreams, joinCall, leaveCall, setMuted } = useChannelVoiceCall()
   const audioRefs = useRef<Map<number, HTMLAudioElement>>(new Map())
 
   useEffect(() => {
     if (channelPublicId) {
-      joinCall()
+      joinCall(channelPublicId)
     } else {
       leaveCall()
     }
@@ -31,6 +32,7 @@ export default function ChannelCallManager() {
         audio.autoplay = true
         audioRefs.current.set(userId, audio)
       }
+      audio.muted = !isSpeaker
       if (audio.srcObject !== stream) {
         audio.srcObject = stream
       }
@@ -47,7 +49,20 @@ export default function ChannelCallManager() {
         audioRefs.current.delete(userId)
       }
     })
-  }, [remoteStreams])
+  }, [isSpeaker, remoteStreams])
+
+  useEffect(() => {
+    const currentAudioRefs = audioRefs.current
+
+    return () => {
+      currentAudioRefs.forEach((audio) => {
+        audio.pause()
+        audio.srcObject = null
+        audio.remove()
+      })
+      currentAudioRefs.clear()
+    }
+  }, [])
 
   return null
 }

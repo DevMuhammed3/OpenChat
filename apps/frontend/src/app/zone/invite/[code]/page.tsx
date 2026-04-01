@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { api } from '@openchat/lib'
 import { Avatar, AvatarFallback, AvatarImage, Button, Skeleton } from 'packages/ui'
+import { useZoneNavigation } from '@/features/channels/navigation'
+import { useJoinZoneMutation } from '@/features/zones/mutations'
+import { apiClient } from '@/lib/api/client'
 
 type InviteData = {
   code: string
@@ -20,9 +22,10 @@ type InviteData = {
 export default function ZoneInvitePage() {
   const { code } = useParams<{ code: string }>()
   const router = useRouter()
+  const { openZone } = useZoneNavigation()
+  const joinZoneMutation = useJoinZoneMutation()
   const [invite, setInvite] = useState<InviteData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [joining, setJoining] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -32,11 +35,10 @@ export default function ZoneInvitePage() {
       try {
         setLoading(true)
         setError(null)
-        const res = await api(`/zones/invites/${code}`)
-        const data = await res.json()
+        const data = await apiClient.get<{ invite: InviteData }>(`/zones/invites/${code}`)
 
-        if (!res.ok || !data?.invite) {
-          throw new Error(data?.message || 'Invite not found')
+        if (!data?.invite) {
+          throw new Error('Invite not found')
         }
 
         setInvite(data.invite)
@@ -54,22 +56,10 @@ export default function ZoneInvitePage() {
     if (!code) return
 
     try {
-      setJoining(true)
-      const res = await api(`/zones/invites/${code}/join`, {
-        method: 'POST',
-        credentials: 'include',
-      })
-      const data = await res.json()
-
-      if (!res.ok || !data?.zone?.publicId) {
-        throw new Error(data?.message || 'Failed to join invite')
-      }
-
-      window.location.assign(`/zone/zones/${data.zone.publicId}`)
+      const zone = await joinZoneMutation.mutateAsync(code)
+      await openZone(zone.publicId)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to join invite')
-    } finally {
-      setJoining(false)
     }
   }
 
@@ -132,15 +122,15 @@ export default function ZoneInvitePage() {
             className="flex-1 rounded-xl"
             onClick={() => {
               if (invite.isMember) {
-                window.location.assign(`/zone/zones/${invite.zone.publicId}`)
+                void openZone(invite.zone.publicId)
                 return
               }
 
-              joinInvite()
+              void joinInvite()
             }}
-            disabled={joining}
+            disabled={joinZoneMutation.isPending}
           >
-            {invite.isMember ? 'Open Zone' : joining ? 'Joining...' : 'Join Zone'}
+            {invite.isMember ? 'Open Zone' : joinZoneMutation.isPending ? 'Joining...' : 'Join Zone'}
           </Button>
           <Button
             variant="outline"

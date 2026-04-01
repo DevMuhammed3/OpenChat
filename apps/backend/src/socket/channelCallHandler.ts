@@ -7,6 +7,8 @@ interface ChannelParticipant {
   socketId: string
   username: string
   avatar: string | null
+  isMuted: boolean
+  isSpeaker: boolean
 }
 
 interface ActiveChannelCall {
@@ -16,6 +18,7 @@ interface ActiveChannelCall {
 }
 
 const activeChannelCalls = new Map<string, ActiveChannelCall>()
+const userToChannelCall = new Map<number, string>()
 
 interface AuthenticatedSocket extends Socket {
   data: {
@@ -34,8 +37,21 @@ export function channelCallHandler(io: Server, socket: AuthenticatedSocket) {
   const userId = socket.data.userId
   if (!userId) return
 
-  socket.on("channel:join-call", async ({ channelPublicId }: { channelPublicId: string }) => {
+  socket.on("channel:join-call", async ({
+    channelPublicId,
+    isMuted = false,
+    isSpeaker = true,
+  }: {
+    channelPublicId: string
+    isMuted?: boolean
+    isSpeaker?: boolean
+  }) => {
     try {
+      const existingChannelPublicId = userToChannelCall.get(userId)
+      if (existingChannelPublicId && existingChannelPublicId !== channelPublicId) {
+        leaveChannelCall(existingChannelPublicId)
+      }
+
       const channel = await prisma.channel.findUnique({
         where: { publicId: channelPublicId },
         select: {
@@ -69,16 +85,23 @@ export function channelCallHandler(io: Server, socket: AuthenticatedSocket) {
         userId: user.id,
         socketId: socket.id,
         username: user.username,
-        avatar: resolveAssetUrl(user.avatar)
+        avatar: resolveAssetUrl(user.avatar),
+        isMuted,
+        isSpeaker,
       }
 
       call.participants.set(userId, participant)
+      userToChannelCall.set(userId, channelPublicId)
       socket.join(`channel-call:${channelPublicId}`)
 
       // Notify others in the channel
       socket.to(`channel-call:${channelPublicId}`).emit("channel:user-joined", {
         channelPublicId,
         participant
+      })
+      socket.to(`channel-call:${channelPublicId}`).emit("user_joined_voice_room", {
+        id: participant.userId,
+        roomId: channelPublicId,
       })
       io.to(`chat:${call.chatPublicId}`).emit("zone:voice-presence", {
         chatPublicId: call.chatPublicId,
@@ -103,12 +126,41 @@ export function channelCallHandler(io: Server, socket: AuthenticatedSocket) {
     leaveChannelCall(channelPublicId)
   })
 
-  socket.on("channel:signal", ({ toSocketId, signal }: { toSocketId: string, signal: any }) => {
+  socket.on("channel:signal", ({ toSocketId, signal }: { toSocketId: string, signal: unknown }) => {
     // Relay signal to specific peer
     io.to(toSocketId).emit("channel:signal", {
       fromSocketId: socket.id,
       fromUserId: userId,
       signal
+    })
+  })
+
+  socket.on("channel:participant-state", ({
+    channelPublicId,
+    isMuted,
+    isSpeaker,
+  }: {
+    channelPublicId: string
+    isMuted?: boolean
+    isSpeaker?: boolean
+  }) => {
+    const call = activeChannelCalls.get(channelPublicId)
+    if (!call) return
+
+    const participant = call.participants.get(userId)
+    if (!participant) return
+
+    participant.isMuted = isMuted ?? participant.isMuted
+    participant.isSpeaker = isSpeaker ?? participant.isSpeaker
+
+    io.to(`channel-call:${channelPublicId}`).emit("channel:user-updated", {
+      channelPublicId,
+      participant,
+    })
+    io.to(`chat:${call.chatPublicId}`).emit("zone:voice-presence", {
+      chatPublicId: call.chatPublicId,
+      channelPublicId,
+      participants: Array.from(call.participants.values()),
     })
   })
 
@@ -127,11 +179,18 @@ export function channelCallHandler(io: Server, socket: AuthenticatedSocket) {
 
     if (call.participants.has(userId)) {
       call.participants.delete(userId)
+      if (userToChannelCall.get(userId) === channelPublicId) {
+        userToChannelCall.delete(userId)
+      }
       socket.leave(`channel-call:${channelPublicId}`)
       
       io.to(`channel-call:${channelPublicId}`).emit("channel:user-left", {
         channelPublicId,
         userId
+      })
+      io.to(`channel-call:${channelPublicId}`).emit("user_left_voice_room", {
+        id: userId,
+        roomId: channelPublicId,
       })
       io.to(`chat:${call.chatPublicId}`).emit("zone:voice-presence", {
         chatPublicId: call.chatPublicId,

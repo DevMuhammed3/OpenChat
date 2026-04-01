@@ -7,6 +7,12 @@ import path from "path"
 import fs from "fs"
 import crypto from "crypto"
 import { encryptMessage, decryptMessage } from "../utils/crypto.js"
+import {
+  getChatMessagesQuerySchema,
+  getChatParamsSchema,
+  startChatBodySchema,
+} from "../validations/chat.validation.js"
+import { isZodError, respondWithZodError } from "../utils/zodError.js"
 
 const uploadDir = "uploads"
 
@@ -39,7 +45,7 @@ const upload = multer({
 export const getChatMessages = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
-    const { chatPublicId } = req.params;
+    const { chatPublicId } = getChatParamsSchema.parse(req.params);
 
     if (!userId) {
       return res.status(401).json({ message: "Unauthorized" });
@@ -58,7 +64,7 @@ export const getChatMessages = async (req: Request, res: Response) => {
       return res.status(403).json({ message: "Forbidden" });
     }
 
-    const { cursor, channelPublicId } = req.query as { cursor?: string; channelPublicId?: string }
+    const { cursor, channelPublicId } = getChatMessagesQuerySchema.parse(req.query)
 
     let channelId: number | undefined
     if (channelPublicId) {
@@ -104,6 +110,9 @@ export const getChatMessages = async (req: Request, res: Response) => {
 
     res.json({ messages: orderedMessages });
   } catch (err) {
+    if (isZodError(err)) {
+      return respondWithZodError(res, err)
+    }
     console.error(err);
     res.status(500).json({ message: "Internal server error" });
   }
@@ -134,6 +143,7 @@ export const getChats = async (req: Request, res: Response) => {
                 id: true,
                 username: true,
                 avatar: true,
+                isOnline: true,
               },
             },
           },
@@ -145,20 +155,36 @@ export const getChats = async (req: Request, res: Response) => {
       },
     });
 
-    res.json({
-      chats: chats.map((chat: any) => ({
+    const serializedChats = chats.map((chat) => ({
         chatPublicId: chat.publicId,
+        createdAt: chat.createdAt,
         type: chat.type,
         name: chat.name,
         avatar: chat.avatar ?? null,
-        participants: chat.participants.map((p: any) => p.user),
+        participants: chat.participants.map((participant) => participant.user),
         lastMessage: chat.messages?.[0] ? {
           ...chat.messages[0],
           text: chat.messages[0].text ? decryptMessage(chat.messages[0].text) : null
         } : null,
-      })),
+      }))
+      .sort((left, right) => {
+        const leftTimestamp = left.lastMessage?.createdAt
+          ? new Date(left.lastMessage.createdAt).getTime()
+          : new Date(left.createdAt).getTime()
+        const rightTimestamp = right.lastMessage?.createdAt
+          ? new Date(right.lastMessage.createdAt).getTime()
+          : new Date(right.createdAt).getTime()
+
+        return rightTimestamp - leftTimestamp
+      })
+
+    res.json({
+      chats: serializedChats,
     })
   } catch (err) {
+    if (isZodError(err)) {
+      return respondWithZodError(res, err)
+    }
     console.error(err);
     res.status(500).json({ message: "Internal server error" });
   }
@@ -170,7 +196,7 @@ export const getChats = async (req: Request, res: Response) => {
 export const getChat = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
-    const { chatPublicId } = req.params;
+    const { chatPublicId } = getChatParamsSchema.parse(req.params);
 
     if (!userId) {
       return res.status(401).json({ message: "Unauthorized" });
@@ -186,6 +212,7 @@ export const getChat = async (req: Request, res: Response) => {
                 id: true,
                 username: true,
                 avatar: true,
+                isOnline: true,
               },
             },
           },
@@ -205,13 +232,17 @@ export const getChat = async (req: Request, res: Response) => {
     res.json({
       chat: {
         chatPublicId: chat.publicId,
+        createdAt: chat.createdAt,
         type: chat.type,
         name: chat.name,
         avatar: chat.avatar ?? null,
-        participants: chat.participants.map((p: any) => p.user),
+        participants: chat.participants.map((participant) => participant.user),
       }
     });
   } catch (err) {
+    if (isZodError(err)) {
+      return respondWithZodError(res, err)
+    }
     console.error(err);
     res.status(500).json({ message: "Internal server error" });
   }
@@ -223,14 +254,10 @@ export const getChat = async (req: Request, res: Response) => {
 export const startChat = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
-    const friendId = Number(req.body.friendId);
+    const { friendId } = startChatBodySchema.parse(req.body);
 
     if (!userId) {
       return res.status(401).json({ message: "Unauthorized" });
-    }
-
-    if (!Number.isInteger(friendId)) {
-      return res.status(400).json({ message: "Invalid friendId" });
     }
 
     const blockedRelation = await prisma.blockedUser.findFirst({
@@ -284,6 +311,9 @@ export const startChat = async (req: Request, res: Response) => {
 
     res.json({ chatPublicId: chat.publicId });
   } catch (err) {
+    if (isZodError(err)) {
+      return respondWithZodError(res, err)
+    }
     console.error(err);
     res.status(500).json({ message: "Internal server error" });
   }
@@ -325,6 +355,9 @@ export const uploadFile = [
       })
 
     } catch (err) {
+      if (isZodError(err)) {
+        return respondWithZodError(res, err)
+      }
       console.error(err)
       return res.status(500).json({ message: "Internal server error" })
     }
@@ -399,6 +432,9 @@ export const editMessage = async (req: Request, res: Response) => {
     );
     res.json({ message: { ...updated, text: text } });
   } catch (err) {
+    if (isZodError(err)) {
+      return respondWithZodError(res, err)
+    }
     console.error(err);
     res.status(500).json({ message: "Internal server error" });
   }
@@ -464,6 +500,9 @@ export const deleteMessage = async (req: Request, res: Response) => {
 
     return res.json({ success: true });
   } catch (err) {
+    if (isZodError(err)) {
+      return respondWithZodError(res, err)
+    }
     console.error(err);
     return res.status(500).json({ message: "Internal server error" });
   }
@@ -535,6 +574,9 @@ export const togglePinMessage = async (req: Request, res: Response) => {
 
     return res.json({ message: updated });
   } catch (err) {
+    if (isZodError(err)) {
+      return respondWithZodError(res, err)
+    }
     console.error(err);
     return res.status(500).json({ message: "Internal server error" });
   }
