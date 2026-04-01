@@ -485,7 +485,12 @@ export default function ChatPage() {
           fileUrl,
           fileType
         },
-        (savedMessage: Message) => {
+        (savedMessage?: Message) => {
+          if (!savedMessage || typeof savedMessage.id !== "number") {
+            setMessages((prev) => (prev ?? []).filter((message) => message.id !== tempId))
+            return
+          }
+
           setMessages((prev) => {
             const withoutOptimistic = (prev ?? []).filter((message) => message.id !== tempId)
             return mergeMessage(withoutOptimistic, savedMessage)

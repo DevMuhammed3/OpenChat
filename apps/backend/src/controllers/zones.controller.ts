@@ -8,6 +8,17 @@ import { ZoneRole } from "@prisma/client"
 import { resolveAssetUrl } from "../utils/resolveAssetUrl.js"
 import { getChannelCallPresence } from "../socket/channelCallHandler.js"
 import { io } from "../index.js"
+import { respondWithZodError } from "../utils/zodError.js"
+import {
+  addUsersBodySchema,
+  createChannelBodySchema,
+  createGroupBodySchema,
+  updateMemberRoleBodySchema,
+  updateZoneBodySchema,
+  zoneChatPublicIdParamsSchema,
+  zoneInviteCodeParamsSchema,
+  zoneMemberParamsSchema,
+} from "../validations/zones.validation.js"
 
 const uploadDir = "uploads/zones"
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true })
@@ -128,7 +139,11 @@ export const getZones = async (req: Request, res: Response) => {
 export const getZoneMembers = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id
-    const { chatPublicId } = req.params
+    const parsedParams = zoneChatPublicIdParamsSchema.safeParse(req.params)
+    if (!parsedParams.success) {
+      return respondWithZodError(res, parsedParams.error)
+    }
+    const { chatPublicId } = parsedParams.data
     if (!userId) return res.status(401).json({ message: "Unauthorized" })
     const chat = await prisma.chat.findUnique({ where: { publicId: chatPublicId } })
     if (!chat) return res.status(404).json({ message: "Zone not found" })
@@ -161,7 +176,11 @@ export const createGroup = [
     try {
       const userId = req.user?.id
       if (!userId) return res.status(401).json({ message: "Unauthorized" })
-      const { name, users } = req.body as { name: string; users?: number[] }
+      const parsedBody = createGroupBodySchema.safeParse(req.body)
+      if (!parsedBody.success) {
+        return respondWithZodError(res, parsedBody.error)
+      }
+      const { name, users } = parsedBody.data
       if (!name?.trim()) return res.status(400).json({ message: "Group name required" })
       const creatorId = userId
       const uniqueUsers = [...new Set(users || [])].filter(id => id !== creatorId)
@@ -209,7 +228,11 @@ export const updateZone = [
   async (req: Request, res: Response) => {
     try {
       const userId = req.user?.id
-      const { chatPublicId } = req.params
+      const parsedParams = zoneChatPublicIdParamsSchema.safeParse(req.params)
+      if (!parsedParams.success) {
+        return respondWithZodError(res, parsedParams.error)
+      }
+      const { chatPublicId } = parsedParams.data
       if (!userId) return res.status(401).json({ message: "Unauthorized" })
       const { chat, participant } = await getZoneAndParticipant(chatPublicId, userId)
       if (!chat || chat.type !== "ZONE") return res.status(404).json({ message: "Zone not found" })
@@ -218,7 +241,11 @@ export const updateZone = [
       }
 
       const dataToUpdate: { name?: string; avatar?: string } = {}
-      const nextName = typeof req.body.name === "string" ? req.body.name.trim() : ""
+      const parsedBody = updateZoneBodySchema.safeParse(req.body)
+      if (!parsedBody.success) {
+        return respondWithZodError(res, parsedBody.error)
+      }
+      const nextName = parsedBody.data.name?.trim() ?? ""
       if (nextName) dataToUpdate.name = nextName
       if (req.file) dataToUpdate.avatar = req.file.filename
       if (!dataToUpdate.name && !dataToUpdate.avatar) {
@@ -249,10 +276,18 @@ export const updateZone = [
 export const addUserToGroup = async (req: Request, res: Response) => {
   try {
     const actorId = req.user?.id
-    const { chatPublicId } = req.params
-    const { userIds } = req.body as { userIds: number[] }
+    const parsedParams = zoneChatPublicIdParamsSchema.safeParse(req.params)
+    if (!parsedParams.success) {
+      return respondWithZodError(res, parsedParams.error)
+    }
+    const { chatPublicId } = parsedParams.data
+
+    const parsedBody = addUsersBodySchema.safeParse(req.body)
+    if (!parsedBody.success) {
+      return respondWithZodError(res, parsedBody.error)
+    }
+    const { userIds } = parsedBody.data
     if (!actorId) return res.status(401).json({ message: "Unauthorized" })
-    if (!userIds?.length) return res.status(400).json({ message: "No users provided" })
     const { chat, participant } = await getZoneAndParticipant(chatPublicId, actorId)
     if (!chat || chat.type !== "ZONE") return res.status(404).json({ message: "Chat not found" })
     if (!participant || (participant.role !== ZoneRole.OWNER && participant.role !== ZoneRole.ADMIN)) {
@@ -273,8 +308,11 @@ export const addUserToGroup = async (req: Request, res: Response) => {
 export const removeUserFromGroup = async (req: Request, res: Response) => {
   try {
     const actorId = req.user?.id
-    const { chatPublicId } = req.params
-    const userId = Number(req.params.userId)
+    const parsedParams = zoneMemberParamsSchema.safeParse(req.params)
+    if (!parsedParams.success) {
+      return respondWithZodError(res, parsedParams.error)
+    }
+    const { chatPublicId, userId } = parsedParams.data
     if (!actorId) return res.status(401).json({ message: "Unauthorized" })
     const { chat, participant } = await getZoneAndParticipant(chatPublicId, actorId)
     if (!chat || chat.type !== "ZONE") return res.status(404).json({ message: "Chat not found" })
@@ -304,7 +342,11 @@ export const removeUserFromGroup = async (req: Request, res: Response) => {
 export const leaveZone = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id
-    const { chatPublicId } = req.params
+    const parsedParams = zoneChatPublicIdParamsSchema.safeParse(req.params)
+    if (!parsedParams.success) {
+      return respondWithZodError(res, parsedParams.error)
+    }
+    const { chatPublicId } = parsedParams.data
     if (!userId) return res.status(401).json({ message: "Unauthorized" })
     const chat = await prisma.chat.findUnique({ where: { publicId: chatPublicId } })
     if (!chat) return res.status(404).json({ message: "Zone not found" })
@@ -323,7 +365,11 @@ export const leaveZone = async (req: Request, res: Response) => {
 export const getZoneChannels = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id
-    const { chatPublicId } = req.params
+    const parsedParams = zoneChatPublicIdParamsSchema.safeParse(req.params)
+    if (!parsedParams.success) {
+      return respondWithZodError(res, parsedParams.error)
+    }
+    const { chatPublicId } = parsedParams.data
     if (!userId) return res.status(401).json({ message: "Unauthorized" })
 
     const chat = await prisma.chat.findUnique({
@@ -348,7 +394,11 @@ export const getZoneChannels = async (req: Request, res: Response) => {
 export const getZoneVoicePresence = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id
-    const { chatPublicId } = req.params
+    const parsedParams = zoneChatPublicIdParamsSchema.safeParse(req.params)
+    if (!parsedParams.success) {
+      return respondWithZodError(res, parsedParams.error)
+    }
+    const { chatPublicId } = parsedParams.data
     if (!userId) return res.status(401).json({ message: "Unauthorized" })
 
     const chat = await prisma.chat.findUnique({
@@ -377,7 +427,11 @@ export const getZoneVoicePresence = async (req: Request, res: Response) => {
 export const createZoneInvite = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id
-    const { chatPublicId } = req.params
+    const parsedParams = zoneChatPublicIdParamsSchema.safeParse(req.params)
+    if (!parsedParams.success) {
+      return respondWithZodError(res, parsedParams.error)
+    }
+    const { chatPublicId } = parsedParams.data
 
     if (!userId) return res.status(401).json({ message: "Unauthorized" })
 
@@ -421,7 +475,11 @@ export const createZoneInvite = async (req: Request, res: Response) => {
 export const getZoneInvite = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id
-    const { code } = req.params
+    const parsedParams = zoneInviteCodeParamsSchema.safeParse(req.params)
+    if (!parsedParams.success) {
+      return respondWithZodError(res, parsedParams.error)
+    }
+    const { code } = parsedParams.data
 
     if (!userId) return res.status(401).json({ message: "Unauthorized" })
 
@@ -471,7 +529,11 @@ export const getZoneInvite = async (req: Request, res: Response) => {
 export const joinZoneInvite = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id
-    const { code } = req.params
+    const parsedParams = zoneInviteCodeParamsSchema.safeParse(req.params)
+    if (!parsedParams.success) {
+      return respondWithZodError(res, parsedParams.error)
+    }
+    const { code } = parsedParams.data
 
     if (!userId) return res.status(401).json({ message: "Unauthorized" })
 
@@ -534,8 +596,17 @@ export const joinZoneInvite = async (req: Request, res: Response) => {
 export const createChannel = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id
-    const { chatPublicId } = req.params
-    const { name, type } = req.body as { name: string; type?: "TEXT" | "VOICE" }
+    const parsedParams = zoneChatPublicIdParamsSchema.safeParse(req.params)
+    if (!parsedParams.success) {
+      return respondWithZodError(res, parsedParams.error)
+    }
+    const { chatPublicId } = parsedParams.data
+
+    const parsedBody = createChannelBodySchema.safeParse(req.body)
+    if (!parsedBody.success) {
+      return respondWithZodError(res, parsedBody.error)
+    }
+    const { name, type } = parsedBody.data
 
     if (!userId) return res.status(401).json({ message: "Unauthorized" })
     if (!name?.trim()) return res.status(400).json({ message: "Channel name required" })
@@ -576,13 +647,19 @@ export const createChannel = async (req: Request, res: Response) => {
 export const updateZoneMemberRole = async (req: Request, res: Response) => {
   try {
     const actorId = req.user?.id
-    const { chatPublicId, userId } = req.params
-    const { role } = req.body as { role?: ZoneRole }
+    const parsedParams = zoneMemberParamsSchema.safeParse(req.params)
+    if (!parsedParams.success) {
+      return respondWithZodError(res, parsedParams.error)
+    }
+    const { chatPublicId, userId } = parsedParams.data
+
+    const parsedBody = updateMemberRoleBodySchema.safeParse(req.body)
+    if (!parsedBody.success) {
+      return respondWithZodError(res, parsedBody.error)
+    }
+    const { role } = parsedBody.data
 
     if (!actorId) return res.status(401).json({ message: "Unauthorized" })
-    if (!role || !["ADMIN", "MEMBER"].includes(role)) {
-      return res.status(400).json({ message: "Invalid role" })
-    }
 
     const { chat, participant } = await getZoneAndParticipant(chatPublicId, actorId)
     if (!chat || chat.type !== "ZONE") return res.status(404).json({ message: "Zone not found" })
@@ -590,7 +667,7 @@ export const updateZoneMemberRole = async (req: Request, res: Response) => {
       return res.status(403).json({ message: "Only managers can update roles" })
     }
 
-    const targetUserId = Number(userId)
+    const targetUserId = userId
     const target = await prisma.chatParticipant.findUnique({
       where: { chatId_userId: { chatId: chat.id, userId: targetUserId } },
     })

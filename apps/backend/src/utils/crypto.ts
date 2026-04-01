@@ -7,7 +7,8 @@ if (!ENCRYPTION_KEY_STRING) {
   throw new Error('ENCRYPTION_KEY is not set');
 }
 
-const ENCRYPTION_KEY = Buffer.from(ENCRYPTION_KEY_STRING, 'hex');const ALGORITHM = 'aes-256-gcm';
+const ENCRYPTION_KEY = Buffer.from(ENCRYPTION_KEY_STRING, 'hex')
+const ALGORITHM = 'aes-256-gcm'
 
 export function encryptMessage(text: string): string {
   if (!text) return text;
@@ -45,7 +46,7 @@ export function decryptMessage(encryptedData: string): string {
     decrypted += decipher.final('utf8');
     
     return decrypted;
-  } catch (error) {
+  } catch {
     // Graceful fallback for legacy unencrypted messages that happen to have colons
     // or if the key has changed.
     return encryptedData;

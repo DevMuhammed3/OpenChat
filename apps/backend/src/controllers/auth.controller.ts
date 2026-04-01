@@ -5,6 +5,12 @@ import { serialize } from 'cookie'
 import { getCookieOptions } from '../utils/cookie.js'
 import { sendOTPEmail } from '../utils/email.js'
 import { generateOTP } from '../utils/otp.js'
+import {
+  loginBodySchema,
+  registerBodySchema,
+  verifyEmailBodySchema,
+} from "../validations/auth.validation.js"
+import { respondWithZodError } from "../utils/zodError.js"
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const USERNAME_REGEX = /^[a-zA-Z0-9_]+$/
@@ -72,14 +78,15 @@ export class AuthController {
   static async verifyEmail(req: Request, res: Response) {
     try {
       const userId = req.user?.id;
-      const { code } = req.body;
+      const parsed = verifyEmailBodySchema.safeParse(req.body)
+      if (!parsed.success) {
+        return respondWithZodError(res, parsed.error)
+      }
+
+      const { code } = parsed.data;
 
       if (!userId) {
         return res.status(401).json({ message: "Not authenticated" });
-      }
-
-      if (!code || typeof code !== 'string') {
-        return res.status(400).json({ message: "Verification code is required" });
       }
 
       const user = await prisma.user.findUnique({
@@ -179,7 +186,18 @@ export class AuthController {
 
   static async register(req: Request, res: Response) {
     try {
-      const { name, username, email, password } = req.body
+      const parsed = registerBodySchema.safeParse(req.body)
+      if (!parsed.success) {
+        return res.status(400).json({
+          message: parsed.error.issues[0]?.message ?? "Invalid request",
+          errors: parsed.error.issues.map((issue) => ({
+            field: issue.path[0] ? String(issue.path[0]) : "body",
+            message: issue.message,
+          })),
+        })
+      }
+
+      const { name, username, email, password } = parsed.data
 
       const validationErrors = validateRegistration({ name, username, email, password })
       if (validationErrors.length > 0) {
@@ -209,11 +227,17 @@ export class AuthController {
         user,
         message: "Account created successfully"
       })
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("REGISTER ERROR:", err)
 
-      if (err.code === "P2002") {
-        const field = err.meta?.target?.[0]
+      const errorObject = (typeof err === "object" && err !== null ? (err as Record<string, unknown>) : null)
+      const code = errorObject?.code
+
+      if (code === "P2002") {
+        const meta = errorObject?.meta
+        const metaObject = (typeof meta === "object" && meta !== null ? (meta as Record<string, unknown>) : null)
+        const target = metaObject?.target
+        const field = Array.isArray(target) ? target[0] : undefined
         if (field === 'email') {
           return res.status(400).json({
             message: "An account with this email already exists",
@@ -239,7 +263,18 @@ export class AuthController {
 
   static async login(req: Request, res: Response) {
     try {
-      const { email, password } = req.body
+      const parsed = loginBodySchema.safeParse(req.body)
+      if (!parsed.success) {
+        return res.status(400).json({
+          message: parsed.error.issues[0]?.message ?? "Invalid request",
+          errors: parsed.error.issues.map((issue) => ({
+            field: issue.path[0] ? String(issue.path[0]) : "body",
+            message: issue.message,
+          })),
+        })
+      }
+
+      const { email, password } = parsed.data
 
       const validationErrors = validateLogin({ email, password })
       if (validationErrors.length > 0) {
@@ -263,7 +298,7 @@ export class AuthController {
         user,
         message: "Login successful"
       })
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("LOGIN ERROR:", err)
       res.status(401).json({ message: "Invalid email or password" })
     }
@@ -293,7 +328,7 @@ export class AuthController {
       }
 
       res.json({ user })
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("ME ERROR:", err)
       res.status(500).json({ message: 'Server Error' })
     }
@@ -309,7 +344,7 @@ export class AuthController {
 
       res.setHeader('Set-Cookie', cookie)
       res.json({ message: 'Logged out successfully!' })
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("LOGOUT ERROR:", err)
       res.status(500).json({ message: 'Server error' })
     }
