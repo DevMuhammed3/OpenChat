@@ -3,11 +3,13 @@ import { persist } from 'zustand/middleware'
 
 export type Chat = {
   chatPublicId: string
+  createdAt?: string
   participants: Array<{
     id: number
     username: string
     avatar?: string | null
     name?: string | null
+    isOnline?: boolean
   }>
   type?: 'DM' | 'ZONE'
   name?: string | null
@@ -41,11 +43,58 @@ type ChatsState = {
   onIncomingMessage: (chatPublicId: string, channelPublicId?: string) => void
 
   setChats: (chats: Chat[]) => void
-  addChat: (chat: Chat) => void
+  upsertChat: (chat: Chat, options?: { bump?: boolean }) => void
+  bumpChat: (chatPublicId: string, lastMessage?: Chat["lastMessage"] | null) => void
   hideChat: (id: string) => void
   showChat: (id: string) => void
 
   reset: () => void
+}
+
+function getChatActivityTimestamp(chat: Chat) {
+  const lastMessageTimestamp = chat.lastMessage?.createdAt
+    ? new Date(chat.lastMessage.createdAt).getTime()
+    : Number.NaN
+
+  if (!Number.isNaN(lastMessageTimestamp)) {
+    return lastMessageTimestamp
+  }
+
+  const createdAtTimestamp = chat.createdAt
+    ? new Date(chat.createdAt).getTime()
+    : Number.NaN
+
+  if (!Number.isNaN(createdAtTimestamp)) {
+    return createdAtTimestamp
+  }
+
+  return 0
+}
+
+function sortChats(chats: Chat[]) {
+  return [...chats].sort((left, right) => {
+    const activityDelta = getChatActivityTimestamp(right) - getChatActivityTimestamp(left)
+
+    if (activityDelta !== 0) {
+      return activityDelta
+    }
+
+    return left.chatPublicId.localeCompare(right.chatPublicId)
+  })
+}
+
+function mergeChat(current: Chat | undefined, incoming: Chat) {
+  if (!current) {
+    return incoming
+  }
+
+  return {
+    ...current,
+    ...incoming,
+    participants: incoming.participants.length > 0 ? incoming.participants : current.participants,
+    channels: incoming.channels ?? current.channels,
+    lastMessage: incoming.lastMessage === undefined ? current.lastMessage : incoming.lastMessage,
+  }
 }
 
 export const useChatsStore = create<ChatsState>()(
@@ -137,20 +186,44 @@ export const useChatsStore = create<ChatsState>()(
         }),
 
       setChats: (chats) =>
-        set({ chats, chatsLoaded: true }),
+        set({ chats: sortChats(chats), chatsLoaded: true }),
 
-      addChat: (chat) =>
-        set((state) => ({
-          chats: [
-            chat,
-            ...state.chats.filter(
-              (c) => c.chatPublicId !== chat.chatPublicId
-            ),
-          ],
-          hiddenChats: state.hiddenChats.filter(
-            (id) => id !== chat.chatPublicId
-          ),
-        })),
+      upsertChat: (chat, options) =>
+        set((state) => {
+          const existingChat = state.chats.find((item) => item.chatPublicId === chat.chatPublicId)
+          const nextChat = mergeChat(existingChat, chat)
+          const nextChats = state.chats.filter((item) => item.chatPublicId !== chat.chatPublicId)
+
+          return {
+            chats: options?.bump
+              ? [nextChat, ...sortChats(nextChats)]
+              : sortChats([...nextChats, nextChat]),
+            hiddenChats: options?.bump
+              ? state.hiddenChats.filter((id) => id !== chat.chatPublicId)
+              : state.hiddenChats,
+          }
+        }),
+
+      bumpChat: (chatPublicId, lastMessage) =>
+        set((state) => {
+          const existingChat = state.chats.find((item) => item.chatPublicId === chatPublicId)
+          if (!existingChat) {
+            return state
+          }
+
+          const bumpedChat: Chat = {
+            ...existingChat,
+            lastMessage: lastMessage === undefined ? existingChat.lastMessage : lastMessage,
+          }
+
+          return {
+            chats: [
+              bumpedChat,
+              ...state.chats.filter((item) => item.chatPublicId !== chatPublicId),
+            ],
+            hiddenChats: state.hiddenChats.filter((id) => id !== chatPublicId),
+          }
+        }),
 
       hideChat: (id) =>
         set((state) =>

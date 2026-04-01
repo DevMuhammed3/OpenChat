@@ -203,7 +203,7 @@ export default function ChatPage() {
       .then((data) => {
         if (data.chat) {
           setLocalChat(data.chat)
-          useChatsStore.getState().addChat(data.chat)
+          useChatsStore.getState().upsertChat(data.chat)
         } else {
           console.error('Chat not found:', data.message)
         }
@@ -489,6 +489,11 @@ export default function ChatPage() {
           setMessages((prev) => {
             const withoutOptimistic = (prev ?? []).filter((message) => message.id !== tempId)
             return mergeMessage(withoutOptimistic, savedMessage)
+          })
+
+          useChatsStore.getState().bumpChat(chatPublicId, {
+            text: savedMessage.text || (savedMessage.fileUrl ? 'Sent a file' : ''),
+            createdAt: savedMessage.createdAt || new Date().toISOString(),
           })
         }
       )

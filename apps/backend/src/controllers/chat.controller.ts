@@ -134,6 +134,7 @@ export const getChats = async (req: Request, res: Response) => {
                 id: true,
                 username: true,
                 avatar: true,
+                isOnline: true,
               },
             },
           },
@@ -145,18 +146,31 @@ export const getChats = async (req: Request, res: Response) => {
       },
     });
 
-    res.json({
-      chats: chats.map((chat: any) => ({
+    const serializedChats = chats.map((chat) => ({
         chatPublicId: chat.publicId,
+        createdAt: chat.createdAt,
         type: chat.type,
         name: chat.name,
         avatar: chat.avatar ?? null,
-        participants: chat.participants.map((p: any) => p.user),
+        participants: chat.participants.map((participant) => participant.user),
         lastMessage: chat.messages?.[0] ? {
           ...chat.messages[0],
           text: chat.messages[0].text ? decryptMessage(chat.messages[0].text) : null
         } : null,
-      })),
+      }))
+      .sort((left, right) => {
+        const leftTimestamp = left.lastMessage?.createdAt
+          ? new Date(left.lastMessage.createdAt).getTime()
+          : new Date(left.createdAt).getTime()
+        const rightTimestamp = right.lastMessage?.createdAt
+          ? new Date(right.lastMessage.createdAt).getTime()
+          : new Date(right.createdAt).getTime()
+
+        return rightTimestamp - leftTimestamp
+      })
+
+    res.json({
+      chats: serializedChats,
     })
   } catch (err) {
     console.error(err);
@@ -186,6 +200,7 @@ export const getChat = async (req: Request, res: Response) => {
                 id: true,
                 username: true,
                 avatar: true,
+                isOnline: true,
               },
             },
           },
@@ -205,10 +220,11 @@ export const getChat = async (req: Request, res: Response) => {
     res.json({
       chat: {
         chatPublicId: chat.publicId,
+        createdAt: chat.createdAt,
         type: chat.type,
         name: chat.name,
         avatar: chat.avatar ?? null,
-        participants: chat.participants.map((p: any) => p.user),
+        participants: chat.participants.map((participant) => participant.user),
       }
     });
   } catch (err) {

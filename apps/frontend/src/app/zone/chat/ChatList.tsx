@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, Skeleton } from 'packages/ui'
 import { X } from 'lucide-react'
 import { cn, getAvatarUrl, api } from '@openchat/lib'
 import { useChatsStore } from '@/app/stores/chat-store'
+import { useFriendsStore } from '@/app/stores/friends-store'
 
 // type ChatItem = {
 //   chatPublicId: string
@@ -27,6 +28,7 @@ export default function ChatList({ currentUserId }: { currentUserId?: number | n
   const hiddenChats = useChatsStore((s) => s.hiddenChats)
   const chatsLoaded = useChatsStore((s) => s.chatsLoaded)
   const hideChat = useChatsStore((s) => s.hideChat)
+  const onlineUsers = useFriendsStore((s) => s.onlineUsers)
 
   const [isBootstrapping, setIsBootstrapping] = useState(!chatsLoaded)
   const unreadMap = useChatsStore((s) => s.unread)
@@ -106,6 +108,7 @@ export default function ChatList({ currentUserId }: { currentUserId?: number | n
 
         const isActive = chat.chatPublicId === chatPublicId
         const avatarUrl = getAvatarUrl(other.avatar)
+        const isOnline = onlineUsers.has(other.id) || other.isOnline === true
 
         return (
           <button
@@ -135,12 +138,23 @@ export default function ChatList({ currentUserId }: { currentUserId?: number | n
                   </AvatarFallback>
                 )}
               </Avatar>
-              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-background" />
+              <div
+                className={cn(
+                  'absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background',
+                  isOnline ? 'bg-emerald-500' : 'bg-zinc-500'
+                )}
+              />
             </div>
 
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-[15px] truncate">
                 {other.username}
+              </p>
+              <p className={cn(
+                'text-[11px] truncate',
+                isOnline ? 'text-emerald-400' : 'text-zinc-500'
+              )}>
+                {isOnline ? 'Online' : 'Offline'}
               </p>
             </div>
 

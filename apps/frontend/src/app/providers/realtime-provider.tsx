@@ -47,6 +47,44 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   const reset = useFriendsStore(s => s.reset)
 
   useEffect(() => {
+    let isCancelled = false
+
+    const syncChatFromServer = async (chatPublicId: string, options?: { bump?: boolean; lastMessage?: ChannelMessage["text"] | null; createdAt?: string }) => {
+      try {
+        const data = await apiClient.get<{
+          chat: {
+            chatPublicId: string
+            createdAt?: string
+            participants: Array<{
+              id: number
+              username: string
+              avatar?: string | null
+              isOnline?: boolean
+            }>
+            type?: 'DM' | 'ZONE'
+            name?: string | null
+            avatar?: string | null
+          }
+        }>(`/chats/${chatPublicId}`)
+
+        if (isCancelled || !data?.chat) {
+          return
+        }
+
+        useChatsStore.getState().upsertChat({
+          ...data.chat,
+          lastMessage: options?.createdAt
+            ? {
+                text: options.lastMessage ?? '',
+                createdAt: options.createdAt,
+              }
+            : undefined,
+        }, { bump: options?.bump })
+      } catch {
+        // The server will resync chats on the next bootstrap/refetch.
+      }
+    }
+
     const handleFriendRequest = ({ request }: { request: FriendRequest }) => {
       addRequest(request)
     }
@@ -99,12 +137,15 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
 
       const existingChat = chatStore.chats.find(c => c.chatPublicId === msg.chatPublicId)
       if (existingChat) {
-        chatStore.addChat({
-          ...existingChat,
-          lastMessage: {
-            text: msg.text || (msg.fileUrl ? 'Sent a file' : ''),
-            createdAt: msg.createdAt || new Date().toISOString()
-          }
+        chatStore.bumpChat(msg.chatPublicId, {
+          text: msg.text || (msg.fileUrl ? 'Sent a file' : ''),
+          createdAt: msg.createdAt || new Date().toISOString(),
+        })
+      } else {
+        void syncChatFromServer(msg.chatPublicId, {
+          bump: true,
+          lastMessage: msg.text || (msg.fileUrl ? 'Sent a file' : ''),
+          createdAt: msg.createdAt || new Date().toISOString(),
         })
       }
 
@@ -178,6 +219,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     socket.on('zone:channels-updated', handleZoneChannelsUpdated)
 
     return () => {
+      isCancelled = true
       socket.off('friend:request', handleFriendRequest)
       socket.off('friend:accepted', handleFriendAccepted)
       socket.off('friend:rejected', handleFriendRejected)

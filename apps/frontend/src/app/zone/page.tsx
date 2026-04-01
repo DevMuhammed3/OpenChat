@@ -111,11 +111,11 @@ export default function ZoneHome() {
               <FriendList
                 onSelectFriend={async (friend) => {
                   const chatPublicId = await startDirectMessageMutation.mutateAsync(friend.id)
-                  useChatsStore.getState().addChat({
+                  useChatsStore.getState().upsertChat({
                     chatPublicId,
                     participants: [friend],
                     lastMessage: null,
-                  })
+                  }, { bump: true })
                   router.push(`/zone/chat/${chatPublicId}`)
                 }}
               />
