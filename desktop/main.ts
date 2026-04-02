@@ -9,6 +9,7 @@ let mainWindow: BrowserWindow | null = null;
 let nextServerProcess: ChildProcessWithoutNullStreams | null = null;
 let nextServerPort: number | null = null;
 const START_PATH = "/auth";
+const DEFAULT_WEB_URL = "https://openchat.qzz.io";
 const DEFAULT_API_URL = "https://api.openchat.qzz.io";
 
 function normalizeAndValidateApiUrl(value: string | undefined) {
@@ -30,6 +31,10 @@ function getApiUrl() {
     normalizeAndValidateApiUrl(process.env.OPENCHAT_API_URL || process.env.NEXT_PUBLIC_API_URL) ??
     DEFAULT_API_URL
   );
+}
+
+function getWebUrl() {
+  return normalizeAndValidateApiUrl(process.env.OPENCHAT_WEB_URL) ?? DEFAULT_WEB_URL;
 }
 
 type WindowState = { width: number; height: number; x?: number; y?: number };
@@ -172,14 +177,38 @@ async function ensureNextServerStarted(): Promise<number> {
 
 async function resolveAppUrl(): Promise<string> {
   if (isDev) return "http://localhost:3000";
-  const port = await ensureNextServerStarted();
-  return `http://127.0.0.1:${port}`;
+  return getWebUrl();
 }
 
 function buildStartUrl(baseUrl: string) {
   const url = new URL(baseUrl);
   url.pathname = START_PATH;
   return url.toString();
+}
+
+function isAllowedNavigation(targetUrl: string) {
+  try {
+    const origin = new URL(targetUrl).origin;
+    if (origin === "http://localhost:3000") return true;
+    if (origin.startsWith("http://127.0.0.1:")) return true;
+    return origin === new URL(getWebUrl()).origin;
+  } catch {
+    return false;
+  }
+}
+
+async function loadMainUrl() {
+  if (!mainWindow) return;
+
+  const primaryUrl = buildStartUrl(await resolveAppUrl());
+  try {
+    await mainWindow.loadURL(primaryUrl);
+    return;
+  } catch (err) {
+    if (isDev) throw err;
+    const port = await ensureNextServerStarted();
+    await mainWindow.loadURL(buildStartUrl(`http://127.0.0.1:${port}`));
+  }
 }
 
 async function createWindow() {
@@ -222,8 +251,7 @@ async function createWindow() {
   });
 
   try {
-    const url = buildStartUrl(await resolveAppUrl());
-    await mainWindow.loadURL(url);
+    await loadMainUrl();
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     dialog.showErrorBox("OpenChat failed to start", message);
@@ -235,6 +263,13 @@ async function createWindow() {
   mainWindow.webContents.setWindowOpenHandler(({ url }: { url: string }) => {
     shell.openExternal(url);
     return { action: "deny" };
+  });
+
+  mainWindow.webContents.on("will-navigate", (event, url) => {
+    if (!isAllowedNavigation(url)) {
+      event.preventDefault();
+      void shell.openExternal(url);
+    }
   });
 
   mainWindow.on("closed", () => {
@@ -277,6 +312,17 @@ function setAppMenu() {
 
   const menu = Menu.buildFromTemplate(template);
   Menu.setApplicationMenu(menu);
+}
+
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+if (!gotSingleInstanceLock) {
+  app.quit();
+} else {
+  app.on("second-instance", () => {
+    if (!mainWindow) return;
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+  });
 }
 
 app.whenReady().then(() => {
