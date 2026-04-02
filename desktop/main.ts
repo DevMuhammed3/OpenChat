@@ -9,6 +9,7 @@ let mainWindow: BrowserWindow | null = null;
 let nextServerProcess: ChildProcessWithoutNullStreams | null = null;
 let nextServerPort: number | null = null;
 const START_PATH = "/auth";
+const DEFAULT_API_URL = "https://api.openchat.qzz.io";
 
 type WindowState = { width: number; height: number; x?: number; y?: number };
 const defaultWindowState: WindowState = { width: 1200, height: 800 };
@@ -130,6 +131,7 @@ async function ensureNextServerStarted(): Promise<number> {
         NODE_ENV: "production",
         HOSTNAME: "127.0.0.1",
         PORT: String(nextServerPort),
+        NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL,
       },
       stdio: "pipe",
     },
