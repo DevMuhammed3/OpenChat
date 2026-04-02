@@ -2,6 +2,7 @@
   "appId": "com.openchat.app",
   "productName": "OpenChat",
   "electronVersion": "34.5.8",
+  "beforeBuild": "./beforeBuild.cjs",
   "asarUnpack": ["renderer/**"],
   "directories": {
     "output": "dist",
