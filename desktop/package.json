@@ -1,6 +1,13 @@
 {
   "name": "@openchat/desktop",
   "version": "1.0.0",
+  "description": "OpenChat desktop app",
+  "homepage": "https://openchat.io",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DevMuhammed3/OpenChat.git"
+  },
+  "author": "OpenChat <support@openchat.io>",
   "main": "build/main.js",
   "scripts": {
     "dev": "pnpm run build && pnpm exec electron .",

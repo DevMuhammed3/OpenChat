@@ -21,7 +21,8 @@
   "linux": {
     "target": ["AppImage", "deb"],
     "icon": "icon.png",
-    "category": "Chat"
+    "category": "Chat",
+    "maintainer": "OpenChat <support@openchat.io>"
   },
   "nsis": {
     "oneClick": false,
