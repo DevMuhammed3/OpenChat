@@ -16,7 +16,7 @@
     "icon": "icon.png"
   },
   "win": {
-    "target": ["nsis", "portable"],
+    "target": ["nsis"],
     "icon": "icon.png"
   },
   "linux": {
@@ -29,6 +29,9 @@
     "oneClick": false,
     "allowToChangeInstallationDirectory": true,
     "createDesktopShortcut": "always",
+    "createStartMenuShortcut": true,
+    "menuCategory": "OpenChat",
+    "runAfterFinish": true,
     "shortcutName": "OpenChat"
   }
 }
