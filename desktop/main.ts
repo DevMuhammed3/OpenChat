@@ -11,8 +11,25 @@ let nextServerPort: number | null = null;
 const START_PATH = "/auth";
 const DEFAULT_API_URL = "https://api.openchat.qzz.io";
 
+function normalizeAndValidateApiUrl(value: string | undefined) {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    return url.toString().replace(/\/+$/, "");
+  } catch {
+    return null;
+  }
+}
+
 function getApiUrl() {
-  return process.env.OPENCHAT_API_URL || process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL;
+  return (
+    normalizeAndValidateApiUrl(process.env.OPENCHAT_API_URL || process.env.NEXT_PUBLIC_API_URL) ??
+    DEFAULT_API_URL
+  );
 }
 
 type WindowState = { width: number; height: number; x?: number; y?: number };

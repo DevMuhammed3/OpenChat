@@ -4,19 +4,32 @@ function normalizeUrl(url: string) {
   return url.trim().replace(/\/+$/, "");
 }
 
-export function getApiBaseUrl() {
-  const runtimeUrl = (globalThis as any)?.openchatConfig?.apiUrl;
-  if (typeof runtimeUrl === "string" && runtimeUrl.trim()) {
-    return normalizeUrl(runtimeUrl);
+function normalizeAndValidateApiUrl(value: unknown) {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    return normalizeUrl(url.toString());
+  } catch {
+    return null;
   }
+}
 
-  const envUrl =
-    (typeof process !== "undefined"
+export function getApiBaseUrl() {
+  const runtimeUrl = normalizeAndValidateApiUrl((globalThis as any)?.openchatConfig?.apiUrl);
+  if (runtimeUrl) return runtimeUrl;
+
+  const envUrl = normalizeAndValidateApiUrl(
+    typeof process !== "undefined"
       ? process.env.OPENCHAT_API_URL || process.env.NEXT_PUBLIC_API_URL
-      : undefined) || DEFAULT_API_URL;
+      : undefined,
+  );
+  if (envUrl) return envUrl;
 
-  return normalizeUrl(envUrl);
+  return DEFAULT_API_URL;
 }
 
 export { DEFAULT_API_URL };
-
