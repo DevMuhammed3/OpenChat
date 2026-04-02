@@ -8,5 +8,6 @@ export * from "./audio/index"
 export { cn } from './utils'
 export { socket } from './socket'
 export { api } from "./api"
+export { getApiBaseUrl } from "./config"
 export { playMessageSound } from "./sounds"
 export { getAvatarUrl } from "./getAvatarUrl" 

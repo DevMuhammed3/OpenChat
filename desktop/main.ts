@@ -11,6 +11,10 @@ let nextServerPort: number | null = null;
 const START_PATH = "/auth";
 const DEFAULT_API_URL = "https://api.openchat.qzz.io";
 
+function getApiUrl() {
+  return process.env.OPENCHAT_API_URL || process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL;
+}
+
 type WindowState = { width: number; height: number; x?: number; y?: number };
 const defaultWindowState: WindowState = { width: 1200, height: 800 };
 
@@ -131,7 +135,7 @@ async function ensureNextServerStarted(): Promise<number> {
         NODE_ENV: "production",
         HOSTNAME: "127.0.0.1",
         PORT: String(nextServerPort),
-        NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL,
+        NEXT_PUBLIC_API_URL: getApiUrl(),
       },
       stdio: "pipe",
     },
@@ -178,6 +182,7 @@ async function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       preload: resolveAppFile("preload.cjs"),
+      additionalArguments: [`--openchat-api-url=${encodeURIComponent(getApiUrl())}`],
     },
     icon: resolveAppFile("icon.png"),
     autoHideMenuBar: false,

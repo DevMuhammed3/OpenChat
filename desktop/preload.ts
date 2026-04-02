@@ -1,5 +1,9 @@
 import { contextBridge, ipcRenderer } from "electron";
 
+const apiArgPrefix = "--openchat-api-url=";
+const apiUrlArg = process.argv.find((arg) => arg.startsWith(apiArgPrefix));
+const apiUrl = apiUrlArg ? decodeURIComponent(apiUrlArg.slice(apiArgPrefix.length)) : undefined;
+
 // Expose a minimal API to the renderer process
 contextBridge.exposeInMainWorld("electron", {
   platform: process.platform,
@@ -17,4 +21,8 @@ contextBridge.exposeInMainWorld("electron", {
       ipcRenderer.on(channel, (_event: any, ...args: any[]) => func(...args));
     }
   },
+});
+
+contextBridge.exposeInMainWorld("openchatConfig", {
+  apiUrl,
 });
