@@ -8,6 +8,7 @@ const isDev = !app.isPackaged;
 let mainWindow: BrowserWindow | null = null;
 let nextServerProcess: ChildProcessWithoutNullStreams | null = null;
 let nextServerPort: number | null = null;
+const START_PATH = "/auth";
 
 type WindowState = { width: number; height: number; x?: number; y?: number };
 const defaultWindowState: WindowState = { width: 1200, height: 800 };
@@ -152,6 +153,12 @@ async function resolveAppUrl(): Promise<string> {
   return `http://127.0.0.1:${port}`;
 }
 
+function buildStartUrl(baseUrl: string) {
+  const url = new URL(baseUrl);
+  url.pathname = START_PATH;
+  return url.toString();
+}
+
 async function createWindow() {
   const windowState = readWindowState();
 
@@ -171,7 +178,12 @@ async function createWindow() {
       preload: resolveAppFile("preload.cjs"),
     },
     icon: resolveAppFile("icon.png"),
+    autoHideMenuBar: false,
   });
+
+  if (process.platform !== "darwin") {
+    mainWindow.setMenuBarVisibility(true);
+  }
 
   mainWindow.on("resize", () => {
     if (!mainWindow) return;
@@ -186,7 +198,7 @@ async function createWindow() {
   });
 
   try {
-    const url = await resolveAppUrl();
+    const url = buildStartUrl(await resolveAppUrl());
     await mainWindow.loadURL(url);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
