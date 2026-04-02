@@ -12,7 +12,7 @@
     "dev:frontend": "pnpm --filter frontend dev",
     "dev:backend": "pnpm --filter backend dev",
     "dev:desktop": "concurrently \"pnpm dev:frontend\" \"wait-on http://localhost:3000 && pnpm --filter desktop dev\"",
-    "build:desktop": "pnpm --filter frontend build && pnpm --filter desktop build",
+    "build:desktop": "pnpm --filter frontend build && pnpm --filter desktop prepare:renderer && pnpm --filter desktop build",
     "dist:desktop": "pnpm build:desktop && pnpm --filter desktop dist",
     "dev": "concurrently \"pnpm dev:frontend\" \"pnpm dev:backend\"",
     "dev:all": "pnpm -w -r --parallel dev",

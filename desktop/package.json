@@ -1,16 +1,15 @@
 {
   "name": "@openchat/desktop",
   "version": "1.0.0",
-  "main": "main.ts",
+  "main": "build/main.js",
   "scripts": {
-    "dev": "npx -p electron electron -r tsx/register .",
-    "build": "tsc",
-    "package": "npm run build && npx electron-builder",
-    "dist": "npm run build && npx electron-builder"
+    "dev": "pnpm run build && pnpm exec electron .",
+    "build": "tsc -p tsconfig.json",
+    "prepare:renderer": "node ./scripts/prepare-renderer.mjs",
+    "package": "pnpm run build && pnpm exec electron-builder",
+    "dist": "pnpm run build && pnpm exec electron-builder"
   },
   "dependencies": {
-    "electron-is-dev": "^3.0.1",
-    "electron-store": "^10.0.0"
   },
   "devDependencies": {
     "electron": "^34.5.8",

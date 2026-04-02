@@ -34,6 +34,7 @@ const nextConfig = {
   poweredByHeader: false,
   compress: true,
   reactStrictMode: true,
+  output: 'standalone',
   
   async headers() {
     return [

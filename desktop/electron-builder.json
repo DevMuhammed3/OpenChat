@@ -1,11 +1,12 @@
 {
   "appId": "com.openchat.app",
   "productName": "OpenChat",
+  "asarUnpack": ["renderer/**"],
   "directories": {
     "output": "dist",
     "buildResources": "assets"
   },
-  "files": ["dist/**/*", "package.json", "icon.png"],
+  "files": ["build/**/*", "renderer/**", "package.json", "preload.cjs", "icon.png"],
   "mac": {
     "category": "public.app-category.social-networking",
     "target": ["dmg", "zip"],
