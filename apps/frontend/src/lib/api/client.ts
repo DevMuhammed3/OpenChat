@@ -1,10 +1,6 @@
 import { getAvatarUrl } from "@openchat/lib"
 
-const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL
-
-if (!RAW_API_URL) {
-  throw new Error("NEXT_PUBLIC_API_URL is not defined")
-}
+const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"
 
 const API_URL = RAW_API_URL.replace(/\/+$/, "")
 

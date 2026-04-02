@@ -5,9 +5,11 @@ export function getAvatarUrl(avatar?: string | null) {
     return avatar
   }
 
+  const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000').replace(/\/+$/, '')
+
   if (avatar.startsWith('/')) {
-    return `${process.env.NEXT_PUBLIC_API_URL}${avatar}`
+    return `${baseUrl}${avatar}`
   }
 
-  return `${process.env.NEXT_PUBLIC_API_URL}/uploads/${avatar}`
+  return `${baseUrl}/uploads/${avatar}`
 }
