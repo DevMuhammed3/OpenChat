@@ -150,13 +150,15 @@ async function createWindow() {
       additionalArguments: [`--openchat-api-url=${encodeURIComponent(getApiUrl())}`],
     },
     icon: resolveAppFile("icon.png"),
-    autoHideMenuBar: false,
+    autoHideMenuBar: true,
   });
 
   if (process.platform !== "darwin") {
     mainWindow.setMenuBarVisibility(true);
   }
 
+  mainWindow.setMenu(null);
+  
   mainWindow.on("resize", () => {
     if (!mainWindow) return;
     const { width, height, x, y } = mainWindow.getBounds();
