@@ -1,3 +1,5 @@
+import { getApiBaseUrl } from "./config"
+
 export function getAvatarUrl(avatar?: string | null) {
   if (!avatar) return undefined
 
@@ -5,9 +7,13 @@ export function getAvatarUrl(avatar?: string | null) {
     return avatar
   }
 
+  // Use the same resolution logic everywhere (Electron runtime config > env > default).
+  // This keeps desktop builds working even when env vars aren't set at build-time.
+  const baseUrl = getApiBaseUrl()
+
   if (avatar.startsWith('/')) {
-    return `${process.env.NEXT_PUBLIC_API_URL}${avatar}`
+    return `${baseUrl}${avatar}`
   }
 
-  return `${process.env.NEXT_PUBLIC_API_URL}/uploads/${avatar}`
+  return `${baseUrl}/uploads/${avatar}`
 }

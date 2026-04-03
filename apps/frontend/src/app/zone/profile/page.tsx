@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Settings, Shield, Bell, Lock, LogOut, ChevronRight, User, LogOut as LogOutIcon, Heart, UserPlus, Users, MessageCircle } from 'lucide-react'
-import { cn } from '@openchat/lib'
+import { cn, getApiBaseUrl, getAvatarUrl } from '@openchat/lib'
 
 interface UserProfile {
   id: string
@@ -21,9 +21,10 @@ export default function ProfilePage() {
   const [stats, setStats] = useState({ friends: 0, zones: 0, messages: 0 })
 
   useEffect(() => {
+    const apiUrl = getApiBaseUrl()
     const fetchUser = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
+        const res = await fetch(`${apiUrl}/auth/me`, {
           credentials: 'include',
         })
         const data = await res.json()
@@ -32,8 +33,8 @@ export default function ProfilePage() {
           
           // Fetch additional stats
           const [friendsRes, chatsRes] = await Promise.all([
-            fetch(`${process.env.NEXT_PUBLIC_API_URL}/friends`, { credentials: 'include' }),
-            fetch(`${process.env.NEXT_PUBLIC_API_URL}/chats`, { credentials: 'include' }),
+            fetch(`${apiUrl}/friends`, { credentials: 'include' }),
+            fetch(`${apiUrl}/chats`, { credentials: 'include' }),
           ])
           
           const friendsData = await friendsRes.json()
@@ -57,7 +58,8 @@ export default function ProfilePage() {
 
   const handleLogout = async () => {
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, {
+      const apiUrl = getApiBaseUrl()
+      await fetch(`${apiUrl}/auth/logout`, {
         method: 'POST',
         credentials: 'include',
       })
@@ -92,7 +94,7 @@ export default function ProfilePage() {
             <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-cyan-500 flex items-center justify-center text-white text-2xl font-bold border-4 border-[#0b1220] overflow-hidden">
               {user?.avatar ? (
                 <img
-                  src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${user.avatar}`}
+                  src={getAvatarUrl(user.avatar)}
                   alt={user?.username}
                   className="w-full h-full object-cover"
                 />

@@ -1,0 +1,26 @@
+{
+  "name": "@openchat/desktop",
+  "version": "1.0.0",
+  "description": "OpenChat desktop app",
+  "homepage": "https://openchat.io",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DevMuhammed3/OpenChat.git"
+  },
+  "author": "OpenChat <support@openchat.io>",
+  "main": "build/main.js",
+  "scripts": {
+    "dev": "pnpm run build && pnpm exec electron .",
+    "build": "tsc -p tsconfig.json",
+    "package": "pnpm run build && pnpm exec electron-builder",
+    "dist": "pnpm run build && node ./scripts/dist.mjs"
+  },
+  "dependencies": {
+  },
+  "devDependencies": {
+    "electron": "34.5.8",
+    "electron-builder": "^25.1.8",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

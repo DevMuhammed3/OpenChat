@@ -18,7 +18,7 @@ import { useUserStore } from '@/app/stores/user-store'
 import { toast } from 'sonner'
 import { useForm } from 'react-hook-form'
 import { useState, useRef, useEffect } from 'react'
-import { api } from '@openchat/lib'
+import { api, getAvatarUrl } from '@openchat/lib'
 
 type FormValues = {
   name: string
@@ -217,7 +217,7 @@ export default function ProfilePage() {
             <Avatar className="h-28 w-28 ring-2 ring-border">
               {user.avatar ? (
                 <img
-                  src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${user.avatar}`}
+                  src={getAvatarUrl(user.avatar)}
                   className="h-full w-full object-cover rounded-full"
                 />
               ) : (

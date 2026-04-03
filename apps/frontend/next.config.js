@@ -34,6 +34,7 @@ const nextConfig = {
   poweredByHeader: false,
   compress: true,
   reactStrictMode: true,
+  output: 'standalone',
   
   async headers() {
     return [
@@ -61,6 +62,7 @@ const nextConfig = {
 
   experimental: {
     optimizePackageImports: ['lucide-react', 'framer-motion'],
+    webpackBuildWorker: false,
   },
 }
 

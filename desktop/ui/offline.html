@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; script-src 'unsafe-inline';"
+    />
+    <title>OpenChat is offline</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0b0f14;
+        --card: #101826;
+        --text: #e8eef7;
+        --muted: #9bb0c8;
+        --border: #233043;
+        --btn: #2b5cff;
+        --btnText: #ffffff;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Helvetica Neue",
+          sans-serif;
+        background: radial-gradient(1200px 700px at 20% 0%, #142033, var(--bg));
+        color: var(--text);
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+      }
+      .card {
+        width: min(720px, 100%);
+        background: color-mix(in srgb, var(--card) 90%, transparent);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 22px 22px 18px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+      }
+      .title {
+        font-size: 18px;
+        font-weight: 650;
+        margin: 0 0 8px;
+        letter-spacing: 0.2px;
+      }
+      .subtitle {
+        margin: 0 0 14px;
+        color: var(--muted);
+        line-height: 1.5;
+        font-size: 13.5px;
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 16px;
+      }
+      button {
+        appearance: none;
+        border: 0;
+        border-radius: 12px;
+        padding: 10px 14px;
+        font-weight: 650;
+        cursor: pointer;
+        background: var(--btn);
+        color: var(--btnText);
+      }
+      button.secondary {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text);
+      }
+      .details {
+        margin-top: 14px;
+        padding: 12px;
+        border-radius: 12px;
+        border: 1px dashed var(--border);
+        color: var(--muted);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size: 12px;
+        overflow: auto;
+        max-height: 200px;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .footer {
+        margin-top: 14px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <h1 class="title">OpenChat couldn’t load</h1>
+      <p class="subtitle">
+        The website may be down or your connection may be offline. This app is remote-first and requires access to the
+        OpenChat web app.
+      </p>
+      <div class="row">
+        <button id="retry" type="button">Retry</button>
+        <button id="open" class="secondary" type="button">Open in browser</button>
+      </div>
+      <pre id="details" class="details" hidden></pre>
+      <div class="footer">If the problem persists, check your network settings or try again later.</div>
+    </main>
+
+    <script>
+      const params = new URLSearchParams(location.search);
+      const url = params.get("url") || "https://openchat.qzz.io/auth";
+      const code = params.get("code") || "";
+      const desc = params.get("desc") || "";
+
+      const details = document.getElementById("details");
+      const retry = document.getElementById("retry");
+      const open = document.getElementById("open");
+
+      if (details && (code || desc)) {
+        details.hidden = false;
+        details.textContent = [code ? `Error code: ${code}` : "", desc ? `Error: ${desc}` : "", `URL: ${url}`]
+          .filter(Boolean)
+          .join("\n");
+      }
+
+      retry?.addEventListener("click", () => {
+        location.href = url;
+      });
+
+      open?.addEventListener("click", () => {
+        if (window.openchatDesktop?.openExternal) {
+          window.openchatDesktop.openExternal(url);
+          return;
+        }
+        window.open(url, "_blank", "noopener,noreferrer");
+      });
+    </script>
+  </body>
+</html>

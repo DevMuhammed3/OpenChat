@@ -1,0 +1,36 @@
+{
+  "appId": "com.openchat.app",
+  "productName": "OpenChat",
+  "electronVersion": "34.5.8",
+  "artifactName": "${productName}-${version}-${arch}.${ext}",
+  "beforeBuild": "./beforeBuild.cjs",
+  "directories": {
+    "output": "dist",
+    "buildResources": "assets"
+  },
+  "files": ["build/**/*", "ui/**", "package.json", "preload.cjs", "icon.png"],
+  "mac": {
+    "category": "public.app-category.social-networking",
+    "target": ["dmg", "zip"],
+    "icon": "icon.png"
+  },
+  "win": {
+    "target": ["nsis"],
+    "icon": "icon.png"
+  },
+  "linux": {
+    "target": ["AppImage", "deb"],
+    "icon": "icon.png",
+    "category": "Chat",
+    "maintainer": "OpenChat <support@openchat.io>"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": "always",
+    "createStartMenuShortcut": true,
+    "menuCategory": "OpenChat",
+    "runAfterFinish": true,
+    "shortcutName": "OpenChat"
+  }
+}

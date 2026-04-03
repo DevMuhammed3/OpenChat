@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { cn } from '@openchat/lib'
+import { cn, getAvatarUrl } from '@openchat/lib'
 import Link from 'next/link'
 import { Radiation } from 'lucide-react'
 
@@ -182,7 +182,7 @@ function TabIcon({ tabId, isActive, user }: { tabId: string; isActive: boolean; 
     case 'profile':
       return user?.avatar ? (
         <img
-          src={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${user.avatar}`}
+          src={getAvatarUrl(user.avatar)}
           alt="Profile"
           className={cn(
             'w-6 h-6 rounded-full object-cover',

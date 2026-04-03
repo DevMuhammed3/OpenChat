@@ -1,12 +1,6 @@
-import { getAvatarUrl } from "@openchat/lib"
+import { getApiBaseUrl, getAvatarUrl } from "@openchat/lib"
 
-const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL
-
-if (!RAW_API_URL) {
-  throw new Error("NEXT_PUBLIC_API_URL is not defined")
-}
-
-const API_URL = RAW_API_URL.replace(/\/+$/, "")
+const API_URL = getApiBaseUrl()
 
 type PrimitiveQueryValue = string | number | boolean | null | undefined
 type QueryValue = PrimitiveQueryValue | PrimitiveQueryValue[]
