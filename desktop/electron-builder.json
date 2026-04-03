@@ -4,12 +4,11 @@
   "electronVersion": "34.5.8",
   "artifactName": "${productName}-${version}-${arch}.${ext}",
   "beforeBuild": "./beforeBuild.cjs",
-  "asarUnpack": ["renderer/**"],
   "directories": {
     "output": "dist",
     "buildResources": "assets"
   },
-  "files": ["build/**/*", "renderer/**", "package.json", "preload.cjs", "icon.png"],
+  "files": ["build/**/*", "ui/**", "package.json", "preload.cjs", "icon.png"],
   "mac": {
     "category": "public.app-category.social-networking",
     "target": ["dmg", "zip"],

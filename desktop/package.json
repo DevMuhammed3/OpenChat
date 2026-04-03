@@ -12,7 +12,6 @@
   "scripts": {
     "dev": "pnpm run build && pnpm exec electron .",
     "build": "tsc -p tsconfig.json",
-    "prepare:renderer": "node ./scripts/prepare-renderer.mjs",
     "package": "pnpm run build && pnpm exec electron-builder",
     "dist": "pnpm run build && node ./scripts/dist.mjs"
   },
