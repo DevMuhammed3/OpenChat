@@ -11,6 +11,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google"
 import ChannelCallManager from '../zone/_components/ChannelCallManager'
 import { AppQueryProvider } from '@/lib/query/provider'
 import type { AppUser } from '@/features/user/types'
+import { KeyboardShortcutsListener } from '@/components/KeyboardShortcutsListener'
 
 export default function ClientProviders({
   children,
@@ -27,6 +28,7 @@ export default function ClientProviders({
           <UserProvider>
             <RealtimeProvider>
               <NotificationsProvider>
+                <KeyboardShortcutsListener />
                 {/*<GlobalCallSystem />*/}
                 {children}
                 <GlobalCallProvider />

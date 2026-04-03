@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { api, cn } from '@openchat/lib'
-import { User, Shield, Lock, Bell, Trash2, LogOut, ArrowLeft } from 'lucide-react'
+import { User, Shield, Lock, Bell, Trash2, LogOut, ArrowLeft, Keyboard } from 'lucide-react'
 import { useUserStore } from '@/app/stores/user-store'
 import { useChatsStore } from '@/app/stores/chat-store'
 import { useFriendsStore } from '@/app/stores/friends-store'
@@ -14,6 +14,7 @@ const tabs = [
   { name: 'Security', href: '/settings/security', icon: Shield },
   { name: 'Privacy', href: '/settings/privacy', icon: Lock },
   { name: 'Notifications', href: '/settings/notifications', icon: Bell },
+  { name: 'Keyboard', href: '/settings/keyboard', icon: Keyboard },
   { name: 'Account', href: '/settings/account', icon: Trash2 },
 ]
 
