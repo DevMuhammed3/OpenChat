@@ -9,12 +9,12 @@ function normalizeCookieDomain(hostname?: string) {
     return undefined;
   }
 
-  if (host.endsWith(".openchat.qzz.io")) {
-    return ".openchat.qzz.io";
+  if (host.endsWith(".0zone.site")) {
+    return ".0zone.site";
   }
 
-  if (host.endsWith(".qzz.io")) {
-    return ".qzz.io";
+  if (host === "0zone.site") {
+    return ".0zone.site";
   }
 
   return undefined;

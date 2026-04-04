@@ -1,4 +1,4 @@
-const DEFAULT_API_URL = "https://api.openchat.qzz.io";
+const DEFAULT_API_URL = "https://api.0zone.site";
 
 function normalizeUrl(url: string) {
   return url.trim().replace(/\/+$/, "");

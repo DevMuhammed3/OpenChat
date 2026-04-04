@@ -64,8 +64,9 @@ A high-performance monorepo featuring non-blocking voice calls, persistent sessi
    ```env
    DATABASE_URL="postgresql://user:password@localhost:5432/openchat"
    JWT_SECRET="your_secret_key"
-   CLIENT_URL="http://localhost:3000"
    BASE_URL="http://localhost:4000"
+   # Comma/space-separated origins or hostnames (supports "*.example.com")
+   OPENCHAT_ALLOWED_ORIGINS="http://localhost:3000"
    ```
 
    **Frontend (`apps/frontend/.env.local`):**

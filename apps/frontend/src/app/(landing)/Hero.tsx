@@ -96,7 +96,7 @@ Open source and easy to get started.
                 </div>
                 <div className="flex-1 mx-4">
                   <div className="h-6 rounded-lg bg-white/5 w-64 mx-auto flex items-center justify-center border border-white/5">
-                    <span className="text-[10px] text-zinc-500 font-mono tracking-wider">openchat.qzz.io/zone</span>
+                    <span className="text-[10px] text-zinc-500 font-mono tracking-wider">0zone.site/zone</span>
                   </div>
                 </div>
               </div>

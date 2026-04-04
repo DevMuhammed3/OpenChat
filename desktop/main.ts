@@ -5,8 +5,8 @@ import fs from "fs";
 const isDev = !app.isPackaged;
 let mainWindow: BrowserWindow | null = null;
 const START_PATH = "/auth";
-const WEB_ORIGIN = "https://openchat.qzz.io";
-const DEFAULT_API_URL = "https://api.openchat.qzz.io";
+const WEB_ORIGIN = "https://0zone.site";
+const DEFAULT_API_URL = "https://api.0zone.site";
 let isShowingOfflinePage = false;
 
 function normalizeAndValidateApiUrl(value: string | undefined) {

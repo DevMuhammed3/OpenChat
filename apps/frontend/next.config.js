@@ -53,6 +53,7 @@ const nextConfig = {
     formats: ['image/avif', 'image/webp'],
     domains: [
       'localhost',
+      '0zone.site',
       'via.placeholder.com',
       'lh3.googleusercontent.com',
       'avatars.githubusercontent.com',
