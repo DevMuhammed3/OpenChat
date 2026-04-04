@@ -5,24 +5,24 @@ import { Star, Quote } from 'lucide-react'
 
 const testimonials = [
   {
-    name: 'Sarah Chen',
-    role: 'CTO at BuildSpace',
-    avatar: 'SC',
-    content: 'OpenChat transformed how our remote team communicates. The voice quality is unmatched, and being open source means we can self-host for complete data privacy.',
+    name: 'Product Manager',
+    role: 'SaaS Team',
+    avatar: 'PM',
+    content: 'OpenChat delivers a clean and focused communication experience. The zone-based structure feels natural, and the overall performance is smooth even during active usage. It’s a strong foundation for modern teams.',
     rating: 5,
   },
   {
-    name: 'Marcus Johnson',
-    role: 'Founder of DevHub Community',
-    avatar: 'MJ',
-    content: 'We migrated 5,000+ members from Discord and never looked back. The zone-based communities give us the structure we needed without the complexity.',
+    name: 'Full Stack Developer',
+    role: 'Tech Team',
+    avatar: 'FS',
+    content: 'The UI is well thought out and easy to navigate. Voice interactions feel responsive, and the product direction is clear. With continued development, this can easily compete with established tools.',
     rating: 5,
   },
   {
-    name: 'Elena Rodriguez',
-    role: 'DevRel at Scale',
-    avatar: 'ER',
-    content: 'Finally, a chat platform that developers actually want to use. Clean API, beautiful UI, and the non-blocking call experience is chef\'s kiss.',
+    name: 'Community Builder',
+    role: 'Online Community',
+    avatar: 'CB',
+    content: 'What stands out is the simplicity and structure. OpenChat removes a lot of the noise you get in other platforms and replaces it with a more organized, scalable approach to communication.',
     rating: 5,
   },
 ]

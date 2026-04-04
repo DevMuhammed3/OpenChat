@@ -270,7 +270,7 @@ export default function Features() {
                         {/* Realistic App UI Mockup */}
                         <div className="relative group/mockup">
                             <div className="absolute inset-0 bg-primary/20 blur-3xl -z-10 opacity-20 group-hover/mockup:opacity-30 transition-opacity" />
-                            <div className="rounded-[24px] border border-white/10 bg-[#0f172a] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] relative overflow-hidden flex flex-col pt-3">
+                            <div className="rounded-[24px] hidden md:block border border-white/10 bg-[#0f172a] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] relative overflow-hidden flex flex-col pt-3">
                                 {/* App bar style control */}
                                 <div className="flex items-center gap-1.5 px-6 mb-3">
                                     <div className="w-2.5 h-2.5 rounded-full bg-red-500/30 border border-red-500/20" />
@@ -299,7 +299,7 @@ export default function Features() {
                                     {/* Channels & Chat Area */}
                                     <div className="flex-1 flex bg-[#0f172a]">
                                         {/* Channel List */}
-                                        <div className="w-40 border-r border-white/5 flex flex-col py-4 px-2">
+                                        <div className="w-32 xl:w-40 border-r border-white/5 flex flex-col py-4 px-2">
                                             <div className="h-3 w-16 bg-white/10 rounded mb-6 ml-2" />
                                             <div className="space-y-1">
                                                 {[

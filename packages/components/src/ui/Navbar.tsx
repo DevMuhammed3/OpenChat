@@ -41,7 +41,7 @@ export default function Navbar({ user }: { user?: any }) {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xl font-bold tracking-tight text-white">OpenChat</span>
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/10 text-white/50 border border-white/10 tracking-wider">OPEN SOURCE</span>
+              <span className="hidden md:block text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/10 text-white/50 border border-white/10 tracking-wider">OPEN SOURCE</span>
             </div>
           </Link>
 
@@ -70,12 +70,6 @@ export default function Navbar({ user }: { user?: any }) {
         </div>
 
         <div className="flex items-center gap-6">
-          {!user && (
-            <Link href="/auth" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors">
-              Sign In
-            </Link>
-          )}
-          
           {user ? (
              <DropdownMenu>
              <DropdownMenuTrigger asChild>

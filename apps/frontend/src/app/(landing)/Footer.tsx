@@ -81,7 +81,7 @@ export default function Footer() {
             © {new Date().getFullYear()} OpenChat. Distributed under MIT License.
           </p>
           <p className="text-zinc-600 text-xs flex items-center gap-1">
-            Built with <Heart size={12} className="text-red-500 fill-red-500" /> by the community
+            Built with  by the community
           </p>
         </div>
       </div>

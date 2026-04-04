@@ -28,25 +28,26 @@ export default function Hero() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
-              <span>Now in Public Beta — Free for everyone</span>
+              <span>Now available — Free for everyone</span>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold tracking-tight mb-8 leading-[1.1] text-white">
-              Real-time chat & voice,{' '}
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight mb-8 leading-[1.1] text-white">
+              OpenChat — Real-time chat & voice,{' '}
               <span className="high-perf-gradient">
-                built for communities.
+                 free for everyone
               </span>
             </h1>
 
             <p className="text-base md:text-lg text-zinc-400 max-w-2xl mx-auto mb-12 leading-relaxed">
-              Crystal-clear voice calls, instant messaging, and powerful community tools.
-              Open source, self-hostable, and designed for the modern web.
+Real time voice and chat for active communities, built to keep conversations smooth as more people join.
+
+Open source and easy to get started.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
               <Button asChild size="lg" className="h-12 px-8 text-sm font-semibold rounded-xl bg-white text-zinc-900 hover:bg-zinc-100 transition-all shadow-2xl shadow-primary/10 border-0">
                 <Link href={user ? "/zone" : "/auth"}>
-                  Start Free — No Credit Card
+                  Get started
                   <ArrowRight className="ml-2" size={18} />
                 </Link>
               </Button>
@@ -64,7 +65,7 @@ export default function Hero() {
             <div className="flex items-center justify-center gap-8 text-zinc-500 text-xs font-medium">
               <div className="flex items-center gap-2">
                 <Users size={14} className="text-primary" />
-                <span>9,999+ Active Users</span>
+                <span>1K+ Active Users</span>
               </div>
               <div className="w-px h-4 bg-white/20" />
               <div className="flex items-center gap-2">
@@ -85,8 +86,8 @@ export default function Hero() {
             transition={{ duration: 1, delay: 0.3, ease: "easeOut" }}
             className="w-full max-w-5xl mt-16 group relative"
           >
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/30 to-cyan-500/30 rounded-[32px] blur opacity-30 group-hover:opacity-50 transition duration-1000 group-hover:duration-200" />
-            <div className="relative rounded-[32px] border border-white/10 bg-[#0b1121] overflow-hidden shadow-2xl">
+            <div className="absolute hidden md:block -inset-0.5 bg-gradient-to-r from-primary/30 to-cyan-500/30 rounded-[32px] blur opacity-30 group-hover:opacity-50 transition duration-1000 group-hover:duration-200" />
+            <div className="relative hidden md:block rounded-[32px] border border-white/10 bg-[#0b1121] overflow-hidden shadow-2xl">
               <div className="flex items-center gap-2 px-6 py-4 border-b border-white/5 bg-white/[0.02]">
                 <div className="flex gap-1.5">
                   <div className="w-3 h-3 rounded-full bg-red-500/40" />
@@ -95,7 +96,7 @@ export default function Hero() {
                 </div>
                 <div className="flex-1 mx-4">
                   <div className="h-6 rounded-lg bg-white/5 w-64 mx-auto flex items-center justify-center border border-white/5">
-                    <span className="text-[10px] text-zinc-500 font-mono tracking-wider">app.openchat.com/zone/general</span>
+                    <span className="text-[10px] text-zinc-500 font-mono tracking-wider">openchat.qzz.io/zone</span>
                   </div>
                 </div>
               </div>

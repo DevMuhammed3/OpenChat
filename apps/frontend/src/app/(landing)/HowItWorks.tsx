@@ -89,12 +89,14 @@ export default function HowItWorks() {
                     </div>
                   </div>
 
-                  <div className="absolute top-0 right-0 md:-right-6 text-6xl font-black text-white/30 select-none transition-colors group-hover:text-white/10">
-                    0{index + 1}
-                  </div>
+<div className="absolute top-0 right-0 md:-right-6 text-6xl font-black text-white/30 select-none 
+  transition-all duration-300 ease-out 
+  transform group-hover:scale-110 group-hover:text-white/60">
+  0{index + 1}
+</div>
 
 <h3 className="relative text-2xl font-bold text-white mb-4 overflow-hidden">
-  <span className="relative z-10 transition-colors duration-300 group-hover:text-white/40">
+  <span className="relative z-10 transition-colors duration-300">
     {step.title}
   </span>
 

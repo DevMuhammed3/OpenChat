@@ -18,7 +18,7 @@ const stats = [
   },
   {
     value: "∞",
-    label: "Unlimited Teams",
+    label: "Unlimited Users",
     icon: Globe,
     color: "from-purple-500 to-indigo-500",
   },

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, Mail, Lock, User, CheckCircle2, AlertCircle, Loader2, Sparkles } from 'lucide-react';
 import { useRouter } from "next/navigation";
 import { api } from '@openchat/lib';
+import { Checkbox, Label } from "@openchat/ui"
 import { signupSchema } from "@openchat/lib/validations/auth";
 import { useGoogleLogin } from "@react-oauth/google";
 import Link from 'next/link';
@@ -254,31 +255,19 @@ export default function AuthPage() {
               <span className="text-3xl font-bold text-white">OpenChat</span>
             </div>
             
-            <h1 className="text-5xl font-bold text-white mb-6 leading-tight">
-              Connect with<br />
+            <h1 className="text-4xl font-bold text-white mb-6 leading-tight">
+              Build and join<br />
               <span className="bg-gradient-to-r from-primary to-cyan-400 bg-clip-text text-transparent">
-                communities
+                real communities
               </span>
             </h1>
             
             <p className="text-xl text-zinc-400 mb-12 max-w-md leading-relaxed">
-              Crystal-clear voice calls, instant messaging, and powerful community tools. 
-              Open source and built for the modern web.
+    Chat, collaborate, and connect with people in a simple and fast way.
+      No noise. Just communication that works.
             </p>
-            
-            <div className="grid grid-cols-3 gap-6">
-              {[
-                { value: '10K+', label: 'Active Users' },
-                { value: '99.9%', label: 'Uptime' },
-                { value: '50ms', label: 'Avg Latency' },
-              ].map((stat) => (
-                <div key={stat.label} className="text-center">
-                  <div className="text-3xl font-bold text-white mb-1">{stat.value}</div>
-                  <div className="text-sm text-zinc-500">{stat.label}</div>
-                </div>
-              ))}
-            </div>
-          </motion.div>
+             
+              </motion.div>
         </div>
         
         {/* Decorative elements */}
@@ -403,17 +392,19 @@ export default function AuthPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    id="remember"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 rounded border-white/20 bg-white/5 text-primary focus:ring-primary/50"
-                  />
-                  <label htmlFor="remember" className="text-sm text-zinc-400">Remember me</label>
-                </div>
-
+               <div className="flex items-center space-x-2">
+  <Checkbox
+    id="remember"
+    checked={rememberMe}
+    onCheckedChange={(checked) => setRememberMe(!!checked)}
+  />
+  <Label
+    htmlFor="remember"
+    className="text-sm text-muted-foreground cursor-pointer"
+  >
+    Remember me
+  </Label>
+</div>
                 <button
                   type="submit"
                   disabled={isPending}
