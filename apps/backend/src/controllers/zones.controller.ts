@@ -160,7 +160,7 @@ export const getZoneMembers = async (req: Request, res: Response) => {
       members: participants.map(p => ({
         id: p.user.id,
         username: p.user.username,
-        avatar: p.user.avatar ?? null,
+        avatar: resolveAssetUrl(p.user.avatar),
         role: p.role
       }))
     })
@@ -690,5 +690,52 @@ export const updateZoneMemberRole = async (req: Request, res: Response) => {
   } catch (err) {
     console.error(err)
     res.status(500).json({ message: "Failed to update role" })
+  }
+}
+
+export const deleteZone = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id
+
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" })
+    }
+
+    const parsedParams = zoneChatPublicIdParamsSchema.safeParse(req.params)
+    if (!parsedParams.success) {
+      return respondWithZodError(res, parsedParams.error)
+    }
+    const { chatPublicId } = parsedParams.data
+
+    const chat = await prisma.chat.findUnique({ where: { publicId: chatPublicId } })
+
+    if (!chat || chat.type !== "ZONE") {
+      return res.status(404).json({ message: "Zone not found" })
+    }
+
+    const participant = await prisma.chatParticipant.findUnique({
+      where: { chatId_userId: { chatId: chat.id, userId } }
+    })
+
+    if (!participant) {
+      return res.status(403).json({ message: "Not a member of this zone" })
+    }
+
+    if (participant.role !== ZoneRole.OWNER) {
+      return res.status(403).json({ message: "Only the owner can delete the zone" })
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.channel.deleteMany({ where: { chatId: chat.id } })
+      await tx.message.deleteMany({ where: { chatId: chat.id } })
+      await tx.chatInvite.deleteMany({ where: { chatId: chat.id } })
+      await tx.chatParticipant.deleteMany({ where: { chatId: chat.id } })
+      await tx.chat.delete({ where: { id: chat.id } })
+    })
+
+    res.json({ success: true })
+  } catch (err) {
+    console.error('[deleteZone] Error:', err)
+    res.status(500).json({ message: "Failed to delete zone" })
   }
 }

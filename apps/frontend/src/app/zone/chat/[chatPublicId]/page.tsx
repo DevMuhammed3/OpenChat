@@ -644,7 +644,6 @@ export default function ChatPage() {
 
         <Button
           variant="destructive"
-          onClick={() => console.log("You want to VideoCall with me??")}
         >
           <Video className="w-3 h-3 scale-[1.55]" strokeWidth={2} />
         </Button>
@@ -755,7 +754,6 @@ export default function ChatPage() {
                               credentials: 'include'
                             })
 
-                            console.log("Edit response:", await res.json())
                             setEditingId(null)
                           }
 
@@ -900,7 +898,6 @@ export default function ChatPage() {
                               credentials: 'include'
                             })
 
-                            console.log("Edit response:", await res.json())
                             setEditingId(null)
                           }
 

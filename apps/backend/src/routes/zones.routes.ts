@@ -5,6 +5,7 @@ import {
   createGroup,
   createChannel,
   createZoneInvite,
+  deleteZone,
   getZoneChannels,
   getZoneInvite,
   getZoneMembers,
@@ -35,6 +36,7 @@ router.post("/:chatPublicId/leave", authMiddleware, leaveZone);
 router.patch("/:chatPublicId", authMiddleware, ...updateZone);
 router.patch("/:chatPublicId/members/:userId/role", authMiddleware, updateZoneMemberRole);
 router.delete("/:chatPublicId/members/:userId", authMiddleware, removeUserFromGroup);
+router.delete("/:chatPublicId", authMiddleware, deleteZone);
 
 
 export default router

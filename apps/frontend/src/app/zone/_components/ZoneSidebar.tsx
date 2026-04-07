@@ -9,6 +9,8 @@ import { cn, socket } from '@openchat/lib'
 import ChatList from '../chat/ChatList'
 import UserBar from './UserBar'
 import { CreateChannelModal } from './zones/CreateChannelModal'
+import { ZoneDropdownMenu } from './zones/ZoneDropdownMenu'
+import { DMSidebarDropdown } from './zones/DMSidebarDropdown'
 import { useCallStore } from '@/app/stores/call-store'
 import VoiceParticipants from './voice/VoiceParticipants'
 import ActiveSessionBar from './ActiveSessionBar'
@@ -148,12 +150,19 @@ export default function ZoneSidebar({
 
   return (
     <div className="w-64 h-full bg-background border-r border-white/5 flex flex-col shrink-0">
-      <div className="h-12 px-4 border-b border-white/5 flex items-center shadow-sm hover:bg-white/[0.02] cursor-pointer transition-colors group">
-        <h2 className="font-bold text-white text-[15px] truncate flex-1 leading-tight">
-          {zonePublicId ? (zone?.name || <Skeleton className="h-4 w-24 bg-white/5" />) : 'Direct Messages'}
-        </h2>
-        <ChevronDown className="w-4 h-4 text-zinc-400 group-hover:text-zinc-200 transition-colors" />
-      </div>
+      {zonePublicId ? (
+        <ZoneDropdownMenu zonePublicId={zonePublicId}>
+          <h2 className="font-bold text-white text-[15px] truncate max-w-[180px] leading-tight">
+            {zone?.name || <Skeleton className="h-4 w-24 bg-white/5" />}
+          </h2>
+        </ZoneDropdownMenu>
+      ) : (
+        <DMSidebarDropdown>
+          <h2 className="font-bold text-white text-[15px] truncate text-left flex-1 leading-tight">
+            Direct Messages
+          </h2>
+        </DMSidebarDropdown>
+      )}
 
       <div className="flex-1 flex flex-col min-h-0 pt-3">
         {isHome ? (

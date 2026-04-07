@@ -57,7 +57,6 @@ export default function GlobalCallProvider() {
     const timer = setTimeout(handleRecheck, 1000)
 
     const statusHandler = (payload: CallStatusPayload) => {
-        console.log("[GlobalCallProvider] call:status received:", payload)
         if (payload.status === "idle") {
             clear()
             return
@@ -109,7 +108,6 @@ export default function GlobalCallProvider() {
     }
 
     const rejoinedHandler = ({ userId: joinedUserId }: { userId: number }) => {
-        console.log("[GlobalCallProvider] Partner rejoined:", joinedUserId)
         const state = useCallStore.getState()
         // If we are already connected and we are the caller, re-send the offer
         if (state.status === "connected" && state.isCaller && state.chatPublicId) {
@@ -128,7 +126,6 @@ export default function GlobalCallProvider() {
     socket.on("call:rejoined", rejoinedHandler)
     
     const partnerDisconnectedHandler = ({ userId }: { userId: number }) => {
-        console.log(`Partner ${userId} disconnected. Waiting for them...`)
     }
 
     socket.on("call:partner-disconnected", partnerDisconnectedHandler)

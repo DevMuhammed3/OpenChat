@@ -14,6 +14,9 @@ import {
   resetPresenceState,
   startPresenceCleanup,
   unregisterConnection,
+  addUserToZone,
+  removeUserFromZone,
+  getZoneOnlineUsers,
 } from "./socket/presence.js"
 import { emitFriendState } from "./services/friendRealtime.js"
 
@@ -41,8 +44,6 @@ const presenceCleanup = startPresenceCleanup(io)
 io.on('connection', async (socket) => {
   const userId = socket.data.userId
   if (!userId) return
-
-  console.log(`Socket connected: ${socket.id} (user ${userId})`)
 
   socket.join(`user:${userId}`)
   await registerConnection(io, userId, socket.id)
@@ -75,15 +76,40 @@ io.on('connection', async (socket) => {
     refreshConnection(userId, socket.id)
   })
 
+  socket.on("zone:join", (data: { zonePublicId: string }) => {
+    const { zonePublicId } = data
+    if (!zonePublicId) return
+
+    socket.join(`zone:${zonePublicId}`)
+    addUserToZone(zonePublicId, userId)
+
+    const onlineUsers = getZoneOnlineUsers(zonePublicId)
+    io.to(`zone:${zonePublicId}`).emit("zone:presence", {
+      zonePublicId,
+      onlineUsers,
+    })
+  })
+
+  socket.on("zone:leave", (data: { zonePublicId: string }) => {
+    const { zonePublicId } = data
+    if (!zonePublicId) return
+
+    socket.leave(`zone:${zonePublicId}`)
+    removeUserFromZone(zonePublicId, userId)
+
+    const onlineUsers = getZoneOnlineUsers(zonePublicId)
+    io.to(`zone:${zonePublicId}`).emit("zone:presence", {
+      zonePublicId,
+      onlineUsers,
+    })
+  })
+
   socket.on('disconnect', async () => {
-    console.log(`Socket disconnected: ${socket.id} (user ${userId})`)
     await unregisterConnection(io, userId, socket.id)
   })
 })
 
-server.listen(port, () => {
-  console.log('Socket + API running on http://localhost:' + port)
-})
+server.listen(port, () => { console.log(`Server running on port ${port}`) })
 
 process.on("exit", () => {
   clearInterval(presenceCleanup)

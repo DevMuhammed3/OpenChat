@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useRouter } from "next/navigation"
 import { apiClient } from "@/lib/api/client"
 import { channelKeys } from "@/features/channels/queries"
 import { zoneKeys } from "@/features/zones/queries"
@@ -172,6 +173,24 @@ export function useLeaveZoneMutation(zonePublicId: string) {
       queryClient.invalidateQueries({ queryKey: zoneKeys.list() })
       queryClient.removeQueries({ queryKey: channelKeys.list(zonePublicId) })
       queryClient.removeQueries({ queryKey: zoneKeys.members(zonePublicId) })
+    },
+  })
+}
+
+export function useDeleteZoneMutation(zonePublicId: string) {
+  const queryClient = useQueryClient()
+  const router = useRouter()
+
+  return useMutation({
+    mutationFn: async () => {
+      await apiClient.delete<SuccessResponse>(`/zones/${zonePublicId}`)
+    },
+    onSuccess() {
+      queryClient.setQueryData<ZoneSummary[]>(zoneKeys.list(), (current = []) =>
+        current.filter((item) => item.publicId !== zonePublicId),
+      )
+      queryClient.invalidateQueries({ queryKey: zoneKeys.list() })
+      router.push('/zone/zones')
     },
   })
 }

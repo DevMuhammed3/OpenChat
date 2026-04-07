@@ -116,7 +116,6 @@ export function channelCallHandler(io: Server, socket: AuthenticatedSocket) {
         participants: currentParticipants
       })
 
-      console.log(`User ${userId} joined channel call ${channelPublicId}`)
     } catch (err) {
       console.error("CHANNEL JOIN CALL ERROR:", err)
     }
@@ -201,8 +200,6 @@ export function channelCallHandler(io: Server, socket: AuthenticatedSocket) {
       if (call.participants.size === 0) {
         activeChannelCalls.delete(channelPublicId)
       }
-      
-      console.log(`User ${userId} left channel call ${channelPublicId}`)
     }
   }
 }

@@ -40,7 +40,6 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   const removePendingRequestForUser = useFriendsStore(s => s.removePendingRequestForUser)
   const setOnline = useFriendsStore(s => s.setOnline)
   const setOffline = useFriendsStore(s => s.setOffline)
-  const setBulkOnline = useFriendsStore(s => s.setBulkOnline)
   const setRequests = useFriendsStore(s => s.setRequests)
   const setPendingRequests = useFriendsStore(s => s.setPendingRequests)
   const setBlockedUsers = useFriendsStore(s => s.setBlockedUsers)
@@ -170,7 +169,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     }
 
     const handleFriendsOnline = (userIds: number[]) => {
-      setBulkOnline(userIds)
+      userIds.forEach((userId) => setOnline(userId))
     }
 
     const handleZoneUpdated = ({ zone }: { zone: ZoneSummary }) => {
@@ -199,6 +198,10 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       queryClient.invalidateQueries({ queryKey: channelKeys.list(chatPublicId) })
     }
 
+    const handleZonePresence = ({ zonePublicId, onlineUsers: zoneOnlineUsers }: { zonePublicId: string; onlineUsers: number[] }) => {
+      zoneOnlineUsers.forEach((userId) => setOnline(userId))
+    }
+
     socket.on('friend:request', handleFriendRequest)
     socket.on('friend:accepted', handleFriendAccepted)
     socket.on('friend:rejected', handleFriendRejected)
@@ -217,6 +220,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     socket.on('zone:updated', handleZoneUpdated)
     socket.on('zone:members-updated', handleZoneMembersUpdated)
     socket.on('zone:channels-updated', handleZoneChannelsUpdated)
+    socket.on('zone:presence', handleZonePresence)
 
     return () => {
       isCancelled = true
@@ -238,6 +242,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       socket.off('zone:updated', handleZoneUpdated)
       socket.off('zone:members-updated', handleZoneMembersUpdated)
       socket.off('zone:channels-updated', handleZoneChannelsUpdated)
+      socket.off('zone:presence', handleZonePresence)
     }
   }, [
     addBlockedUser,
@@ -248,7 +253,6 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     removePendingRequestForUser,
     removeRequest,
     setBlockedUsers,
-    setBulkOnline,
     setFriends,
     setOffline,
     setOnline,
@@ -267,6 +271,32 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       reset()
     }
   }, [reset, user])
+
+  // Mark current user as online when socket connects
+  useEffect(() => {
+    if (!user) return
+
+    const handleConnect = () => {
+      setOnline(user.id)
+    }
+
+    const handleDisconnect = () => {
+      setOffline(user.id)
+    }
+
+    socket.on('connect', handleConnect)
+    socket.on('disconnect', handleDisconnect)
+
+    // If already connected, mark as online immediately
+    if (socket.connected) {
+      setOnline(user.id)
+    }
+
+    return () => {
+      socket.off('connect', handleConnect)
+      socket.off('disconnect', handleDisconnect)
+    }
+  }, [user, setOnline, setOffline])
 
   useEffect(() => {
     if (!user) return

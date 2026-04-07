@@ -1,28 +1,24 @@
-"use client"
+'use client'
 
-// import ZonesList from "../../_components/zones/ZonesList"
-// import ZoneSidebar from "../../_components/ZoneSidebar"
-import { useParams } from "next/navigation"
+import { useParams } from 'next/navigation'
+import { MembersSidebar } from '../../_components/zones/MembersSidebar'
+import { useUser } from '@/features/user/queries'
 
 export default function ZoneLayout({
-  children,
+    children,
 }: {
-  children: React.ReactNode
+    children: React.ReactNode
 }) {
-  const { zonePublicId } = useParams<{ zonePublicId: string }>()
+    const { zonePublicId } = useParams<{ zonePublicId?: string }>()
+    const { data: user } = useUser()
 
-  return (
-    <div className="flex h-screen w-full">
+    return (
+        <div className="flex h-screen w-full">
+            {/* Chat area */}
+            <div className="flex-1 flex flex-col min-w-0">{children}</div>
 
-      {/* Zones bar */}
-
-      {/* Channels sidebar */}
-
-      {/* Chat area */}
-      <div className="flex-1 flex flex-col">
-        {children}
-      </div>
-
-    </div>
-  )
+            {/* Members sidebar - only show when in a zone */}
+            {zonePublicId && <MembersSidebar />}
+        </div>
+    )
 }

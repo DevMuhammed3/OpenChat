@@ -61,3 +61,13 @@ app.use("/zones", zonesRoutes)
 
 app.use("/uploads", express.static("uploads"))
 app.use("/webrtc", webrtcRoutes)
+
+// Error handler to catch all unhandled errors
+app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error('[ERROR] Unhandled error:', err)
+  console.error('[ERROR] Stack:', err?.stack)
+  res.status(500).json({ 
+    message: err?.message || "Internal Server Error",
+    ...(process.env.NODE_ENV === 'development' && { stack: err?.stack })
+  })
+})

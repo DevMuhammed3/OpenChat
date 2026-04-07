@@ -1,27 +1,46 @@
 'use client'
 
-import { useState } from 'react'
-import { Button } from 'packages/ui'
-import { Hash, Plus, Volume2 } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
+import { Button, Input } from 'packages/ui'
+import { Hash, Plus, Volume2, Search, X } from 'lucide-react'
 import { cn, getAvatarUrl } from '@openchat/lib'
 import { CreateZoneModal } from '../_components/zones/CreateZoneModal'
 import { useChannels } from '@/features/channels/queries'
 import { useZoneNavigation } from '@/features/channels/navigation'
-import { useCoarsePointer, usePrefetchOnVisible } from '@/features/prefetch/usePrefetchOnVisible'
+import { usePrefetchOnVisible } from '@/features/prefetch/usePrefetchOnVisible'
 import { useCreateZoneMutation } from '@/features/zones/mutations'
 import { useZones } from '@/features/zones/queries'
 import type { ZoneSummary } from '@/features/zones/types'
 
 export default function ZonesHubPage() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
   const { data: zones = [], isLoading } = useZones()
   const createZoneMutation = useCreateZoneMutation()
   const { openZone } = useZoneNavigation()
-  const [open, setOpen] = useState(false)
+  
+  const [searchQuery, setSearchQuery] = useState('')
+  const [showCreateModal, setShowCreateModal] = useState(false)
+
   const [lastZonePublicId] = useState<string | null>(() =>
     typeof window === 'undefined'
       ? null
       : window.localStorage.getItem('openchat:last-zone-public-id'),
   )
+
+  useEffect(() => {
+    if (searchParams.get('open-create') === 'true') {
+      setShowCreateModal(true)
+      router.replace('/zone/zones')
+    }
+  }, [searchParams, router])
+
+  const filteredZones = useMemo(() => {
+    if (!searchQuery.trim()) return zones
+    const query = searchQuery.toLowerCase()
+    return zones.filter((zone) => zone.name.toLowerCase().includes(query))
+  }, [zones, searchQuery])
 
   const createZone = async (name: string, avatar?: File | null) => {
     if (!name.trim()) return
@@ -39,16 +58,32 @@ export default function ZonesHubPage() {
             <h1 className="mt-1 text-2xl font-bold text-white">Your zones</h1>
           </div>
           <Button
-            onClick={() => setOpen(true)}
+            onClick={() => setShowCreateModal(true)}
             className="h-10 rounded-2xl bg-primary px-4 text-white shadow-lg shadow-primary/20"
           >
             <Plus className="mr-1 h-4 w-4" />
             New
           </Button>
         </div>
-        <p className="text-sm text-zinc-400">
-          Jump into any zone fast, or create a new one here.
-        </p>
+
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search zones..."
+            className="w-full h-10 pl-10 pr-10 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white placeholder:text-white/30 outline-none transition-all focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-white/10 transition-colors"
+            >
+              <X className="h-4 w-4 text-zinc-400" />
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
@@ -58,23 +93,40 @@ export default function ZonesHubPage() {
               <div key={index} className="h-28 animate-pulse rounded-3xl border border-white/5 bg-white/[0.03]" />
             ))}
           </div>
-        ) : zones.length === 0 ? (
-          <div className="flex min-h-full flex-col items-center justify-center rounded-[32px] border border-dashed border-white/10 bg-white/[0.03] px-6 py-12 text-center">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-primary/15 text-primary">
-              <Hash className="h-7 w-7" />
+        ) : filteredZones.length === 0 ? (
+          zones.length === 0 ? (
+            <div className="flex min-h-full flex-col items-center justify-center rounded-[32px] border border-dashed border-white/10 bg-white/[0.03] px-6 py-12 text-center">
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-primary/15 text-primary">
+                <Hash className="h-7 w-7" />
+              </div>
+              <h2 className="text-xl font-bold text-white">No zones yet</h2>
+              <p className="mt-2 max-w-xs text-sm text-zinc-400">
+                Create your first zone and keep your chats and channels in one place.
+              </p>
+              <Button onClick={() => setShowCreateModal(true)} className="mt-6 rounded-2xl px-5">
+                <Plus className="mr-1 h-4 w-4" />
+                Create your first zone
+              </Button>
             </div>
-            <h2 className="text-xl font-bold text-white">No zones yet</h2>
-            <p className="mt-2 max-w-xs text-sm text-zinc-400">
-              Create your first zone and keep your chats and channels in one place.
-            </p>
-            <Button onClick={() => setOpen(true)} className="mt-6 rounded-2xl px-5">
-              <Plus className="mr-1 h-4 w-4" />
-              Create your first zone
-            </Button>
-          </div>
+          ) : (
+            <div className="flex min-h-full flex-col items-center justify-center px-6 py-12 text-center">
+              <Search className="h-10 w-10 text-zinc-600 mb-4" />
+              <h2 className="text-lg font-bold text-white">No results found</h2>
+              <p className="mt-2 max-w-xs text-sm text-zinc-400">
+                No zones matching "{searchQuery}"
+              </p>
+              <Button 
+                variant="ghost" 
+                onClick={() => setSearchQuery('')} 
+                className="mt-4 text-primary"
+              >
+                Clear search
+              </Button>
+            </div>
+          )
         ) : (
           <div className="space-y-3">
-            {zones.map((zone, index) => (
+            {filteredZones.map((zone, index) => (
               <ZoneCard
                 key={zone.publicId}
                 index={index}
@@ -87,8 +139,8 @@ export default function ZonesHubPage() {
       </div>
 
       <CreateZoneModal
-        open={open}
-        onClose={() => setOpen(false)}
+        open={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
         onCreate={createZone}
       />
     </div>
@@ -104,13 +156,12 @@ function ZoneCard({
   isRecent: boolean
   zone: ZoneSummary
 }) {
-  const isCoarsePointer = useCoarsePointer()
   const { prefetchZone, openZone } = useZoneNavigation()
   const previewEnabled = isRecent || index < 2
   const { data: zoneChannels = [] } = useChannels(zone.publicId, previewEnabled)
   const visiblePrefetchRef = usePrefetchOnVisible<HTMLButtonElement>(
     () => prefetchZone(zone.publicId),
-    { enabled: isCoarsePointer },
+    { enabled: true },
   )
 
   const textChannels = zoneChannels.filter((channel) => channel.type === 'TEXT')
@@ -123,11 +174,6 @@ function ZoneCard({
         void openZone(zone.publicId)
       }}
       onPointerEnter={() => {
-        if (!isCoarsePointer) {
-          void prefetchZone(zone.publicId)
-        }
-      }}
-      onTouchStart={() => {
         void prefetchZone(zone.publicId)
       }}
       className={cn(

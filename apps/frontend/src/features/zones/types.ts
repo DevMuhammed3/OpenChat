@@ -11,6 +11,7 @@ export type ZoneMember = {
   username: string
   avatar?: string | null
   role: ZoneRole
+  status?: "online" | "offline" | "away" | "dnd"
 }
 
 export type ZoneInvite = {

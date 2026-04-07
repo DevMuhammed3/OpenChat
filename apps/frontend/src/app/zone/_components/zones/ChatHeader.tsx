@@ -119,7 +119,6 @@ export function ChatHeader({ name, avatar, zonePublicId, members }: Props) {
       }
     } catch (err) {
       console.error(err)
-      console.log("Failed to update zone info", err)
     }
   }
 

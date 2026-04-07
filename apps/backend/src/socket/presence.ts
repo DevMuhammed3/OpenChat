@@ -2,9 +2,66 @@ import { Server } from "socket.io"
 import { prisma } from "../config/prisma.js"
 
 const userConnections = new Map<number, Map<string, number>>()
+const zoneOnlineUsers = new Map<string, Set<number>>()
+const userZones = new Map<number, Set<string>>()
 
 const STALE_CONNECTION_MS = 45000
 const CLEANUP_INTERVAL_MS = 15000
+
+export function getZoneOnlineUsers(zonePublicId: string): number[] {
+  const users = zoneOnlineUsers.get(zonePublicId)
+  return users ? Array.from(users) : []
+}
+
+export function addUserToZone(zonePublicId: string, userId: number) {
+  let users = zoneOnlineUsers.get(zonePublicId)
+  if (!users) {
+    users = new Set()
+    zoneOnlineUsers.set(zonePublicId, users)
+  }
+  users.add(userId)
+
+  let zones = userZones.get(userId)
+  if (!zones) {
+    zones = new Set()
+    userZones.set(userId, zones)
+  }
+  zones.add(zonePublicId)
+}
+
+export function removeUserFromZone(zonePublicId: string, userId: number) {
+  const users = zoneOnlineUsers.get(zonePublicId)
+  if (users) {
+    users.delete(userId)
+    if (users.size === 0) {
+      zoneOnlineUsers.delete(zonePublicId)
+    }
+  }
+
+  const zones = userZones.get(userId)
+  if (zones) {
+    zones.delete(zonePublicId)
+    if (zones.size === 0) {
+      userZones.delete(userId)
+    }
+  }
+}
+
+export function removeUserFromAllZones(userId: number) {
+  const zones = userZones.get(userId)
+  if (zones) {
+    zones.forEach((zonePublicId) => {
+      const users = zoneOnlineUsers.get(zonePublicId)
+      if (users) {
+        users.delete(userId)
+        if (users.size === 0) {
+          zoneOnlineUsers.delete(zonePublicId)
+        }
+      }
+    })
+    userZones.delete(userId)
+  }
+}
 
 async function getFriendIds(userId: number) {
   const friends = await prisma.friend.findMany({
@@ -75,10 +132,30 @@ export async function unregisterConnection(io: Server, userId: number, socketId:
 
   userConnections.delete(userId)
   await setUserOnlineState(io, userId, false)
+
+  const zones = userZones.get(userId)
+  if (zones) {
+    zones.forEach((zonePublicId) => {
+      const users = zoneOnlineUsers.get(zonePublicId)
+      if (users) {
+        users.delete(userId)
+        if (users.size === 0) {
+          zoneOnlineUsers.delete(zonePublicId)
+        }
+        io.to(`zone:${zonePublicId}`).emit("zone:presence", {
+          zonePublicId,
+          onlineUsers: Array.from(zoneOnlineUsers.get(zonePublicId) || []),
+        })
+      }
+    })
+    userZones.delete(userId)
+  }
 }
 
 export async function resetPresenceState() {
   userConnections.clear()
+  zoneOnlineUsers.clear()
+  userZones.clear()
   await prisma.user.updateMany({
     data: { isOnline: false },
   })
