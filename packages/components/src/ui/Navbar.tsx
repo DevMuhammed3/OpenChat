@@ -17,7 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "./dropdown-menu";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Settings, LogOut, MessageCircle } from "lucide-react";
+import { LayoutDashboard, Settings, LogOut, MessageCircle, Home } from "lucide-react";
 
 export default function Navbar({ user }: { user?: any }) {
   const pathname = usePathname();
@@ -100,8 +100,8 @@ export default function Navbar({ user }: { user?: any }) {
                 <DropdownMenuSeparator className="bg-white/5" />
                 <DropdownMenuItem asChild>
                   <Link href="/zone" className="flex items-center gap-2 py-2 cursor-pointer">
-                    <LayoutDashboard className="h-4 w-4" />
-                    <span>Dashboard</span>
+                    <Home className="h-4 w-4" />
+                    <span>Home</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
@@ -113,7 +113,17 @@ export default function Navbar({ user }: { user?: any }) {
                 <DropdownMenuSeparator className="bg-white/5" />
                 <DropdownMenuItem 
                   className="text-red-400 focus:bg-red-500/10 py-2 cursor-pointer"
-                  onClick={() => window.location.href = "/auth"}
+                  onClick={async () => {
+                    try {
+                      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, {
+                        method: 'POST',
+                        credentials: 'include',
+                      })
+                    } catch (err) {
+                      console.error('Logout failed:', err)
+                    }
+                    window.location.href = '/auth'
+                  }}
                 >
                   <LogOut className="h-4 w-4 mr-2" />
                   <span>Log out</span>
