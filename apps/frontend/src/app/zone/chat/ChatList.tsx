@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Avatar, AvatarFallback, Skeleton } from 'packages/ui'
+import { Skeleton } from 'packages/ui'
 import { X } from 'lucide-react'
-import { cn, getAvatarUrl, api } from '@openchat/lib'
+import { cn, api } from '@openchat/lib'
 import { useChatsStore } from '@/app/stores/chat-store'
 import { useFriendsStore } from '@/app/stores/friends-store'
+import { UserAvatar } from '@/components/UserAvatar'
 
 // type ChatItem = {
 //   chatPublicId: string
@@ -107,7 +108,6 @@ export default function ChatList({ currentUserId }: { currentUserId?: number | n
         if (!other) return null
 
         const isActive = chat.chatPublicId === chatPublicId
-        const avatarUrl = getAvatarUrl(other.avatar)
         const isOnline = onlineUsers.has(other.id) || other.isOnline === true
 
         return (
@@ -124,20 +124,13 @@ export default function ChatList({ currentUserId }: { currentUserId?: number | n
             )}
           >
             <div className="relative shrink-0">
-              <Avatar className="h-8 w-8">
-                {avatarUrl ? (
-                  <img
-                    src={avatarUrl}
-                    alt={other.username}
-                    className="h-full w-full object-cover rounded-full"
-                    loading="lazy"
-                  />
-                ) : (
-                  <AvatarFallback className="bg-white/10 text-xs font-bold uppercase transition-colors">
-                    {other.username?.[0]?.toUpperCase()}
-                  </AvatarFallback>
-                )}
-              </Avatar>
+              <UserAvatar
+                name={other.username}
+                avatar={other.avatar}
+                className="h-8 w-8"
+                fallbackText={other.username}
+                fallbackClassName="bg-white/10 text-xs font-bold uppercase transition-colors"
+              />
               <div
                 className={cn(
                   'absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background',

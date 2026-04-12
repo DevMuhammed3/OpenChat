@@ -1,10 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Avatar, AvatarFallback, AvatarImage, Button, Card } from 'packages/ui'
+import { Button, Card } from 'packages/ui'
 import { ShieldCheck } from 'lucide-react'
-import { api, getAvatarUrl } from '@openchat/lib'
+import { api } from '@openchat/lib'
 import { useFriendsStore } from '@/app/stores/friends-store'
+import { UserAvatar } from '@/components/UserAvatar'
 
 type BlockedUser = {
   id: number
@@ -61,12 +62,12 @@ export default function BlockedUsers() {
           className="flex items-center justify-between p-4 shadow-sm border-muted/60"
         >
           <div className="flex items-center gap-4">
-            <Avatar className="h-11 w-11 border-2 border-background shadow-sm">
-              <AvatarImage src={getAvatarUrl(user.avatar)} />
-              <AvatarFallback className="bg-secondary text-secondary-foreground font-semibold text-xs">
-                {user.username.slice(0, 2).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+            <UserAvatar
+              name={user.name || user.username}
+              avatar={user.avatar}
+              className="h-11 w-11 border-2 border-background shadow-sm"
+              fallbackText={user.username}
+            />
 
             <div className="flex flex-col">
               <span className="text-sm font-bold tracking-tight">

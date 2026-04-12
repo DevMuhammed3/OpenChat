@@ -22,7 +22,7 @@ export default async function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="min-h-screen bg-[#0b1220]">
+      <body className="min-h-screen bg-main">
         < ClientProviders initialUser={user} >
           {children}
         </ClientProviders >

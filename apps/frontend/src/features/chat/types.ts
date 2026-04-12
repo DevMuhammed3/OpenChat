@@ -12,6 +12,8 @@ export type ChannelMessage = {
   fileUrl?: string | null
   fileType?: string | null
   isDeleted?: boolean
+  isPinned?: boolean
+  pinnedAt?: string | null
   createdAt?: string
   channelPublicId?: string | null
   chatPublicId?: string

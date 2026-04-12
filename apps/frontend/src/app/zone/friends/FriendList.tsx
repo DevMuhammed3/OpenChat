@@ -3,8 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import {
-  Avatar,
-  AvatarFallback,
   Button,
   DropdownMenu,
   DropdownMenuContent,
@@ -14,9 +12,10 @@ import {
   Skeleton,
 } from 'packages/ui'
 import { Info, ShieldBan, UserMinus, Users } from 'lucide-react'
-import { cn, getAvatarUrl } from '@openchat/lib'
+import { cn } from '@openchat/lib'
 import { api } from '@openchat/lib'
 import { useFriendsStore } from '@/app/stores/friends-store'
+import { UserAvatar } from '@/components/UserAvatar'
 
 type Friend = {
   id: number
@@ -172,7 +171,6 @@ export default function FriendList({ onSelectFriend }: FriendListProps) {
             <div className="space-y-1">
               {friends.map((friend) => {
                 const isActive = username === friend.username
-                const avatarUrl = getAvatarUrl(friend.avatar)
 
                 return (
                   <div
@@ -188,20 +186,12 @@ export default function FriendList({ onSelectFriend }: FriendListProps) {
                         className="flex flex-1 items-center gap-3 rounded-md p-1 text-left"
                       >
                         <div className="relative">
-                          <Avatar className="h-10 w-10 ring-1 ring-border">
-                            {avatarUrl ? (
-                              <img
-                                src={avatarUrl}
-                                alt={friend.username}
-                                className="h-full w-full object-cover rounded-full"
-                                loading="lazy"
-                              />
-                            ) : (
-                              <AvatarFallback>
-                                {friend.username?.[0]?.toUpperCase()}
-                              </AvatarFallback>
-                            )}
-                          </Avatar>
+                          <UserAvatar
+                            name={friend.name || friend.username}
+                            avatar={friend.avatar}
+                            className="h-10 w-10 ring-1 ring-border"
+                            fallbackText={friend.username}
+                          />
                           {onlineUsers.has(friend.id) && (
                             <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-background rounded-full" />
                           )}

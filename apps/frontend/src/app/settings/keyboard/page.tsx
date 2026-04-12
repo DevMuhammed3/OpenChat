@@ -102,7 +102,7 @@ function ShortcutRecorder({ action, value, onChange, otherShortcut }: ShortcutRe
 
   return (
     <div className="flex items-center justify-between gap-4">
-      <span className="text-sm font-medium text-zinc-200">{label}</span>
+      <span className="text-sm font-medium">{label}</span>
       <div className="flex items-center gap-2">
         {recording ? (
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600/20 border border-purple-500/50 rounded-md min-w-[120px]">
@@ -113,11 +113,11 @@ function ShortcutRecorder({ action, value, onChange, otherShortcut }: ShortcutRe
           </div>
         ) : value ? (
           <div className="flex items-center gap-1 px-3 py-1.5 bg-white/5 border border-white/10 rounded-md min-w-[120px]">
-            <Keyboard className="w-3.5 h-3.5 text-zinc-400" />
-            <span className="text-sm text-zinc-200 font-mono">{value}</span>
+            <Keyboard className="w-3.5 h-3.5 text-muted-foreground" />
+            <span className="text-sm font-mono">{value}</span>
             <button
               onClick={clearShortcut}
-              className="ml-1 p-0.5 hover:bg-white/10 rounded text-zinc-500 hover:text-zinc-300 transition-colors"
+              className="ml-1 p-0.5 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors"
               title="Clear shortcut"
             >
               <X className="w-3 h-3" />
@@ -126,7 +126,7 @@ function ShortcutRecorder({ action, value, onChange, otherShortcut }: ShortcutRe
         ) : (
           <button
             onClick={startRecording}
-            className="px-3 py-1.5 text-sm text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-md transition-colors min-w-[120px]"
+            className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground bg-muted hover:bg-muted/50 border-border rounded-md transition-colors min-w-[120px]"
           >
             Not set
           </button>
@@ -170,7 +170,7 @@ export default function KeyboardShortcutsPage() {
         </p>
       </div>
 
-      <Card className="bg-[#111a2b] border border-white/5">
+      <Card className="bg-surface border-border">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Keyboard className="w-5 h-5" />
@@ -197,11 +197,11 @@ export default function KeyboardShortcutsPage() {
         </CardContent>
       </Card>
 
-      <Card className="bg-[#111a2b] border border-white/5">
+      <Card className="bg-surface border-border">
         <CardHeader>
           <CardTitle className="text-base">Tips</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2 text-sm text-zinc-400">
+        <CardContent className="space-y-2 text-sm text-muted-foreground">
           <p>• Shortcuts work only when the app window is focused</p>
           <p>• Shortcuts are disabled when typing in input fields</p>
           <p>• Press Escape to cancel recording</p>

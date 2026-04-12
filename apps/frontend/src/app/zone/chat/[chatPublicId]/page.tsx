@@ -9,10 +9,7 @@ import {
   AvatarFallback,
   Avatar,
   AvatarImage,
-  DropdownMenu,
-  DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
   Sheet,
   SheetContent,
   SheetDescription,
@@ -20,15 +17,20 @@ import {
   Skeleton,
 } from 'packages/ui'
 import { useChatsStore } from '@/app/stores/chat-store'
-import { ArrowLeft, Info, Paperclip, PhoneCall, Pin, Send, ShieldBan, User, UserMinus, Video, X, Smile, Sticker as StickerIcon, Gift, SquarePen, Trash, Search } from 'lucide-react'
+import { ArrowLeft, Paperclip, Pin, Send, ShieldBan, UserMinus, X, Smile, Sticker as StickerIcon, Gift, SquarePen, Trash, Search, PanelRight } from 'lucide-react'
 import { api, getAvatarUrl } from '@openchat/lib'
 import MessageText from '../../_components/chat/MessageText'
 import GifPicker from '../../_components/chat/GifPicker'
+import EmojiPicker from '../../_components/chat/EmojiPicker'
 import StickerPicker from '../../_components/chat/StickerPicker'
 // import { useVoiceCall } from "@/hooks/useVoiceCall"
-import { useCallStore } from "@/app/stores/call-store"
 import { startOutgoingCallSession } from "@/app/lib/session-runtime"
 import { useUserStore } from '@/app/stores/user-store'
+import { EmptyChatState } from '@/components/EmptyChatState'
+import { ChatHeader } from '@/components/ChatHeader'
+import { useFriendsStore } from '@/app/stores/friends-store'
+import { ChatSidebar } from '@/components/ChatSidebar'
+import { ProfileModal } from '@/components/ProfileModal'
 
 type Message = {
   id: number
@@ -46,7 +48,9 @@ type Message = {
 type ChatParticipant = {
   id: number
   username: string
+  name?: string | null
   avatar?: string | null
+  isOnline?: boolean
 }
 
 type ChatData = {
@@ -120,11 +124,28 @@ export default function ChatPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
   const [typingUsers, setTypingUsers] = useState<Set<number>>(new Set())
   const [headerActionBusy, setHeaderActionBusy] = useState(false)
   const [pinnedPanelOpen, setPinnedPanelOpen] = useState(false)
   const [showGifs, setShowGifs] = useState(false)
+  const [showEmojis, setShowEmojis] = useState(false)
   const [showStickers, setShowStickers] = useState(false)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+  const [isSidebarSheetOpen, setIsSidebarSheetOpen] = useState(false)
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
+  const [profile, setProfile] = useState<{
+    id: string | number
+    name: string
+    avatar?: string | null
+    bio?: string | null
+    friendStatus?: 'none' | 'pending' | 'accepted'
+    mutualFriends?: { id: string; name: string }[]
+    mutualZones?: { id: string; name: string }[]
+    joinedAt?: string | null
+    isOnline?: boolean
+    lastSeen?: string | null
+  } | null>(null)
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // const endRef = useRef<HTMLDivElement>(null)
@@ -134,7 +155,7 @@ export default function ChatPage() {
   const chats = useChatsStore((s) => s.chats)
   const hideChat = useChatsStore((s) => s.hideChat)
   const currentUser = useUserStore((s) => s.user)
-  const speakingUsers = useCallStore(s => s.speakingUsers)
+  const onlineUsers = useFriendsStore((s) => s.onlineUsers)
 
   // const {
   //   startCall,
@@ -155,6 +176,35 @@ export default function ChatPage() {
   const otherUser = !isGroup && currentUserId
     ? activeChat?.participants.find((participant) => participant.id !== currentUserId)
     : null
+
+  const emptyChatName = isGroup
+    ? (activeChat?.name ?? 'Group')
+    : (otherUser?.name ?? otherUser?.username ?? 'User')
+
+  const sidebarProfile = !isGroup && otherUser
+    ? {
+        id: otherUser.id,
+        name: otherUser.name ?? otherUser.username ?? 'User',
+        avatar: otherUser.avatar ?? null,
+      }
+    : null
+
+  const handleToggleSidebar = () => {
+    if (typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches) {
+      setIsSidebarOpen((prev) => !prev)
+      return
+    }
+
+    setIsSidebarSheetOpen(true)
+  }
+
+  const resolvedProfile = profile ?? sidebarProfile
+  const canManageFriend = Boolean(currentUser && otherUser && currentUser.id !== otherUser.id)
+
+  const handleOpenProfileModal = () => {
+    setIsProfileModalOpen(true)
+    setIsSidebarSheetOpen(false)
+  }
 
   const pinnedMessages = (messages ?? [])
     .filter((message) => message.isPinned && !message.isDeleted)
@@ -188,6 +238,45 @@ export default function ChatPage() {
       .catch((err) => console.error('Failed to load messages:', err))
       .finally(() => setLoading(false))
   }, [chatPublicId])
+
+  useEffect(() => {
+    if (!otherUser?.username) {
+      setProfile(null)
+      return
+    }
+
+    let active = true
+
+    api(`/users/${otherUser.username}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!active) return
+        const user = data?.user
+        if (!user) {
+          setProfile(null)
+          return
+        }
+        setProfile({
+          id: user.id,
+          name: user.name ?? user.username ?? 'User',
+          avatar: user.avatar ?? null,
+          bio: user.bio ?? null,
+          friendStatus: user.friendStatus,
+          mutualFriends: Array.isArray(user.mutualFriends) ? user.mutualFriends : undefined,
+          mutualZones: Array.isArray(user.mutualZones) ? user.mutualZones : undefined,
+          joinedAt: user.createdAt ?? null,
+          isOnline: user.isOnline ?? undefined,
+          lastSeen: user.lastLogin ?? null,
+        })
+      })
+      .catch(() => {
+        if (active) setProfile(null)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [otherUser?.username])
 
   useEffect(() => {
     if (!chatPublicId) return
@@ -324,6 +413,19 @@ export default function ChatPage() {
       setHeaderActionBusy(false)
     }
   }, [chatPublicId, hideChat, otherUser, router])
+
+  const addFriend = useCallback(async () => {
+    if (!otherUser?.username) return
+
+    const res = await api('/friends/request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: otherUser.username }),
+    })
+    if (res.ok) {
+      setProfile((prev) => (prev ? { ...prev, friendStatus: 'pending' } : prev))
+    }
+  }, [otherUser])
 
   const togglePinMessage = useCallback(async (messageId: number) => {
     await api(`/chats/messages/${messageId}/pin`, {
@@ -549,135 +651,94 @@ export default function ChatPage() {
             h-full min-h-0 w-full
           "
     >
-      <div
-        className="
-                sticky top-0 z-10 flex items-center shrink-0
-                px-4 py-4
-                bg-background
-                border-b
-                gap-3
-              "
-      >
-        <div
-          className="
-                    md:hidden
-                  "
-        >
+      <ChatHeader
+        user={
+          isGroup
+            ? {
+                id: activeChat?.chatPublicId ?? chatPublicId,
+                name: activeChat?.name ?? 'Group',
+                avatar: activeChat?.avatar ?? null,
+              }
+            : {
+                id: otherUser?.id ?? 'unknown',
+                name: otherUser?.name ?? otherUser?.username ?? 'User',
+                avatar: otherUser?.avatar ?? null,
+                isOnline: otherUser
+                  ? onlineUsers.has(otherUser.id) || otherUser.isOnline === true
+                  : false,
+              }
+        }
+        leading={
           <button
             onClick={() => router.push('/zone/chat')}
-            className="rounded-md p-2 text-zinc-400 transition-colors hover:bg-muted hover:text-white"
+            className="md:hidden rounded-full h-10 w-10 flex items-center justify-center text-zinc-400 transition-colors hover:bg-muted hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="Back to messages"
+            type="button"
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
-        </div>
-
-        <div className="relative">
-          <Avatar
-            className="
-                    h-10 w-10
-                  "
-          >
-            <AvatarImage src={getAvatarUrl(otherUser?.avatar)} />
-            <AvatarFallback
-              className="
-                        text-primary-foreground
-                      "
-            >
-              <User
-                className="
-                            h-5 w-5
-                          "
-              />
-            </AvatarFallback>
-          </Avatar>
-          {otherUser && speakingUsers.has(otherUser.id) && (
-            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-[#313338] animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
-          )}
-        </div>
-
-        <div
-          className="
-                    flex-1
-                  "
-        >
-          <p
-            className="
-                        font-medium text-sm
-                      "
-          >
-            {isGroup ? activeChat?.name : otherUser?.username}
-          </p>
-          {pinnedMessages.length > 0 && (
+        }
+        center={
+          pinnedMessages.length > 0 ? (
             <button
-              className="mt-1 flex items-center gap-1 text-[11px] text-amber-300"
+              type="button"
+              className="hidden sm:flex items-center gap-1 text-[11px] text-amber-300 hover:underline"
               onClick={() => setPinnedPanelOpen(true)}
+              aria-label="Show pinned messages"
             >
               <Pin className="h-3 w-3" />
               {pinnedMessages.length} pinned
             </button>
-          )}
-        </div>
-
-
-        {/* <MicTest /> */}
-
-        <Button
-          onClick={() => {
-            if (!otherUser || !chatPublicId) return
-
-            void startOutgoingCallSession({
-              chatPublicId,
-              toUserId: otherUser.id,
-              user: {
-                id: otherUser.id,
-                name: otherUser.username,
-                image: otherUser.avatar,
-              },
-            })
-          }}
-        >
-          <PhoneCall className="w-3 h-3 scale-[1.25]" strokeWidth={2} />
-        </Button>
-
-
-
-        <Button
-          variant="destructive"
-        >
-          <Video className="w-3 h-3 scale-[1.55]" strokeWidth={2} />
-        </Button>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+          ) : null
+        }
+        trailing={
+          resolvedProfile ? (
             <Button
+              type="button"
               variant="ghost"
-              disabled={!otherUser || headerActionBusy}
+              size="icon"
+              className="h-10 w-10 rounded-full"
+              aria-label={isSidebarOpen ? 'Hide details' : 'Show details'}
+              onClick={handleToggleSidebar}
             >
-              <Info className="w-3 h-3 scale-[1.35]" strokeWidth={2} />
+              <PanelRight className="h-4 w-4" />
             </Button>
-          </DropdownMenuTrigger>
-
-          <DropdownMenuContent align="end" className="w-44">
-            <DropdownMenuItem
-              onClick={removeCurrentFriend}
-              className="cursor-pointer"
-            >
-              <UserMinus className="mr-2 h-4 w-4" />
-              Remove Friend
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={blockCurrentFriend}
-              className="cursor-pointer text-red-500 focus:text-red-500"
-            >
-              <ShieldBan className="mr-2 h-4 w-4" />
-              Block User
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-
-      </div>
+          ) : null
+        }
+        onCall={() => {
+          if (!otherUser || !chatPublicId) return
+          void startOutgoingCallSession({
+            chatPublicId,
+            toUserId: otherUser.id,
+            user: {
+              id: otherUser.id,
+              name: otherUser.username,
+              image: otherUser.avatar,
+            },
+          })
+        }}
+        callDisabled={!otherUser || !chatPublicId}
+        // Video calling not implemented yet (keep button disabled but visible).
+        videoDisabled
+        moreDisabled={!otherUser || headerActionBusy || isGroup}
+        moreMenu={
+          !isGroup ? (
+            <>
+              <DropdownMenuItem onClick={removeCurrentFriend} className="cursor-pointer">
+                <UserMinus className="mr-2 h-4 w-4" />
+                Remove Friend
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={blockCurrentFriend}
+                className="cursor-pointer text-red-500 focus:text-red-500"
+              >
+                <ShieldBan className="mr-2 h-4 w-4" />
+                Block User
+              </DropdownMenuItem>
+            </>
+          ) : null
+        }
+      />
 
       <Sheet open={pinnedPanelOpen} onOpenChange={setPinnedPanelOpen}>
         <SheetContent side="right" className="w-full sm:max-w-md">
@@ -713,18 +774,55 @@ export default function ChatPage() {
         </SheetContent>
       </Sheet>
 
-      <div
-        ref={messagesRef}
-        dir="ltr"
-        className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 w-full overscroll-y-contain"
-      >
-        <div className="flex flex-col min-h-full justify-end">
-          {messages.map((m, idx) => {
-            const isMe = m.senderId === currentUserId
-            const sender = isMe ? currentUser : otherUser
-            const prevMsg = messages[idx - 1]
-            const isGrouped = !!prevMsg && prevMsg.senderId === m.senderId &&
-              (getMessageTimestamp(m) - getMessageTimestamp(prevMsg) < 300000)
+      <Sheet open={isSidebarSheetOpen} onOpenChange={setIsSidebarSheetOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-sm lg:hidden">
+          {resolvedProfile ? (
+            <ChatSidebar
+              profile={resolvedProfile}
+              canManageFriend={canManageFriend}
+              onAddFriend={addFriend}
+              onRemoveFriend={removeCurrentFriend}
+              onBlock={blockCurrentFriend}
+              onViewProfile={handleOpenProfileModal}
+              className="w-full border-0 bg-transparent"
+            />
+          ) : null}
+        </SheetContent>
+      </Sheet>
+
+      <ProfileModal
+        profile={resolvedProfile}
+        open={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        canManageFriend={canManageFriend}
+        onAddFriend={addFriend}
+        onRemoveFriend={removeCurrentFriend}
+        onBlock={blockCurrentFriend}
+      />
+
+      <div className="flex min-h-0 flex-1">
+        <div className="flex flex-col min-h-0 flex-1">
+          <div
+            ref={messagesRef}
+            dir="ltr"
+            className={cn(
+              'flex-1 min-h-0 overflow-x-hidden p-4 w-full overscroll-y-contain',
+              messages.length === 0 ? 'overflow-hidden' : 'overflow-y-auto',
+            )}
+          >
+            {messages.length === 0 ? (
+              <EmptyChatState
+                name={emptyChatName}
+                onSelectMessage={(msg) => setInput(msg)}
+              />
+            ) : (
+              <div className="flex flex-col min-h-full justify-end">
+                {messages.map((m, idx) => {
+                  const isMe = m.senderId === currentUserId
+                  const sender = isMe ? currentUser : otherUser
+                  const prevMsg = messages[idx - 1]
+                  const isGrouped = !!prevMsg && prevMsg.senderId === m.senderId &&
+                    (getMessageTimestamp(m) - getMessageTimestamp(prevMsg) < 300000)
 
             if (isGrouped) {
               return (
@@ -741,18 +839,18 @@ export default function ChatPage() {
                   )}
                   {editingId === m.id ? (
                     <div>
-                      <input
-                        value={editText}
-                        autoFocus
-                        onChange={(e) => setEditText(e.target.value)}
-                        onKeyDown={async (e) => {
-                          if (e.key === 'Enter') {
-                            const res = await api(`/chats/messages/${m.id}`, {
-                              method: 'PATCH',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ text: editText }),
-                              credentials: 'include'
-                            })
+	                      <input
+	                        value={editText}
+	                        autoFocus
+	                        onChange={(e) => setEditText(e.target.value)}
+	                        onKeyDown={async (e) => {
+	                          if (e.key === 'Enter') {
+	                            await api(`/chats/messages/${m.id}`, {
+	                              method: 'PATCH',
+	                              headers: { 'Content-Type': 'application/json' },
+	                              body: JSON.stringify({ text: editText }),
+	                              credentials: 'include'
+	                            })
 
                             setEditingId(null)
                           }
@@ -885,18 +983,18 @@ export default function ChatPage() {
 
                   {editingId === m.id ? (
                     <div>
-                      <input
-                        value={editText}
-                        autoFocus
-                        onChange={(e) => setEditText(e.target.value)}
-                        onKeyDown={async (e) => {
-                          if (e.key === 'Enter') {
-                            const res = await api(`/chats/messages/${m.id}`, {
-                              method: 'PATCH',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ text: editText }),
-                              credentials: 'include'
-                            })
+	                      <input
+	                        value={editText}
+	                        autoFocus
+	                        onChange={(e) => setEditText(e.target.value)}
+	                        onKeyDown={async (e) => {
+	                          if (e.key === 'Enter') {
+	                            await api(`/chats/messages/${m.id}`, {
+	                              method: 'PATCH',
+	                              headers: { 'Content-Type': 'application/json' },
+	                              body: JSON.stringify({ text: editText }),
+	                              credentials: 'include'
+	                            })
 
                             setEditingId(null)
                           }
@@ -1001,6 +1099,7 @@ export default function ChatPage() {
 
           <div ref={bottomRef} />
         </div>
+        )}
       </div>
 
       <div
@@ -1045,6 +1144,7 @@ export default function ChatPage() {
           </Button>
 
           <Input
+            ref={inputRef}
             value={input}
             onChange={(e) => handleInputChange(e.target.value)}
             onKeyDown={(e) => {
@@ -1059,21 +1159,22 @@ export default function ChatPage() {
             className="border-0 bg-transparent focus-visible:ring-0 text-white placeholder:text-zinc-500 min-w-0"
           />
 
-          <div className="hidden sm:flex items-center gap-0.5 shrink-0">
-             <Button size="icon" variant="ghost" className="h-9 w-9 text-zinc-400 hover:text-zinc-200" title="Gift Nitro">
+<div className="hidden sm:flex items-center gap-0.5 shrink-0">
+              <Button size="icon" variant="ghost" className="h-9 w-9 text-zinc-400 hover:text-zinc-200" title="Gift Nitro">
                 <Gift className="h-5 w-5" />
-             </Button>
+              </Button>
 
-             <div className="relative">
+              <div className="relative">
                 <Button 
                   size="icon" 
                   variant="ghost" 
                   className={cn("h-9 w-9 transition-colors", showGifs ? "text-primary" : "text-zinc-400 hover:text-zinc-200")} 
-                  onClick={() => { setShowGifs(!showGifs); setShowStickers(false); }}
+                  onClick={() => { setShowGifs(!showGifs); setShowStickers(false); setShowEmojis(false); }}
                   title="Send GIF"
                 >
-                   <Search className="h-5 w-5" strokeWidth={2.5} />
+                  <Search className="h-5 w-5" strokeWidth={2.5} />
                 </Button>
+
                 {showGifs && (
                   <GifPicker 
                     onClose={() => setShowGifs(false)} 
@@ -1083,21 +1184,39 @@ export default function ChatPage() {
                     }} 
                   />
                 )}
-             </div>
+              </div>
 
-             <Button size="icon" variant="ghost" className="h-9 w-9 text-zinc-400 hover:text-zinc-200" title="Pick an Emoji">
-                <Smile className="h-5 w-5" />
-             </Button>
-
-             <div className="relative">
+              <div className="relative">
                 <Button 
                   size="icon" 
                   variant="ghost" 
+                  className={cn("h-9 w-9 transition-colors", showEmojis ? "text-primary" : "text-zinc-400 hover:text-zinc-200")} 
+                  onClick={() => { setShowEmojis(!showEmojis); setShowGifs(false); setShowStickers(false); }}
+                  title="Pick an Emoji"
+                >
+                  <Smile className="h-5 w-5" />
+                </Button>
+
+                {showEmojis && (
+                  <EmojiPicker 
+                    onClose={() => setShowEmojis(false)} 
+                    onSelect={(emoji) => {
+                      setInput(prev => prev + emoji)
+                      inputRef.current?.focus()
+                    }} 
+                  />
+                )}
+              </div>
+
+              <div className="relative">
+                <Button
+                  size="icon" 
+                  variant="ghost" 
                   className={cn("h-9 w-9 transition-colors", showStickers ? "text-primary" : "text-zinc-400 hover:text-zinc-200")} 
-                  onClick={() => { setShowStickers(!showStickers); setShowGifs(false); }}
+                  onClick={() => { setShowStickers(!showStickers); setShowGifs(false); setShowEmojis(false); }}
                   title="Custom Stickers"
                 >
-                   <StickerIcon className="h-5 w-5" />
+                  <StickerIcon className="h-5 w-5" />
                 </Button>
                 {showStickers && (
                   <StickerPicker 
@@ -1134,6 +1253,21 @@ export default function ChatPage() {
           />
         </div>
       </div>
-    </div >
+        </div>
+
+        {resolvedProfile && isSidebarOpen ? (
+          <div className="hidden lg:flex">
+            <ChatSidebar
+              profile={resolvedProfile}
+              canManageFriend={canManageFriend}
+              onAddFriend={addFriend}
+              onRemoveFriend={removeCurrentFriend}
+              onBlock={blockCurrentFriend}
+              onViewProfile={handleOpenProfileModal}
+            />
+          </div>
+        ) : null}
+      </div>
+    </div>
   )
 }

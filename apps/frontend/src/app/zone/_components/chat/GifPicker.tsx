@@ -7,10 +7,12 @@ import { cn } from '@openchat/lib'
 
 export default function GifPicker({ 
   onSelect, 
-  onClose 
+  onClose,
+  autoClose = true
 }: { 
   onSelect: (url: string) => void,
   onClose: () => void
+  autoClose?: boolean
 }) {
   const [search, setSearch] = useState('')
   

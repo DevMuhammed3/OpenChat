@@ -97,6 +97,18 @@ body {
   .text-foreground {
     @apply text-[color:hsl(var(--foreground))];
   }
+
+  .bg-sidebar {
+    @apply bg-[color:hsl(var(--sidebar))];
+  }
+
+  .bg-main {
+    @apply bg-[color:hsl(var(--bg-main))];
+  }
+
+  .bg-surface {
+    @apply bg-[color:hsl(var(--surface))];
+  }
 }
 
 
@@ -122,6 +134,9 @@ body {
     --input: 214.3 31.8% 91.4%;
     --ring: 263.4 70% 50.4%;
     --radius: 0.75rem;
+    --sidebar: 0 0% 100%;
+    --bg-main: 0 0% 100%;
+    --surface: 0 0% 98%;
   }
 
   .dark {
@@ -144,6 +159,9 @@ body {
     --border: 215 28% 17%;
     --input: 215 28% 17%;
     --ring: 263.4 70% 50.4%;
+    --sidebar: 224 71% 4%;
+    --bg-main: 224 71% 4%;
+    --surface: 215 27% 12%;
   }
 }
 
@@ -158,6 +176,14 @@ body {
 
   .high-perf-gradient {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }
 

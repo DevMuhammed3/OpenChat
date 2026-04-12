@@ -2,12 +2,18 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { useState } from 'react'
 import { api, cn } from '@openchat/lib'
-import { User, Shield, Lock, Bell, Trash2, LogOut, ArrowLeft, Keyboard } from 'lucide-react'
+import { User, Shield, Lock, Bell, Trash2, LogOut, ArrowLeft, Keyboard, Menu, X } from 'lucide-react'
 import { useUserStore } from '@/app/stores/user-store'
 import { useChatsStore } from '@/app/stores/chat-store'
 import { useFriendsStore } from '@/app/stores/friends-store'
 import { Button } from 'packages/ui'
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from 'packages/ui'
 
 const tabs = [
   { name: 'Profile', href: '/settings/profile', icon: User },
@@ -18,7 +24,7 @@ const tabs = [
   { name: 'Account', href: '/settings/account', icon: Trash2 },
 ]
 
-export default function SettingsSidebar() {
+function SettingsNav({ onLinkClick }: { onLinkClick?: () => void }) {
   const pathname = usePathname()
   const router = useRouter()
 
@@ -36,23 +42,21 @@ export default function SettingsSidebar() {
     useChatsStore.getState().reset()
     useFriendsStore.getState().reset()
 
-    // Use window.location.href to ensure a clean state and clear server-side caches
     window.location.href = '/auth'
   }
 
   return (
-    <div className="fixed min-h-[100vh] w-64 bg-[#0a101c] border-r border-white/5 p-6 flex flex-col">
+    <div className="flex flex-col h-full p-6">
       <div className="mb-6">
         <Button
           variant="ghost"
           onClick={() => router.push('/zone')}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-white transition"
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition"
         >
           <ArrowLeft size={16} />
           Back
         </Button>
       </div>
-      {/* Tabs */}
       <div className="space-y-2 flex-1">
         {tabs.map((tab) => {
           const Icon = tab.icon
@@ -62,11 +66,12 @@ export default function SettingsSidebar() {
             <Link
               key={tab.name}
               href={tab.href}
+              onClick={onLinkClick}
               className={cn(
                 'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200',
                 active
                   ? 'bg-primary/15 text-primary border-l-2 border-primary'
-                  : 'text-muted-foreground hover:bg-white/5 hover:text-white'
+                  : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
               )}
             >
               <Icon size={16} />
@@ -75,20 +80,40 @@ export default function SettingsSidebar() {
           )
         })}
       </div>
-
-      {/* Divider */}
-      <div className="h-px bg-white/5 my-4" />
-
-      {/* Logout */}
+      <div className="h-px bg-border my-4" />
       <Button
         variant="destructive"
         onClick={handleLogout}
-        className="flex justify-start gap-3 px-3 py-2 rounded-lg text-sm text-red-400 transition-all duration-200 hover:bg-red-500/10 hover:text-red-500"
+        className="flex justify-start gap-3 px-3 py-2 rounded-lg text-sm text-red-500 transition-all duration-200 hover:bg-red-500/10"
       >
         <LogOut size={16} />
         Logout
       </Button>
-
     </div>
+  )
+}
+
+export default function SettingsSidebar() {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <>
+      <div className="hidden md:flex fixed min-h-[100vh] w-64 bg-sidebar border-r">
+        <SettingsNav />
+      </div>
+
+      <div className="md:hidden fixed top-4 left-4 z-50">
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon" className="rounded-lg">
+              <Menu size={20} />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="p-0 w-[280px] bg-sidebar border-r">
+            <SettingsNav onLinkClick={() => setOpen(false)} />
+          </SheetContent>
+        </Sheet>
+      </div>
+    </>
   )
 }

@@ -123,3 +123,42 @@ export function useSendChannelMessageMutation(chatPublicId: string, channelPubli
     },
   })
 }
+
+export function useEditChannelMessageMutation(chatPublicId: string, channelPublicId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ messageId, text }: { messageId: number; text: string }) => {
+      const data = await apiClient.patch<{ message: ChannelMessage }>(`/chats/messages/${messageId}`, {
+        text,
+      })
+      return data.message
+    },
+    onSuccess(message) {
+      queryClient.setQueryData<ChannelMessage[]>(
+        messageKeys.list(chatPublicId, channelPublicId),
+        (current = []) => mergeMessage(current, message),
+      )
+    },
+  })
+}
+
+export function useDeleteChannelMessageMutation(chatPublicId: string, channelPublicId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (messageId: number) => {
+      await apiClient.delete(`/chats/messages/${messageId}`)
+      return messageId
+    },
+    onSuccess(messageId) {
+      queryClient.setQueryData<ChannelMessage[]>(
+        messageKeys.list(chatPublicId, channelPublicId),
+        (current = []) =>
+          current.map((m) =>
+            m.id === messageId ? { ...m, isDeleted: true, text: null } : m,
+          ),
+      )
+    },
+  })
+}

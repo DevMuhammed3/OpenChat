@@ -17,7 +17,7 @@ import {
     useUpdateZoneMutation,
 } from '@/features/zones/mutations'
 import { useUser } from '@/features/user/queries'
-import { ZoneSettingsModal } from './ZoneSettingsModal'
+import ZoneSettings from './ZoneSettings'
 
 type ZoneDropdownMenuProps = {
     zonePublicId: string
@@ -160,7 +160,6 @@ export function ZoneDropdownMenu({
                                         </button>
                                     )}
                                 </div>
-
                                 <div className="border-t border-white/10 py-1">
                                     {isOwner ? (
                                         <button
@@ -286,9 +285,9 @@ export function ZoneDropdownMenu({
                 </div>
             )}
 
-            <ZoneSettingsModal
+            <ZoneSettings
                 open={showSettings}
-                onClose={() => setShowSettings(false)}
+                onOpenChange={(open) => setShowSettings(open)}
                 zonePublicId={zonePublicId}
             />
         </>
