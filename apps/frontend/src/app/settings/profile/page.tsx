@@ -72,7 +72,7 @@ export default function ProfilePage() {
            <Skeleton className="h-8 w-48" />
            <Skeleton className="h-4 w-64" />
          </div>
-         <Card className="bg-[#111a2b] border border-white/5">
+         <Card className="bg-surface border-border">
            <CardContent className="h-40 flex items-center gap-6">
               <Skeleton className="h-28 w-28 rounded-full" />
               <div className="space-y-2 flex-1">
@@ -139,6 +139,13 @@ export default function ProfilePage() {
   }
 
   const handleAvatarChange = async (file: File) => {
+    const MAX_SIZE = 2 * 1024 * 1024 // 2MB
+    
+    if (file.size > MAX_SIZE) {
+      toast.error('File too large. Maximum size is 2MB')
+      return
+    }
+
     const preview = URL.createObjectURL(file)
 
     updateUser({ avatar: preview }) // optimistic preview
@@ -204,7 +211,7 @@ export default function ProfilePage() {
       </div>
 
       {/* Avatar Card */}
-      <Card className="bg-[#111a2b] border border-white/5">
+      <Card className="bg-surface border-border">
         <CardHeader>
           <CardTitle>Profile Picture</CardTitle>
           <CardDescription>
@@ -269,7 +276,7 @@ export default function ProfilePage() {
       </Card>
 
       {/* Personal Info Card */}
-      <Card className="bg-[#111a2b] border border-white/5">
+      <Card className="bg-surface border-border">
         <CardHeader>
           <CardTitle>Personal Information</CardTitle>
           <CardDescription>
@@ -305,7 +312,7 @@ export default function ProfilePage() {
               <Textarea
                 {...register('bio')}
                 rows={4}
-                className="bg-[#0f172a]/40 border-white/10 focus:border-purple-500"
+                className="bg-background border-border focus:border-primary"
               />
             </div>
 

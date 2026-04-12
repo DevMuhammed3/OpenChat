@@ -37,7 +37,7 @@ export default function SecurityPage() {
       </div>
 
       {/* Change Password */}
-      <Card className="bg-[#111a2b] border border-white/5">
+      <Card className="bg-surface border-border">
         <CardHeader>
           <CardTitle>Change Password</CardTitle>
           <CardDescription>
@@ -79,7 +79,7 @@ export default function SecurityPage() {
       </Card>
 
       {/* Active Sessions */}
-      <Card className="bg-[#111a2b] border border-white/5">
+      <Card className="bg-surface border-border">
         <CardHeader>
           <CardTitle>Active Sessions</CardTitle>
           <CardDescription>
@@ -88,7 +88,7 @@ export default function SecurityPage() {
         </CardHeader>
 
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-4 rounded-lg bg-[#0f172a]/40 border border-white/5">
+          <div className="flex items-center justify-between p-4 rounded-lg bg-background border-border">
             <div>
               <p className="text-sm font-medium">
                 Chrome • Linux
@@ -103,7 +103,7 @@ export default function SecurityPage() {
             </Button>
           </div>
 
-          <div className="flex items-center justify-between p-4 rounded-lg bg-[#0f172a]/40 border border-white/5">
+          <div className="flex items-center justify-between p-4 rounded-lg bg-background border-border">
             <div>
               <p className="text-sm font-medium">
                 Safari • iPhone
@@ -121,7 +121,7 @@ export default function SecurityPage() {
       </Card>
 
       {/* Two Factor */}
-      <Card className="bg-[#111a2b] border border-white/5">
+      <Card className="bg-surface border-border">
         <CardHeader>
           <CardTitle>Two-Factor Authentication</CardTitle>
           <CardDescription>

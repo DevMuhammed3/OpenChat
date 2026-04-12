@@ -50,7 +50,7 @@ export default function PrivacyPage() {
       </div>
 
       {/* Account Visibility */}
-      <Card className="bg-[#111a2b] border border-white/5">
+      <Card className="bg-surface border-border">
         <CardHeader>
           <CardTitle>Account Visibility</CardTitle>
           <CardDescription>
@@ -79,7 +79,7 @@ export default function PrivacyPage() {
       </Card>
 
       {/* Activity Status */}
-      <Card className="bg-[#111a2b] border border-white/5">
+      <Card className="bg-surface border-border">
         <CardHeader>
           <CardTitle>Activity Status</CardTitle>
           <CardDescription>
@@ -108,7 +108,7 @@ export default function PrivacyPage() {
       </Card>
 
       {/* Messaging */}
-      <Card className="bg-[#111a2b] border border-white/5">
+      <Card className="bg-surface border-border">
         <CardHeader>
           <CardTitle>Messaging</CardTitle>
           <CardDescription>

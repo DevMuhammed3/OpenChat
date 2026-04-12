@@ -319,6 +319,7 @@ export class AuthController {
           email: true,
           emailVerified: true,
           avatar: true,
+          bio: true,
           createdAt: true,
         },
       })

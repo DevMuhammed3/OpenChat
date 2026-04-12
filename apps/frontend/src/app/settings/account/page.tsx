@@ -46,7 +46,7 @@ export default function AccountPage() {
       </div>
 
       {/* Sessions */}
-      <Card className="bg-[#111a2b] border border-white/5">
+      <Card className="bg-surface border-border">
         <CardHeader>
           <CardTitle>Sessions</CardTitle>
           <CardDescription>
@@ -75,7 +75,7 @@ export default function AccountPage() {
       </Card>
 
       {/* Data */}
-      <Card className="bg-[#111a2b] border border-white/5">
+      <Card className="bg-surface border-border">
         <CardHeader>
           <CardTitle>Your Data</CardTitle>
           <CardDescription>

@@ -6,6 +6,7 @@ import { Eye, EyeOff, Mail, Lock, User, CheckCircle2, AlertCircle, Loader2, Spar
 import { useRouter } from "next/navigation";
 import { api } from '@openchat/lib';
 import { Checkbox, Label } from "@openchat/ui"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from "@openchat/ui"
 import { signupSchema } from "@openchat/lib/validations/auth";
 import { useGoogleLogin } from "@react-oauth/google";
 import Link from 'next/link';

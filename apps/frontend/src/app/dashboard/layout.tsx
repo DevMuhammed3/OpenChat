@@ -13,7 +13,7 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-[#0b1220] text-foreground">
+    <div className="min-h-screen bg-sidebar text-foreground">
       {children}
     </div>
   )

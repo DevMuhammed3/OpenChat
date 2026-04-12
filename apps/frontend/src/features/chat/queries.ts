@@ -73,3 +73,26 @@ export function useMessages(chatPublicId?: string, channelPublicId?: string) {
     enabled: Boolean(chatPublicId && channelPublicId),
   })
 }
+
+export function useChannelPinnedMessages(chatPublicId?: string, channelPublicId?: string) {
+  return useQuery<ChannelMessage[]>({
+    queryKey:
+      chatPublicId && channelPublicId
+        ? [...messageKeys.list(chatPublicId, channelPublicId), "pinned"]
+        : [...messageKeys.all, "idle"],
+    queryFn: async () => {
+      if (!chatPublicId || !channelPublicId) {
+        return []
+      }
+
+      const data = await apiClient.get<MessagesResponse>(`/chats/${chatPublicId}/messages`, {
+        query: { channelPublicId, pinned: true },
+      })
+
+      return data.messages?.filter(m => m.isPinned && !m.isDeleted) ?? []
+    },
+    staleTime: 20_000,
+    gcTime: 20 * 60_000,
+    enabled: Boolean(chatPublicId && channelPublicId),
+  })
+}

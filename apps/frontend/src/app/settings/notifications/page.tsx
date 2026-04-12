@@ -51,7 +51,7 @@ export default function NotificationsPage() {
       </div>
 
       {/* In-App */}
-      <Card className="bg-[#111a2b] border border-white/5">
+      <Card className="bg-surface border-border">
         <CardHeader>
           <CardTitle>In-App Notifications</CardTitle>
           <CardDescription>
@@ -80,7 +80,7 @@ export default function NotificationsPage() {
       </Card>
 
       {/* Email */}
-      <Card className="bg-[#111a2b] border border-white/5">
+      <Card className="bg-surface border-border">
         <CardHeader>
           <CardTitle>Email Notifications</CardTitle>
           <CardDescription>
@@ -128,7 +128,7 @@ export default function NotificationsPage() {
       </Card>
 
       {/* Sound */}
-      <Card className="bg-[#111a2b] border border-white/5">
+      <Card className="bg-surface border-border">
         <CardHeader>
           <CardTitle>Sound</CardTitle>
           <CardDescription>

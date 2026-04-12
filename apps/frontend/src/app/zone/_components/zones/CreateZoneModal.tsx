@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import { Camera, Plus, X } from "lucide-react"
+import { toast } from "sonner"
 
 type ModalProps = {
   open: boolean
@@ -43,6 +44,10 @@ export function CreateZoneModal({ open, onClose, onCreate }: ModalProps) {
     if (isSubmitting) return
     if (!name.trim()) {
       setError("Zone name is required")
+      return
+    }
+    if (name.length > 50) {
+      setError("Zone name must be 50 characters or less")
       return
     }
     setIsSubmitting(true)
@@ -148,13 +153,21 @@ export function CreateZoneModal({ open, onClose, onCreate }: ModalProps) {
                   disabled={isSubmitting}
                   onChange={(e) => {
                     const file = e.target.files?.[0]
-                    if (file) setAvatar(file)
+                    if (file) {
+                      const MAX_SIZE = 2 * 1024 * 1024
+                      if (file.size > MAX_SIZE) {
+                        toast.error("File too large. Maximum size is 2MB")
+                        return
+                      }
+                      setAvatar(file)
+                    }
                   }}
                 />
 
                 <p className="text-xs text-white/40 font-medium uppercase tracking-widest">
                   Upload Avatar
                 </p>
+                <p className="text-[10px] text-white/30 mt-1">JPG, PNG up to 2MB</p>
               </div>
 
               <div className="space-y-2">

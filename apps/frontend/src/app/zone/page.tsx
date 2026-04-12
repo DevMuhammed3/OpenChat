@@ -14,6 +14,7 @@ import AddFriend from './friends/AddFriend'
 import { useFriendsStore } from '@/app/stores/friends-store'
 import { useStartDirectMessageMutation } from '@/features/chat/mutations'
 import { useUser } from '@/features/user/queries'
+import { VerifyEmailDialog } from '@/components/verify-email/VerifyEmailDialog'
 
 export default function ZoneHome() {
   const router = useRouter()
@@ -21,6 +22,7 @@ export default function ZoneHome() {
   const startDirectMessageMutation = useStartDirectMessageMutation()
   const [activeTab, setActiveTab] = useState<'friends' | 'requests' | 'pending' | 'blocked' | 'add'>('friends')
   const [searchQuery, setSearchQuery] = useState('')
+  const [verifyEmailOpen, setVerifyEmailOpen] = useState(false)
 
   const requests = useFriendsStore(s => s.requests)
   const friends = useFriendsStore(s => s.friends)
@@ -39,7 +41,7 @@ export default function ZoneHome() {
             <span>Please verify your email</span>
           </div>
           <button
-            onClick={() => router.push('/verify-email')}
+            onClick={() => setVerifyEmailOpen(true)}
             className="font-medium hover:underline"
           >
             Verify now
@@ -127,6 +129,8 @@ export default function ZoneHome() {
           </>
         )}
       </div>
+
+      <VerifyEmailDialog open={verifyEmailOpen} onOpenChange={setVerifyEmailOpen} />
     </div>
   )
 }
