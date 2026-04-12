@@ -117,51 +117,50 @@ export function ChatSidebar({
       </div>
 
       <div className="flex flex-col gap-3">
-        <button
+        <Button
           onClick={onViewProfile}
           disabled={!onViewProfile}
-          className="w-full py-2 rounded-lg border hover:bg-muted transition-all duration-200 hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
+          className="w-full"
+          variant="outline"
         >
           View Profile
-        </button>
+        </Button>
 
         {canManageFriend && profile.friendStatus === 'none' ? (
-          <button
+          <Button
             onClick={onAddFriend}
             disabled={!onAddFriend}
-            className="w-full py-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-all duration-200 hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
+            className="w-full"
           >
             Add Friend
-          </button>
+          </Button>
         ) : null}
 
         {canManageFriend && profile.friendStatus === 'pending' ? (
-          <button
-            disabled
-            className="w-full py-2 rounded-lg bg-muted text-muted-foreground transition-all duration-200 disabled:opacity-50"
-          >
+          <Button disabled className="w-full" variant="secondary">
             Pending
-          </button>
+          </Button>
         ) : null}
 
         {canManageFriend && profile.friendStatus === 'accepted' ? (
-          <button
+          <Button
             onClick={onRemoveFriend}
             disabled={!onRemoveFriend}
-            className="w-full py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-all duration-200 hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
+            className="w-full bg-red-500 hover:bg-red-600"
           >
             Remove Friend
-          </button>
+          </Button>
         ) : null}
 
         {canManageFriend ? (
-          <button
+          <Button
             onClick={onBlock}
             disabled={!onBlock}
-            className="w-full py-2 rounded-lg text-red-500 hover:bg-red-500/10 transition-all duration-200 hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
+            className="w-full text-red-500 hover:bg-red-500/10"
+            variant="ghost"
           >
             Block
-          </button>
+          </Button>
         ) : null}
       </div>
     </aside>
