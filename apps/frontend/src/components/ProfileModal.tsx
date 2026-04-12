@@ -2,7 +2,6 @@
 
 import { useEffect } from 'react'
 import { UserAvatar } from '@/components/UserAvatar'
-import { cn } from '@openchat/lib'
 
 export type ProfileModalProfile = {
   id: string | number
