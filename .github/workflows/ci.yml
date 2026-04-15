@@ -30,8 +30,23 @@ jobs:
       - name: Generate Prisma Client
         run: cd apps/backend && pnpm prisma generate
 
+      - name: Build
+        run: pnpm build
+
       - name: Run Backend Tests
         run: cd apps/backend && pnpm test
 
       - name: Lint
         run: pnpm lint
+
+      - name: Upload Backend Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-dist
+          path: apps/backend/dist/
+
+      - name: Upload Frontend Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: apps/frontend/.next/

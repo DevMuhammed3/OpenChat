@@ -3,36 +3,43 @@
 import { motion } from 'framer-motion'
 import {
     Plus,
-    Shield,
     Zap,
-    Lock,
     CheckCircle2,
     MessageSquare,
-    Video,
-    Settings,
     Volume2,
-    Mic,
-    Headphones,
     Home,
     RadioTower,
 } from 'lucide-react'
 import Image from 'next/image'
+import { useMemo } from 'react'
 
 export default function Features() {
-    const users = [
-        {
-            name: 'Jessica Morgan',
-            avatar: 'https://api.dicebear.com/9.x/toon-head/svg?seed=Jessica',
-        },
-        {
-            name: 'Andrea Carter',
-            avatar: 'https://api.dicebear.com/9.x/toon-head/svg?seed=Andrea',
-        },
-        {
-            name: 'Emery Lee',
-            avatar: 'https://api.dicebear.com/9.x/toon-head/svg?seed=Emery',
-        },
-    ]
+    const users = useMemo(
+        () => [
+            {
+                name: 'Jessica Morgan',
+                avatar: 'https://api.dicebear.com/9.x/toon-head/svg?seed=Jessica',
+            },
+            {
+                name: 'Andrea Carter',
+                avatar: 'https://api.dicebear.com/9.x/toon-head/svg?seed=Andrea',
+            },
+            {
+                name: 'Emery Lee',
+                avatar: 'https://api.dicebear.com/9.x/toon-head/svg?seed=Emery',
+            },
+        ],
+        []
+    )
+
+    const visualizerData = useMemo(
+        () =>
+            [...Array(50)].map((_, i) => ({
+                heights: [20, (i % 10) * 10 + 40, 20],
+                duration: 1 + (i % 5) * 0.2,
+            })),
+        []
+    )
 
     return (
         <section
@@ -72,42 +79,15 @@ export default function Features() {
                         {/* Animated Sound Visualizer Background */}
                         <div className="absolute inset-0 flex items-center justify-center -translate-y-24 pointer-events-none opacity-30 group-hover:opacity-40 transition-opacity duration-700">
                             <div className="flex items-center gap-1.5 h-32">
-                                {[...Array(50)].map((_, i) => (
+                                {visualizerData.map((data, i) => (
                                     <motion.div
                                         key={i}
                                         className="w-2 bg-primary rounded-full"
                                         animate={{
-                                            height: [
-                                                20,
-                                                Math.random() * 100 + 40,
-                                                20,
-                                            ],
+                                            height: data.heights,
                                         }}
                                         transition={{
-                                            duration: 1 + Math.random(),
-                                            repeat: Infinity,
-                                            ease: 'easeInOut',
-                                        }}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="absolute inset-0 flex items-center justify-center -translate-y-24 pointer-events-none opacity-30 group-hover:opacity-40 transition-opacity duration-700">
-                            <div className="flex items-center gap-1.5 h-32">
-                                {[...Array(50)].map((_, i) => (
-                                    <motion.div
-                                        key={i}
-                                        className="w-2 bg-primary rounded-full"
-                                        animate={{
-                                            height: [
-                                                20,
-                                                Math.random() * 100 + 40,
-                                                20,
-                                            ],
-                                        }}
-                                        transition={{
-                                            duration: 1 + Math.random(),
+                                            duration: data.duration,
                                             repeat: Infinity,
                                             ease: 'easeInOut',
                                         }}
