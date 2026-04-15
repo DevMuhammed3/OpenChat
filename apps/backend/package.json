@@ -13,7 +13,8 @@
     "p:f": "prisma format --schema=prisma/schema.prisma",
     "p:g": "prisma generate --schema=prisma/schema.prisma",
     "p:m": "prisma migrate dev --schema=prisma/schema.prisma",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "test": "vitest run"
   },
   "keywords": [],
   "author": "",
@@ -46,6 +47,7 @@
     "prisma": "^6.19.0",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.4"
   }
 }
