@@ -1,11 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, jest, beforeEach } from '@jest/globals'
 import { resolveAssetUrl } from './resolveAssetUrl.js'
 
 describe('resolveAssetUrl', () => {
   const originalEnv = process.env
 
   beforeEach(() => {
-    vi.resetModules()
+    jest.resetModules()
     process.env = { ...originalEnv }
   })
 
