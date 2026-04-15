@@ -8,6 +8,7 @@ import chatRoutes from "./routes/chat.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import { isAllowedOrigin } from "./config/origin.js";
 import webrtcRoutes from "./routes/webrtc.routes.js"
+import { z } from "zod";
 
 export const app: Express = express();
 
@@ -64,6 +65,16 @@ app.use("/webrtc", webrtcRoutes)
 
 // Error handler to catch all unhandled errors
 app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  if (err instanceof z.ZodError) {
+    return res.status(400).json({
+      message: "Validation Error",
+      errors: err.issues.map((issue) => ({
+        field: issue.path.join("."),
+        message: issue.message,
+      })),
+    })
+  }
+
   console.error('[ERROR] Unhandled error:', err)
   console.error('[ERROR] Stack:', err?.stack)
   res.status(500).json({ 
