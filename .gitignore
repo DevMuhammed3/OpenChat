@@ -14,6 +14,7 @@ out/
 *.local
 .agent/
 apps/backend/uploads
+.claude/
 
 # Prisma generated client
 apps/backend/generated/*
