@@ -186,6 +186,11 @@ export default function GlobalCallProvider() {
     if (!callingAudio || !incomingAudio) return
 
     if (status === "calling") {
+
+      if (!callingAudio.src) {
+        callingAudio.src = "/sounds/callingV3Edit.mp3"
+      }
+      
       callingAudio.loop = true
       callingAudio.currentTime = 0
       callingAudio.play().catch(() => { })
@@ -195,6 +200,11 @@ export default function GlobalCallProvider() {
     }
 
     if (status === "incoming") {
+
+      if (!incomingAudio.src) {
+        incomingAudio.src = "/sounds/rining.mp3"
+      }
+
       incomingAudio.loop = true
       incomingAudio.currentTime = 0
       incomingAudio.play().catch(() => { })
@@ -210,13 +220,11 @@ export default function GlobalCallProvider() {
       
       <audio
         ref={callingAudioRef}
-        src="/sounds/callingV3Edit.mp3"
-        preload="auto"
+        preload="none"
       />
       <audio
         ref={incomingAudioRef}
-        src="/sounds/rining.mp3"
-        preload="auto"
+        preload="none"
       />
 
       <CallOverlay

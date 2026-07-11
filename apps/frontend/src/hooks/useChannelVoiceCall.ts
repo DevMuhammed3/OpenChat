@@ -4,7 +4,7 @@ import { api, socket } from "@openchat/lib"
 import { useCallStore } from "@/app/stores/call-store"
 import { registerVoiceController } from "@/app/lib/session-runtime"
 import { useUserStore } from "@/app/stores/user-store"
-import { createPreloadedAudio } from "@/app/lib/audio-feedback"
+import { playSound } from "@/app/lib/audio-feedback"
 
 export function useChannelVoiceCall() {
   const [inCall, setInCall] = useState(false)
@@ -15,8 +15,7 @@ export function useChannelVoiceCall() {
   const delayedCleanupRef = useRef<number | null>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
   const analyzersRef = useRef<Map<number, { frameId: number; context: AudioContext; source: MediaStreamAudioSourceNode }>>(new Map())
-  const joinAudioRef = useRef<HTMLAudioElement | null>(null)
-  const leaveAudioRef = useRef<HTMLAudioElement | null>(null)
+  
   const channelPublicId = useCallStore((s) => s.channelPublicId)
   const currentUserId = useUserStore((s) => s.user?.id ?? null)
   const isSpeaker = useCallStore((s) => s.isSpeaker)
@@ -25,25 +24,14 @@ export function useChannelVoiceCall() {
   const removeChannelParticipant = useCallStore((s) => s.removeChannelParticipant)
   const clearVoiceSession = useCallStore((s) => s.clearVoiceSession)
 
-  useEffect(() => {
-    if (!joinAudioRef.current) {
-      joinAudioRef.current = createPreloadedAudio("/sounds/connect.mp3", 0.4)
-    }
-    if (!leaveAudioRef.current) {
-      leaveAudioRef.current = createPreloadedAudio("/sounds/disconnect.mp3", 0.4)
-    }
-  }, [])
-
   const playJoinSound = useCallback(() => {
-    if (!isSpeaker || !joinAudioRef.current) return
-    joinAudioRef.current.currentTime = 0
-    joinAudioRef.current.play().catch(() => {})
+    if (!isSpeaker) return
+    playSound("/sounds/connect.mp3", 0.4)
   }, [isSpeaker])
 
   const playLeaveSound = useCallback(() => {
-    if (!isSpeaker || !leaveAudioRef.current) return
-    leaveAudioRef.current.currentTime = 0
-    leaveAudioRef.current.play().catch(() => {})
+    if (!isSpeaker) return
+    playSound("/sounds/disconnect.mp3", 0.4)
   }, [isSpeaker])
 
   const stopAnalyzing = useCallback((userId?: number) => {
@@ -224,7 +212,6 @@ export function useChannelVoiceCall() {
 
       await room.connect(serverUrl, token)
       
-      // Respect current mute state on join
       const currentIsMuted = useCallStore.getState().isMuted
       await room.localParticipant.setMicrophoneEnabled(!currentIsMuted)
       const localTrack = Array.from(room.localParticipant.trackPublications.values())

@@ -39,6 +39,7 @@ export default function AuthPage() {
     password: '',
     confirmPassword: '',
   });
+
   const [errors, setErrors] = useState<FormErrors>({});
 
   useEffect(() => {
@@ -54,8 +55,10 @@ export default function AuthPage() {
         window.location.assign("/zone");
         return;
       }
+
       await new Promise((r) => setTimeout(r, 250));
     }
+
     throw new Error("Session was not established");
   };
 
