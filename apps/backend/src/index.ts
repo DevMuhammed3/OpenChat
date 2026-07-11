@@ -111,6 +111,39 @@ io.on('connection', async (socket) => {
 
 server.listen(port, () => { console.log(`Server running on port ${port}`) })
 
+const gracefulShutdown = async (signal: string) => {
+  console.log(`\n${signal} received. Shutting down gracefully...`)
+
+  clearInterval(presenceCleanup)
+
+  server.close(async (err) => {
+    if (err) {
+      console.error('Error closing server:', err)
+      process.exit(1)
+    }
+
+    console.log('HTTP server closed.')
+
+    try {
+      await prisma.$disconnect()
+      console.log('Database connection closed.')
+      process.exit(0)
+    } catch (dbErr) {
+      console.error('Error during database disconnection:', dbErr)
+      process.exit(1)
+    }
+  })
+
+  // Force close after 10 seconds if graceful shutdown fails
+  setTimeout(() => {
+    console.error('Could not close connections in time, forcefully shutting down')
+    process.exit(1)
+  }, 10000)
+}
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT'))
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'))
+
 process.on("exit", () => {
   clearInterval(presenceCleanup)
 })
