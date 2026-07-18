@@ -1,8 +1,8 @@
 import { QueryClient } from "@tanstack/react-query"
 import { ApiError } from "@/lib/api/client"
 
-const DEFAULT_STALE_TIME = 30_000
-const DEFAULT_GC_TIME = 30 * 60_000
+const DEFAULT_STALE_TIME = 300_000
+const DEFAULT_GC_TIME = 900_000
 
 export function createQueryClient() {
   return new QueryClient({

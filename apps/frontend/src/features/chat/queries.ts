@@ -1,6 +1,8 @@
-import { queryOptions, useQuery } from "@tanstack/react-query"
+import { type InfiniteData, queryOptions, useQuery } from "@tanstack/react-query"
 import { apiClient } from "@/lib/api/client"
 import type { ChannelMessage } from "@/features/chat/types"
+
+export type ChatMessagePage = { messages: ChannelMessage[] }
 
 type MessagesResponse = {
   messages: ChannelMessage[]
@@ -95,4 +97,41 @@ export function useChannelPinnedMessages(chatPublicId?: string, channelPublicId?
     gcTime: 20 * 60_000,
     enabled: Boolean(chatPublicId && channelPublicId),
   })
+}
+
+export function mergeIntoFirstPage(
+  current: InfiniteData<ChatMessagePage> | undefined,
+  message: ChannelMessage,
+): InfiniteData<ChatMessagePage> {
+  const firstPage = current?.pages[0] ?? { messages: [] }
+  const withoutDup = firstPage.messages.filter((m) => m.id !== message.id)
+  withoutDup.push(message)
+
+  const sortedFirstPage = { messages: sortMessages(withoutDup) }
+  const restPages = current?.pages.slice(1) ?? []
+
+  return {
+    pages: [sortedFirstPage, ...restPages],
+    pageParams: current?.pageParams ?? [],
+  }
+}
+
+export function updateInAllPages(
+  current: InfiniteData<ChatMessagePage> | undefined,
+  messageId: number,
+  updater: (msg: ChannelMessage) => ChannelMessage,
+): InfiniteData<ChatMessagePage> {
+  if (!current) {
+    return { pages: [], pageParams: [] }
+  }
+
+  return {
+    ...current,
+    pages: current.pages.map((page) => ({
+      ...page,
+      messages: page.messages.map((msg) =>
+        msg.id === messageId ? updater(msg) : msg,
+      ),
+    })),
+  }
 }

@@ -1,13 +1,15 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import { Skeleton } from 'packages/ui'
 import { X } from 'lucide-react'
 import { cn, api } from '@openchat/lib'
 import { useChatsStore } from '@/app/stores/chat-store'
 import { useFriendsStore } from '@/app/stores/friends-store'
 import { UserAvatar } from '@/components/UserAvatar'
+import { getInfiniteMessagesQueryOptions } from '@/features/chat/useChatQuery'
 
 // type ChatItem = {
 //   chatPublicId: string
@@ -22,7 +24,8 @@ import { UserAvatar } from '@/components/UserAvatar'
 export default function ChatList({ currentUserId }: { currentUserId?: number | null }) {
   const { chatPublicId } = useParams<{ chatPublicId?: string }>()
   const router = useRouter()
-
+  const queryClient = useQueryClient()
+  const prefetchTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
 
   const chats = useChatsStore((s) => s.chats)
   const setChats = useChatsStore((s) => s.setChats)
@@ -40,24 +43,32 @@ export default function ChatList({ currentUserId }: { currentUserId?: number | n
       return
     }
 
-    api('/chats')
-      .then((res) => {
-        if (!res.ok) {
-          console.error('Failed to load chats:', res.status)
-          return { chats: [] }
-        }
-        return res.json()
-      })
-      .then((data) => {
-        if (data.chats) {
-          setChats(data.chats)
-        }
-        setIsBootstrapping(false)
-      })
-      .catch((err) => {
-        console.error('Failed to load chats:', err)
-        setIsBootstrapping(false)
-      })
+    const scheduleIdle = typeof window !== 'undefined' && 'requestIdleCallback' in window
+      ? (fn: () => void) => requestIdleCallback(fn, { timeout: 3000 })
+      : (fn: () => void) => setTimeout(fn, 200)
+
+    scheduleIdle(() => {
+      if (useChatsStore.getState().chatsLoaded) return
+
+      api('/chats')
+        .then((res) => {
+          if (!res.ok) {
+            console.error('Failed to load chats:', res.status)
+            return { chats: [] }
+          }
+          return res.json()
+        })
+        .then((data) => {
+          if (data.chats) {
+            setChats(data.chats)
+          }
+          setIsBootstrapping(false)
+        })
+        .catch((err) => {
+          console.error('Failed to load chats:', err)
+          setIsBootstrapping(false)
+        })
+    })
   }, [chatsLoaded, setChats])
 
   const loading = !chatsLoaded && isBootstrapping
@@ -65,6 +76,27 @@ export default function ChatList({ currentUserId }: { currentUserId?: number | n
   const visibleChats = chats.filter(
     (chat) => !hiddenChats.includes(chat.chatPublicId)
   )
+
+  const handlePrefetch = (chatId: string) => {
+    if (prefetchTimers.current.has(chatId)) return
+
+    const timer = setTimeout(() => {
+      prefetchTimers.current.delete(chatId)
+
+      const options = getInfiniteMessagesQueryOptions(chatId, chatId)
+      const cached = queryClient.getQueryData(options.queryKey)
+      if (cached) return
+
+      void queryClient.prefetchInfiniteQuery({
+        queryKey: options.queryKey,
+        queryFn: options.queryFn,
+        initialPageParam: options.initialPageParam,
+        getNextPageParam: options.getNextPageParam,
+      })
+    }, 100)
+
+    prefetchTimers.current.set(chatId, timer)
+  }
 
   useEffect(() => {
     visibleChats.slice(0, 8).forEach((chat) => {
@@ -116,8 +148,14 @@ export default function ChatList({ currentUserId }: { currentUserId?: number | n
             onClick={() =>
               router.push(`/zone/chat/${chat.chatPublicId}`)
             }
-            onPointerEnter={() => router.prefetch(`/zone/chat/${chat.chatPublicId}`)}
-            onTouchStart={() => router.prefetch(`/zone/chat/${chat.chatPublicId}`)}
+            onPointerEnter={() => {
+              router.prefetch(`/zone/chat/${chat.chatPublicId}`)
+              handlePrefetch(chat.chatPublicId)
+            }}
+            onTouchStart={() => {
+              router.prefetch(`/zone/chat/${chat.chatPublicId}`)
+              handlePrefetch(chat.chatPublicId)
+            }}
             className={cn(
               'group w-full flex items-center gap-3 px-2 py-1.5 rounded-md text-left transition-colors relative',
               isActive ? 'bg-white/10 text-white' : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'

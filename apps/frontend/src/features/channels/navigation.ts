@@ -4,7 +4,7 @@ import { startTransition } from "react"
 import { QueryClient, useQueryClient } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime"
-import { getMessagesQueryOptions } from "@/features/chat/queries"
+import { getInfiniteMessagesQueryOptions } from "@/features/chat/useChatQuery"
 import { getChannelsQueryOptions, getPrimaryTextChannel } from "@/features/channels/queries"
 
 export function buildZoneRoute(zonePublicId: string) {
@@ -29,7 +29,13 @@ export async function prefetchZoneTarget(
   router.prefetch(target)
 
   if (primaryChannel) {
-    void queryClient.prefetchQuery(getMessagesQueryOptions(zonePublicId, primaryChannel.publicId))
+    const opts = getInfiniteMessagesQueryOptions(zonePublicId, primaryChannel.publicId)
+    void queryClient.prefetchInfiniteQuery({
+      queryKey: opts.queryKey,
+      queryFn: opts.queryFn,
+      initialPageParam: opts.initialPageParam,
+      getNextPageParam: opts.getNextPageParam,
+    })
   }
 
   return { primaryChannel, target }
@@ -44,9 +50,15 @@ export async function prefetchChannelTarget(
   const target = buildChannelRoute(zonePublicId, channelPublicId)
 
   router.prefetch(target)
+  const msgOpts = getInfiniteMessagesQueryOptions(zonePublicId, channelPublicId)
   await Promise.all([
     queryClient.ensureQueryData(getChannelsQueryOptions(zonePublicId)),
-    queryClient.prefetchQuery(getMessagesQueryOptions(zonePublicId, channelPublicId)),
+    queryClient.prefetchInfiniteQuery({
+      queryKey: msgOpts.queryKey,
+      queryFn: msgOpts.queryFn,
+      initialPageParam: msgOpts.initialPageParam,
+      getNextPageParam: msgOpts.getNextPageParam,
+    }),
   ])
 
   return target

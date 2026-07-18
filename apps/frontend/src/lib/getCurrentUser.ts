@@ -1,8 +1,9 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { ApiError, apiClient } from "@/lib/api/client";
 import type { AppUser } from "@/features/user/types";
 
-export async function getCurrentUser() {
+export const getCurrentUser = cache(async function getCurrentUser() {
   const cookieStore = await cookies();
   const cookieHeader = cookieStore
     .getAll()
@@ -27,4 +28,4 @@ export async function getCurrentUser() {
 
     return null;
   }
-}
+})

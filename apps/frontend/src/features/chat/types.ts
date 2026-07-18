@@ -12,6 +12,7 @@ export type ChannelMessage = {
   fileUrl?: string | null
   fileType?: string | null
   isDeleted?: boolean
+  isEdited?: boolean
   isPinned?: boolean
   pinnedAt?: string | null
   createdAt?: string

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import {
     Avatar,
     AvatarFallback,
@@ -37,15 +38,17 @@ import MessageText from '../../../../_components/chat/MessageText'
 import ZoneSettings from '../../../../_components/zones/ZoneSettings'
 import ZoneSidebar from '../../../../_components/ZoneSidebar'
 import ZonesList from '../../../../_components/zones/ZonesList'
-import GifPicker from '../../../../_components/chat/GifPicker'
-import EmojiPicker from '../../../../_components/chat/EmojiPicker'
+const GifPicker = dynamic(() => import('../../../../_components/chat/GifPicker'), { ssr: false })
+const EmojiPicker = dynamic(() => import('../../../../_components/chat/EmojiPicker'), { ssr: false })
 import { useChatsStore } from '@/app/stores/chat-store'
 import {
     useSendChannelMessageMutation,
     useEditChannelMessageMutation,
     useDeleteChannelMessageMutation,
 } from '@/features/chat/mutations'
-import { useMessages, useChannelPinnedMessages } from '@/features/chat/queries'
+import { useChannelPinnedMessages } from '@/features/chat/queries'
+import { useChatQuery } from '@/features/chat/useChatQuery'
+import { useChatSocket } from '@/features/chat/useChatSocket'
 import { useChannel } from '@/features/channels/queries'
 import { useCreateZoneInviteMutation } from '@/features/zones/mutations'
 import { useZone } from '@/features/zones/queries'
@@ -90,10 +93,15 @@ export default function ChannelPage() {
         zonePublicId,
         channelPublicId
     )
-    const { data: messages = [], isLoading: messagesLoading } = useMessages(
-        zonePublicId,
-        channelPublicId
-    )
+    const {
+        data: messages = [],
+        isLoading: messagesLoading,
+        hasNextPage,
+        isFetchingNextPage,
+        fetchNextPage,
+    } = useChatQuery(zonePublicId, channelPublicId)
+
+    useChatSocket(zonePublicId, channelPublicId)
     const { data: pinnedMessages = [] } = useChannelPinnedMessages(
         zonePublicId,
         channelPublicId
@@ -125,6 +133,7 @@ export default function ChannelPage() {
     const [typingUsers, setTypingUsers] = useState<Set<number>>(new Set())
 
     const messagesRef = useRef<HTMLDivElement>(null)
+    const topSentinelRef = useRef<HTMLDivElement>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
     const inputRef = useRef<HTMLInputElement>(null)
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -197,10 +206,10 @@ export default function ChannelPage() {
         if (distanceFromBottom < 160) {
             container.scrollTo({
                 top: container.scrollHeight,
-                behavior: messagesLoading ? 'auto' : 'smooth',
+                behavior: messagesLoading || isFetchingNextPage ? 'auto' : 'smooth',
             })
         }
-    }, [messages, messagesLoading])
+    }, [messages.length, messagesLoading, isFetchingNextPage])
 
     const clearSelectedFile = useCallback(() => {
         if (previewUrl) {
@@ -306,6 +315,23 @@ export default function ChannelPage() {
             }
         }
     }, [])
+
+    useEffect(() => {
+        if (!topSentinelRef.current || !hasNextPage) return
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0]?.isIntersecting && hasNextPage && !isFetchingNextPage) {
+                    void fetchNextPage()
+                }
+            },
+            { root: messagesRef.current, rootMargin: '200px' },
+        )
+
+        observer.observe(topSentinelRef.current)
+
+        return () => observer.disconnect()
+    }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
     const scrollToMessage = useCallback((messageId: number) => {
         const element = document.getElementById(`message-${messageId}`)
@@ -480,6 +506,14 @@ export default function ChannelPage() {
                 className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain p-4 space-y-4"
             >
                 <div className="flex flex-col min-h-full justify-end">
+                    <div ref={topSentinelRef} className="h-1" />
+
+                    {isFetchingNextPage && (
+                        <div className="flex justify-center py-4">
+                            <Skeleton className="h-8 w-8 rounded-full" />
+                        </div>
+                    )}
+
                     <div className="px-4">
                         <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
                             <Hash size={32} />

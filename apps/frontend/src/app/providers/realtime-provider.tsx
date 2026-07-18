@@ -11,7 +11,6 @@ import {
   useFriendsStore,
 } from '@/app/stores/friends-store'
 import { useChatsStore } from '@/app/stores/chat-store'
-import { mergeMessage, messageKeys } from '@/features/chat/queries'
 import type { ChannelMessage } from '@/features/chat/types'
 import { channelKeys } from '@/features/channels/queries'
 import { useUser } from '@/features/user/queries'
@@ -125,7 +124,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       setBlockedUsers(blocked)
     }
 
-    const handlePrivateMessage = (msg: ChannelMessage & {
+    const handlePrivateMessage = (msg: {
       chatPublicId: string
       channelPublicId?: string
       text?: string | null
@@ -146,13 +145,6 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
           lastMessage: msg.text || (msg.fileUrl ? 'Sent a file' : ''),
           createdAt: msg.createdAt || new Date().toISOString(),
         })
-      }
-
-      if (msg.channelPublicId) {
-        queryClient.setQueryData<ChannelMessage[]>(
-          messageKeys.list(msg.chatPublicId, msg.channelPublicId),
-          (current = []) => mergeMessage(current, msg),
-        )
       }
     }
 
@@ -342,7 +334,14 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    bootstrap()
+    const scheduleIdle = typeof window !== 'undefined' && 'requestIdleCallback' in window
+      ? (fn: () => void) => requestIdleCallback(fn, { timeout: 2000 })
+      : (fn: () => void) => setTimeout(fn, 100)
+
+    scheduleIdle(() => {
+      if (cancelled) return
+      bootstrap()
+    })
 
     const heartbeat = window.setInterval(() => {
       if (socket.connected) {

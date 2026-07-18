@@ -15,6 +15,7 @@ out/
 .agent/
 apps/backend/uploads
 .claude/
+.opencode/
 
 # Prisma generated client
 apps/backend/generated/*

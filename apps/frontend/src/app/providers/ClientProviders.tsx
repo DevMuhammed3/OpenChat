@@ -1,17 +1,24 @@
 "use client"
 
+import dynamic from 'next/dynamic'
 import { Toaster } from 'packages/ui'
 import UserProvider from './user-provider'
-import GlobalCallProvider from './global-call-provider'
 import { AppThemeProvider } from './theme-provider'
 import { RealtimeProvider } from './realtime-provider'
 import { NotificationsProvider } from './notifications-provider'
-// import { GlobalCallSystem } from '../zone/_components/global/call-system'
-import { GoogleOAuthProvider } from "@react-oauth/google"
-import ChannelCallManager from '../zone/_components/ChannelCallManager'
 import { AppQueryProvider } from '@/lib/query/provider'
 import type { AppUser } from '@/features/user/types'
-import { KeyboardShortcutsListener } from '@/components/KeyboardShortcutsListener'
+
+const DynamicGoogleOAuthProvider = dynamic(
+  () => import('@react-oauth/google').then(m => m.GoogleOAuthProvider),
+  { ssr: false }
+)
+const DynamicGlobalCallProvider = dynamic(() => import('./global-call-provider'), { ssr: false })
+const DynamicChannelCallManager = dynamic(() => import('../zone/_components/ChannelCallManager'), { ssr: false })
+const DynamicKeyboardShortcuts = dynamic(
+  () => import('@/components/KeyboardShortcutsListener').then(m => m.KeyboardShortcutsListener),
+  { ssr: false }
+)
 
 export default function ClientProviders({
   children,
@@ -23,21 +30,20 @@ export default function ClientProviders({
 
   return (
     <AppThemeProvider>
-      <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}>
+      <DynamicGoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}>
         <AppQueryProvider initialUser={initialUser}>
           <UserProvider>
             <RealtimeProvider>
               <NotificationsProvider>
-                <KeyboardShortcutsListener />
-                {/*<GlobalCallSystem />*/}
+                <DynamicKeyboardShortcuts />
                 {children}
-                <GlobalCallProvider />
-                <ChannelCallManager />
+                <DynamicGlobalCallProvider />
+                <DynamicChannelCallManager />
               </NotificationsProvider>
             </RealtimeProvider>
           </UserProvider>
         </AppQueryProvider>
-      </GoogleOAuthProvider>
+      </DynamicGoogleOAuthProvider>
       <Toaster richColors position="top-center" />
     </AppThemeProvider>
   )
