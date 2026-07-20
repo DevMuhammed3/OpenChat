@@ -69,3 +69,4 @@ desktop/renderer/
 # Codex local metadata
 .codex
 .codex/
+.aider*
