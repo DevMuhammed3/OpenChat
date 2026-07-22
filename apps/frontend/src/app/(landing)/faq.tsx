@@ -35,19 +35,18 @@ const faqs = [
       "Yes. OpenChat is designed mobile-first — fast, simple, and works great on any device.",
   },
   {
-    question: "How is OpenChat different from WhatsApp or Telegram?",
+    question: "Can I self-host OpenChat?",
     answer:
-      "WhatsApp is owned by Meta and collects your data. Telegram stores messages on their servers. OpenChat is open-source, has no ads, requires no phone number, and gives you full control over your privacy.",
+      "Yes. OpenChat is fully open-source and designed for self-hosting. Deploy it on your own infrastructure with full control over your data and privacy.",
   },
 ]
 
 export default function FAQ() {
   return (
-    <section id="faq" className="relative py-24 px-6 overflow-hidden bg-[#020617]">
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-[1px] bg-gradient-to-r from-transparent via-zinc-800 to-transparent" />
+    <section id="faq" className="relative py-24 px-6 overflow-hidden bg-background">
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-px bg-gradient-to-r from-transparent via-zinc-800 to-transparent" />
 
       <div className="max-w-3xl mx-auto relative z-10">
-
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -55,10 +54,10 @@ export default function FAQ() {
           transition={{ duration: 0.5 }}
           className="text-center mb-16"
         >
-          <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-white mb-4">
             Frequently Asked Questions
           </h2>
-          <p className="text-zinc-400 text-lg max-w-xl mx-auto">
+          <p className="text-zinc-400 text-base md:text-lg max-w-xl mx-auto">
             Everything you need to know about OpenChat, privacy, and how it works under the hood.
           </p>
         </motion.div>
@@ -76,27 +75,18 @@ export default function FAQ() {
                 value={`item-${i}`}
                 className="border-b border-zinc-800/60 py-2"
               >
-                <AccordionTrigger className="text-left text-lg font-medium text-zinc-100 md:hover:text-[#999BE4] transition-colors hover:no-underline">
+                <AccordionTrigger className="text-left text-base font-medium text-zinc-100 md:hover:text-[#999BE4] transition-colors hover:no-underline">
                   {faq.question}
                 </AccordionTrigger>
 
-                <AccordionContent className="text-zinc-400 text-base leading-relaxed pb-4">
+                <AccordionContent className="text-zinc-400 text-sm leading-relaxed pb-4">
                   {faq.answer}
                 </AccordionContent>
               </AccordionItem>
             ))}
           </Accordion>
         </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-          className="mt-16 text-center text-sm text-zinc-500"
-        >
-        </motion.div>
       </div>
-    </section >
+    </section>
   )
 }
