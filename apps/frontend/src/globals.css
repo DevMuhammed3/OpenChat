@@ -140,28 +140,28 @@ body {
   }
 
   .dark {
-    --background: 224 71% 4%;
+    --background: 210 50% 2%;
     --foreground: 210 20% 98%;
-    --card: 224 71% 7%;
+    --card: 210 50% 4%;
     --card-foreground: 210 20% 98%;
-    --popover: 224 71% 4%;
+    --popover: 210 50% 2%;
     --popover-foreground: 210 20% 98%;
-    --primary: 263.4 70% 50.4%;
+    --primary: 180 70% 30%;
     --primary-foreground: 210 20% 98%;
-    --secondary: 215 28% 17%;
+    --secondary: 190 30% 12%;
     --secondary-foreground: 210 20% 98%;
-    --muted: 215 28% 17%;
-    --muted-foreground: 217.9 10.6% 64.9%;
-    --accent: 215 28% 17%;
+    --muted: 190 30% 12%;
+    --muted-foreground: 190 10% 60%;
+    --accent: 190 30% 12%;
     --accent-foreground: 210 20% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 20% 98%;
-    --border: 215 28% 17%;
-    --input: 215 28% 17%;
-    --ring: 263.4 70% 50.4%;
-    --sidebar: 224 71% 4%;
-    --bg-main: 224 71% 4%;
-    --surface: 215 27% 12%;
+    --border: 190 30% 12%;
+    --input: 190 30% 12%;
+    --ring: 180 70% 30%;
+    --sidebar: 210 50% 2%;
+    --bg-main: 210 50% 2%;
+    --surface: 200 35% 7%;
   }
 }
 
@@ -204,10 +204,6 @@ body {
   }
 }
 
-input:focus-visible {
-  outline: none !important;
-}
-
 @layer base {
 
   input,
@@ -218,40 +214,6 @@ input:focus-visible {
 }
 
 @layer base {
-
-  input,
-  textarea {
-    @apply transition-none;
-  }
-}
-
-@layer base {
-  *:focus {
-    outline: none !important;
-  }
-
-  *:focus-visible {
-    outline: none !important;
-    ring: 0 !important;
-    box-shadow: none !important;
-  }
-
-  [class*="focus-visible:ring"] {
-    --ring-offset-width: 0px !important;
-    --ring-offset-color: transparent !important;
-    --ring-color: transparent !important;
-    --ring-width: 0px !important;
-  }
-
-  input:focus-visible,
-  textarea:focus-visible,
-  button:focus-visible,
-  [role="button"]:focus-visible,
-  [tabindex]:focus-visible {
-    outline: none !important;
-    box-shadow: none !important;
-    ring: 0 !important;
-  }
 
   /* ===== Custom Scrollbar ===== */
   ::-webkit-scrollbar {
