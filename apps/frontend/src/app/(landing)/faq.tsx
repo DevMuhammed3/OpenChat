@@ -68,18 +68,18 @@ export default function FAQ() {
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
-          <Accordion type="single" collapsible className="w-full">
+          <Accordion type="single" collapsible className="w-full space-y-4">
             {faqs.map((faq, i) => (
               <AccordionItem
                 key={i}
                 value={`item-${i}`}
-                className="border-b border-zinc-800/60 py-2"
+                className="border border-white/5 rounded-xl px-6 bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
               >
-                <AccordionTrigger className="text-left text-base font-medium text-zinc-100 md:hover:text-[#999BE4] transition-colors hover:no-underline">
+                <AccordionTrigger className="text-left text-base font-medium text-zinc-100 hover:text-cyan-400 transition-colors hover:no-underline py-5">
                   {faq.question}
                 </AccordionTrigger>
 
-                <AccordionContent className="text-zinc-400 text-sm leading-relaxed pb-4">
+                <AccordionContent className="text-zinc-400 text-sm leading-relaxed pb-5">
                   {faq.answer}
                 </AccordionContent>
               </AccordionItem>
