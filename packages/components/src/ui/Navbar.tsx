@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from 'next/image'
 import { motion } from "framer-motion";
 import { Button } from "./button";
 import { 
@@ -16,14 +17,25 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./dropdown-menu";
-import { usePathname } from "next/navigation";
-import { LayoutDashboard, Settings, LogOut, MessageCircle, Home } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Settings, LogOut,  Home } from "lucide-react";
 
-export default function Navbar({ user }: { user?: any }) {
+
+type NavbarUser = {
+  id: number
+  name?: string | null
+  username: string
+  email: string
+  avatar?: string | null
+}
+
+export default function Navbar({ user }: { user?: NavbarUser | null }) {
   const pathname = usePathname();
+  const router = useRouter();
 
   const links = [
     { name: "Features", href: "/#features" },
+    { name: "Docs", href: "/docs" },
     { name: "Open Source", href: "/open-source" },
   ];
 
@@ -35,13 +47,15 @@ export default function Navbar({ user }: { user?: any }) {
     >
       <div className="container mx-auto flex items-center justify-between h-20 px-6">
         <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white shadow-lg shadow-primary/20">
-               <MessageCircle size={18} fill="currentColor" />
-            </div>
+          <Link href="/" className="flex items-center gap-2 group">
+ <Image
+      src="/iconX2.png"
+      width={25}
+      height={25}
+      alt="Picture of the author"
+    />
             <div className="flex items-center gap-2">
-              <span className="text-xl font-bold tracking-tight text-white">OpenChat</span>
-              <span className="hidden md:block text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/10 text-white/50 border border-white/10 tracking-wider">OPEN SOURCE</span>
+              <span className="text-xl font-bold tracking-tight text-white">Zone</span>
             </div>
           </Link>
 
@@ -122,7 +136,7 @@ export default function Navbar({ user }: { user?: any }) {
                     } catch (err) {
                       console.error('Logout failed:', err)
                     }
-                    window.location.href = '/auth'
+                    router.push('/auth')
                   }}
                 >
                   <LogOut className="h-4 w-4 mr-2" />
