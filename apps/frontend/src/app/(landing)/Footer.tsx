@@ -54,6 +54,30 @@ export default function Footer() {
                             </li>
                             <li>
                                 <Link
+                                    href="/open-source"
+                                    className="hover:text-white transition-colors"
+                                >
+                                    Open Source
+                                </Link>
+                            </li>
+                            <li>
+                                <Link
+                                    href="/docs"
+                                    className="hover:text-white transition-colors"
+                                >
+                                    Documentation
+                                </Link>
+                            </li>
+                            <li>
+                                <Link
+                                    href="/solutions"
+                                    className="hover:text-white transition-colors"
+                                >
+                                    Solutions
+                                </Link>
+                            </li>
+                            <li>
+                                <Link
                                     href="/#faq"
                                     className="hover:text-white transition-colors"
                                 >
