@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { Github, MessageCircle } from 'lucide-react'
+import Image from 'next/image'
+import { Github } from 'lucide-react'
 
 export default function Footer() {
     return (
@@ -11,16 +12,17 @@ export default function Footer() {
                     <div className="col-span-1 md:col-span-3 lg:col-span-1">
                         <Link
                             href="/"
-                            className="flex items-center gap-3 mb-6 group"
+                            className="flex items-center gap-2 mb-6 group"
                         >
-                            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
-                                <MessageCircle size={20} fill="currentColor" />
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-xl font-bold tracking-tight text-white">
-                                    OpenChat
-                                </span>
-                            </div>
+                            <Image
+                                src="/iconX2.png"
+                                width={25}
+                                height={25}
+                                alt="Zone logo"
+                            />
+                            <span className="text-xl font-bold tracking-tight text-white">
+                                Zone
+                            </span>
                         </Link>
                         <p className="text-zinc-500 text-sm max-w-xs leading-relaxed mb-6">
                             The open protocol for sovereign human communication.
