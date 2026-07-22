@@ -40,7 +40,7 @@ export default function TechStack() {
           {tech.map((t) => (
             <div
               key={t.name}
-              className="flex items-center gap-2.5 text-zinc-600 hover:text-zinc-300 transition-colors group"
+              className="flex items-center gap-2.5 text-zinc-300 hover:text-white transition-colors group"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
